@@ -9,14 +9,15 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test": "vitest run"
-    ,"worker:types": "wrangler types worker/worker-configuration.d.ts"
-    ,"worker:check": "tsc -p worker/tsconfig.json && wrangler deploy --dry-run"
-    ,"worker:dev": "wrangler dev --local"
+    "test": "vitest run",
+    "worker:types": "wrangler types worker/worker-configuration.d.ts",
+    "worker:check": "tsc -p worker/tsconfig.json && wrangler deploy --dry-run",
+    "worker:dev": "wrangler dev --local"
   },
   "dependencies": {
     "firebase": "^12.18.0",
     "jose": "^6.2.10",
+    "pg": "^8.16.3",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
@@ -26,6 +27,7 @@
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.6",
     "@types/node": "^24.13.3",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^6.1.0",
