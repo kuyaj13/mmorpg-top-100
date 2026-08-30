@@ -1,0 +1,121 @@
+query AdminListPendingSubmissions
+@auth(expr: "auth.token.admin == true && auth.token.email_verified == true") {
+  serverSubmissions(where: { status: { eq: "pending" } }, orderBy: [{ submittedAt: ASC }]) {
+    id
+    name
+    website
+    gameVersion
+    gameSlug
+    region
+    mode
+    description
+    submittedAt
+    status
+  }
+}
+
+mutation AdminApproveSubmission($id: UUID!)
+@auth(expr: "auth.token.admin == true && auth.token.email_verified == true")
+@transaction {
+  query @redact {
+    serverSubmission(id: $id) {
+      status @check(expr: "this == 'pending'", message: "This submission is no longer pending review.")
+    }
+  }
+  serverSubmission_update(id: $id, data: {
+    status: "approved"
+    reviewedAt_expr: "request.time"
+    reviewedByUid_expr: "auth.uid"
+  }) @check(expr: "this != null")
+  moderationEvent_insert(data: {
+    submissionId: $id
+    actorUid_expr: "auth.uid"
+    action: "approved"
+  })
+}
+
+mutation AdminRejectSubmission($id: UUID!)
+@auth(expr: "auth.token.admin == true && auth.token.email_verified == true")
+@transaction {
+  query @redact {
+    serverSubmission(id: $id) {
+      status @check(expr: "this == 'pending'", message: "This submission is no longer pending review.")
+    }
+  }
+  serverSubmission_update(id: $id, data: {
+    status: "rejected"
+    reviewedAt_expr: "request.time"
+    reviewedByUid_expr: "auth.uid"
+  }) @check(expr: "this != null")
+  moderationEvent_insert(data: {
+    submissionId: $id
+    actorUid_expr: "auth.uid"
+    action: "rejected"
+  })
+}
+
+query AdminListPendingDonationClaims
+@auth(expr: "auth.token.admin == true && auth.token.email_verified == true") {
+  donationClaims(where: { status: { eq: "pending" } }, orderBy: [{ createdAt: ASC }]) {
+    id
+    advertiserUid
+    donorReference
+    createdAt
+    server { id name website game { name slug } }
+    package { code durationDays tier priceMinor currency }
+  }
+}
+
+mutation AdminVerifyDonationClaim(
+  $id: UUID!
+  $verifiedAmountMinor: Int64!
+  $verifiedCurrency: String!
+)
+@auth(expr: "auth.token.admin == true && auth.token.email_verified == true")
+@transaction {
+  query @redact {
+    donationClaim(id: $id) {
+      status @check(expr: "this == 'pending'", message: "This claim is no longer pending review.")
+      package {
+        priceMinor @check(expr: "this == vars.verifiedAmountMinor")
+        currency @check(expr: "this == vars.verifiedCurrency")
+      }
+    }
+  }
+  donationClaim_update(id: $id, data: {
+    status: "verified"
+    reviewedAt_expr: "request.time"
+    reviewedByUid_expr: "auth.uid"
+    verifiedAmountMinor: $verifiedAmountMinor
+    verifiedCurrency: $verifiedCurrency
+  }) @check(expr: "this != null")
+  donationReviewEvent_insert(data: {
+    claimId: $id
+    actorUid_expr: "auth.uid"
+    action: "verified"
+    verifiedAmountMinor: $verifiedAmountMinor
+    verifiedCurrency: $verifiedCurrency
+  })
+}
+
+mutation AdminRejectDonationClaim($id: UUID!, $reasonCode: String!)
+@auth(expr: "auth.token.admin == true && auth.token.email_verified == true")
+@transaction {
+  query @redact {
+    donationClaim(id: $id) {
+      status @check(expr: "this == 'pending'", message: "This claim is no longer pending review.")
+    }
+  }
+  donationClaim_update(id: $id, data: {
+    status: "rejected"
+    reviewedAt_expr: "request.time"
+    reviewedByUid_expr: "auth.uid"
+    rejectionReasonCode: $reasonCode
+  }) @check(expr: "this != null")
+  donationReviewEvent_insert(data: {
+    claimId: $id
+    actorUid_expr: "auth.uid"
+    action: "rejected"
+    reasonCode: $reasonCode
+  })
+}

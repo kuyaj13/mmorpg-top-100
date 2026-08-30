@@ -1,0 +1,12 @@
+specVersion: "v1"
+serviceId: "mmorpg-top-100"
+location: "asia-southeast1"
+schemas:
+  - source: "./schema"
+    datasource:
+      postgresql:
+        database: "mmorpg_top_100"
+        cloudSql:
+          instanceId: "mmorpg-top-100-db"
+        schemaValidation: "STRICT"
+connectorDirs: ["./admin", "./advertiser"]

@@ -1,0 +1,21 @@
+.advertise-page { width: min(1040px, calc(100% - 32px)); margin: 0 auto; padding: 18px 0 56px; }
+.advertise-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 76px; }
+.advertise-header > a:first-child { display: inline-flex; width: clamp(190px, 25vw, 280px); }
+.advertise-header img { width: 100%; height: auto; max-height: 68px; object-fit: contain; }
+.advertise-header > a:last-child { min-height: 44px; display: inline-flex; align-items: center; color: #bfdbfe; }
+.advertise-intro, .advertiser-auth, .claim-panel, .claim-history, .banner-gate { margin-top: 24px; padding: clamp(20px, 4vw, 36px); border: 1px solid rgba(148,163,184,.2); border-radius: 20px; background: rgba(15,23,42,.78); }
+.advertise-intro h1 { max-width: 16ch; font-size: clamp(2rem, 6vw, 4rem); line-height: 1.02; }
+.advertiser-auth form, .claim-panel form { display: grid; gap: 10px; margin-top: 20px; }
+.advertiser-auth input, .claim-panel input, .claim-panel select { width: 100%; min-height: 48px; padding: 10px 12px; color: #f8fafc; border: 1px solid #475569; border-radius: 10px; background: #0f172a; }
+.advertiser-auth-actions, .claim-history-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.advertiser-auth button, .claim-panel button, .claim-history button, .paypal-link { min-height: 44px; padding: 10px 16px; border: 1px solid #38bdf8; border-radius: 10px; background: #0369a1; color: white; font-weight: 800; cursor: pointer; }
+.paypal-link { display: inline-flex; align-items: center; margin-top: 12px; text-decoration: none; }
+.claim-panel { display: grid; grid-template-columns: .85fr 1.15fr; gap: 28px; }
+.claim-history ul { display: grid; gap: 10px; padding: 0; list-style: none; }
+.claim-history li { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: center; padding: 14px; border-radius: 12px; background: rgba(30,41,59,.8); }
+.claim-status { padding: 5px 9px; border-radius: 999px; text-transform: capitalize; font-weight: 800; }
+.claim-status.pending { background: #78350f; color: #fef3c7; }
+.claim-status.verified { background: #14532d; color: #dcfce7; }
+.claim-status.rejected { background: #7f1d1d; color: #fee2e2; }
+.banner-gate { border-style: dashed; }
+@media (max-width: 700px) { .advertise-header { align-items: flex-start; flex-direction: column; } .claim-panel { grid-template-columns: 1fr; } .advertiser-auth-actions, .claim-history-heading { align-items: stretch; flex-direction: column; } .advertiser-auth-actions button, .claim-history-heading button { width: 100%; } .claim-history li { grid-template-columns: 1fr; } }

@@ -1,0 +1,40 @@
+{
+  "name": "mmorpg-top-100",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "admin:grant": "node scripts/set-admin-claim.mjs",
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "oxlint",
+    "preview": "vite preview",
+    "test": "vitest run"
+    ,"worker:types": "wrangler types worker/worker-configuration.d.ts"
+    ,"worker:check": "tsc -p worker/tsconfig.json && wrangler deploy --dry-run"
+    ,"worker:dev": "wrangler dev --local"
+  },
+  "dependencies": {
+    "firebase": "^12.18.0",
+    "jose": "^6.2.10",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.22.0",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.6",
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^6.1.0",
+    "firebase-admin": "^14.3.0",
+    "jsdom": "^30.0.1",
+    "oxlint": "^1.79.0",
+    "typescript": "~6.0.2",
+    "vite": "^8.2.2",
+    "vitest": "^4.1.11",
+    "wrangler": "^4.127.1"
+  }
+}

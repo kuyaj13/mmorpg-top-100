@@ -1,0 +1,121 @@
+.admin-shell {
+  width: min(900px, calc(100% - 24px));
+  margin: 0 auto;
+  padding: 32px 0 64px;
+}
+
+.admin-shell h1,
+.moderation-card h2 {
+  color: #f8fafc;
+}
+
+.admin-back,
+.moderation-card a {
+  color: #bfdbfe;
+}
+
+.admin-auth {
+  width: min(100%, 460px);
+  margin-top: 24px;
+  padding: 24px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.85);
+}
+
+.admin-auth form {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-auth input {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid #64748b;
+  border-radius: 10px;
+  background: #020817;
+  color: #f8fafc;
+}
+
+.admin-auth button,
+.sign-out-button {
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid #60a5fa;
+  border-radius: 10px;
+  background: #1d4ed8;
+  color: #fff;
+  font-weight: 700;
+}
+
+.admin-auth form button {
+  margin-top: 8px;
+}
+
+.verification-actions {
+  display: grid;
+  gap: 12px;
+}
+
+.auth-feedback {
+  margin: 16px 0 0;
+  color: #fde68a;
+}
+
+.sign-out-button {
+  margin: 12px 0 20px;
+  background: #1e293b;
+}
+
+.moderation-list {
+  display: grid;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.moderation-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 20px;
+  padding: 20px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.78);
+}
+
+.moderation-meta {
+  color: #fbbf24;
+  font-weight: 700;
+}
+
+.moderation-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.moderation-actions button {
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 10px;
+  background: #1e293b;
+  color: #f8fafc;
+  font-weight: 700;
+}
+
+.admin-feedback {
+  color: #bbf7d0;
+  font-weight: 700;
+}
+
+@media (max-width: 600px) {
+  .moderation-card {
+    grid-template-columns: 1fr;
+  }
+
+  .moderation-actions button {
+    flex: 1;
+  }
+}

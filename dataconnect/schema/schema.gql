@@ -1,0 +1,137 @@
+type ServerSubmission @table {
+  id: UUID! @default(expr: "uuidV4()")
+  ownerUid: String!
+  name: String! @col(dataType: "varchar(80)")
+  website: String! @unique
+  gameVersion: String! @col(dataType: "varchar(40)")
+  gameSlug: String! @col(dataType: "varchar(100)")
+  region: String! @col(dataType: "varchar(80)")
+  mode: String! @col(dataType: "varchar(20)")
+  description: String! @col(dataType: "varchar(600)")
+  status: String! @default(value: "pending") @col(dataType: "varchar(20)")
+  submittedAt: Timestamp! @default(expr: "request.time")
+  reviewedAt: Timestamp
+  reviewedByUid: String
+}
+
+type ModerationEvent @table {
+  id: UUID! @default(expr: "uuidV4()")
+  submissionId: UUID!
+  actorUid: String!
+  action: String! @col(dataType: "varchar(20)")
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+# Canonical game and approved server records used by rankings and advertising.
+type Game @table(key: "slug") {
+  slug: String! @col(dataType: "varchar(100)")
+  name: String! @unique @col(dataType: "varchar(120)")
+  gameType: String! @col(dataType: "varchar(30)")
+  isActive: Boolean! @default(value: true)
+}
+
+type Server @table {
+  id: UUID! @default(expr: "uuidV4()")
+  game: Game!
+  ownerUid: String! @col(dataType: "varchar(128)")
+  name: String! @col(dataType: "varchar(80)")
+  website: String! @unique
+  status: String! @default(value: "active") @col(dataType: "varchar(20)")
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+type AdPackage @table(key: "code") {
+  code: String! @col(dataType: "varchar(40)")
+  durationDays: Int!
+  tier: String! @col(dataType: "varchar(24)")
+  priceMinor: Int64!
+  currency: String! @col(dataType: "char(3)")
+  inventoryLimitPerGame: Int!
+  isActive: Boolean! @default(value: true)
+}
+
+# Donation claims are reviewed manually. Browser-submitted claims cannot activate
+# a placement and must be matched against the administrator's PayPal records.
+type DonationClaim @table {
+  id: UUID! @default(expr: "uuidV4()")
+  advertiserUid: String! @col(dataType: "varchar(128)")
+  server: Server!
+  package: AdPackage!
+  donorReference: String! @unique @col(dataType: "varchar(128)")
+  status: String! @default(value: "pending") @col(dataType: "varchar(24)")
+  createdAt: Timestamp! @default(expr: "request.time")
+  reviewedAt: Timestamp
+  reviewedByUid: String @col(dataType: "varchar(128)")
+  verifiedAmountMinor: Int64
+  verifiedCurrency: String @col(dataType: "char(3)")
+  rejectionReasonCode: String @col(dataType: "varchar(60)")
+}
+
+# Donation decisions are append-only and separate from banner moderation.
+type DonationReviewEvent @table {
+  id: UUID! @default(expr: "uuidV4()")
+  claim: DonationClaim!
+  actorUid: String! @col(dataType: "varchar(128)")
+  action: String! @col(dataType: "varchar(24)")
+  verifiedAmountMinor: Int64
+  verifiedCurrency: String @col(dataType: "char(3)")
+  reasonCode: String @col(dataType: "varchar(60)")
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+# Object content is stored outside the application runtime. Only generated
+# object names are persisted; advertiser-provided filenames are not used.
+type BannerAsset @table {
+  id: UUID! @default(expr: "uuidV4()")
+  server: Server!
+  advertiserUid: String! @col(dataType: "varchar(128)")
+  storageObjectName: String! @unique @col(dataType: "varchar(255)")
+  staticFallbackObjectName: String @unique @col(dataType: "varchar(255)")
+  originalSha256: String! @col(dataType: "char(64)")
+  mediaType: String! @col(dataType: "varchar(40)")
+  byteSize: Int64!
+  width: Int!
+  height: Int!
+  pixelCount: Int!
+  frameCount: Int
+  animationDurationMs: Int
+  altText: String! @col(dataType: "varchar(180)")
+  destinationUrl: String!
+  moderationStatus: String! @default(value: "pending") @col(dataType: "varchar(24)")
+  createdAt: Timestamp! @default(expr: "request.time")
+  reviewedAt: Timestamp
+  reviewedByUid: String @col(dataType: "varchar(128)")
+}
+
+# A manually verified donation can grant at most one exclusive placement.
+# Eligibility is derived from donation review, moderation, status, and time.
+type ExclusivePlacement @table {
+  id: UUID! @default(expr: "uuidV4()")
+  server: Server!
+  banner: BannerAsset!
+  donation: DonationClaim! @unique
+  durationDays: Int!
+  tier: String! @default(value: "exclusive") @col(dataType: "varchar(24)")
+  status: String! @default(value: "pending") @col(dataType: "varchar(24)")
+  startsAt: Timestamp
+  expiresAt: Timestamp
+  createdAt: Timestamp! @default(expr: "request.time")
+  suspendedAt: Timestamp
+}
+
+type AdModerationEvent @table {
+  id: UUID! @default(expr: "uuidV4()")
+  banner: BannerAsset!
+  placement: ExclusivePlacement
+  actorUid: String! @col(dataType: "varchar(128)")
+  action: String! @col(dataType: "varchar(30)")
+  reasonCode: String @col(dataType: "varchar(60)")
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+type AdImpression @table {
+  id: UUID! @default(expr: "uuidV4()")
+  placement: ExclusivePlacement!
+  occurredAt: Timestamp! @default(expr: "request.time")
+  rotationSlot: Int!
+}

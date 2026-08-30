@@ -1,0 +1,5 @@
+connectorId: advertiser
+generate:
+  javascriptSdk:
+    outputDir: ../../src/generated/advertiser
+    package: "@mmorpg-top-100/advertiser-connector"

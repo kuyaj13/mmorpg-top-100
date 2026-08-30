@@ -1,0 +1,38 @@
+query AdvertiserListMyEligibleServers($ownerUid: String!)
+@auth(expr: "auth.uid == vars.ownerUid && auth.token.email_verified == true") {
+  servers(
+    where: { ownerUid: { eq: $ownerUid }, status: { eq: "active" } }
+    orderBy: [{ name: ASC }]
+  ) {
+    id
+    name
+    website
+    game { slug name }
+  }
+}
+
+query AdvertiserListActivePackages
+@auth(expr: "auth.token.email_verified == true") {
+  adPackages(where: { isActive: { eq: true } }, orderBy: [{ durationDays: ASC }]) {
+    code
+    durationDays
+    tier
+    priceMinor
+    currency
+  }
+}
+
+query AdvertiserListMyClaims($advertiserUid: String!)
+@auth(expr: "auth.uid == vars.advertiserUid && auth.token.email_verified == true") {
+  donationClaims(
+    where: { advertiserUid: { eq: $advertiserUid } }
+    orderBy: [{ createdAt: DESC }]
+  ) {
+    id
+    status
+    createdAt
+    rejectionReasonCode
+    server { id name game { name slug } }
+    package { code durationDays tier }
+  }
+}
