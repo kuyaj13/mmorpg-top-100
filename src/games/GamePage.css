@@ -114,21 +114,28 @@
   background: #081226;
 }
 
-.server-banner-preview {
-  margin: 0 0 18px;
+.game-server-list button.with-banner {
+  display: grid;
+  gap: 10px;
 }
 
-.server-banner-preview img {
+.ranking-banner-preview,
+.ranking-banner-preview img {
   display: block;
   width: 100%;
   height: auto;
+}
+
+.ranking-banner-preview img {
   border-radius: 8px;
 }
 
-.server-banner-preview figcaption {
-  margin-top: 6px;
-  color: #94a3b8;
-  font-size: 0.8rem;
+.server-ranking-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
 }
 
 .game-server-detail dl {
@@ -188,6 +195,11 @@
   }
 
   .game-server-list button {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .server-ranking-summary {
     align-items: flex-start;
     flex-direction: column;
   }

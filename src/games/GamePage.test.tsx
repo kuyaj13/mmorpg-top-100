@@ -28,12 +28,12 @@ describe('GamePage', () => {
     expect(within(rankings).getByText('Prologic Flyff')).toBeInTheDocument()
     expect(within(rankings).getByText('20 votes')).toBeInTheDocument()
     expect(screen.queryByLabelText('Sort by')).not.toBeInTheDocument()
-    const banner = screen.getByRole('img', { name: /prologic flyff banner/i })
+    const banner = document.querySelector<HTMLImageElement>('img[src="/banners/prologic-flyff-preview.gif"]')
+    expect(banner).not.toBeNull()
     expect(banner).toHaveAttribute('src', '/banners/prologic-flyff-preview.gif')
-    expect(screen.getByText('Sample banner preview')).toBeInTheDocument()
-    const figure = banner.closest('figure')
-    expect(figure).not.toBeNull()
-    expect(figure!.compareDocumentPosition(screen.getByRole('heading', { name: 'Prologic Flyff' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    const rankingButton = screen.getByRole('button', { name: 'Prologic Flyff20 votes' })
+    expect(rankingButton).toContainElement(banner)
+    expect(banner!.compareDocumentPosition(within(rankingButton).getByText('Prologic Flyff')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it('does not fall back to another game for an unsupported slug', () => {

@@ -39,7 +39,6 @@ export default function GamePage({ slug, rankingsService = defaultRankingsServic
   }, [game, rankingsService])
 
   const selectedServer = servers.find((server) => server.id === selectedId) ?? servers[0]
-  const selectedBanner = selectedServer ? bannerPreviews[`${game?.slug}:${selectedServer.name}`] : undefined
 
   if (!game) return (
     <div className="game-page">
@@ -73,18 +72,18 @@ export default function GamePage({ slug, rankingsService = defaultRankingsServic
           {status === 'ready' && servers.length > 0 && (
             <div className="game-ranking-layout">
               <ol className="game-server-list" aria-label={`${game.name} server rankings`}>
-                {servers.map((server) => <li key={server.id}><button type="button" aria-pressed={selectedServer?.id === server.id} onClick={() => setSelectedId(server.id)}>
-                  <span>{server.name}</span><span>{server.votes.toLocaleString()} votes</span>
-                </button></li>)}
+                {servers.map((server) => {
+                  const banner = bannerPreviews[`${game.slug}:${server.name}`]
+                  return <li key={server.id}><button className={banner ? 'server-ranking-button with-banner' : 'server-ranking-button'} type="button" aria-pressed={selectedServer?.id === server.id} onClick={() => setSelectedId(server.id)}>
+                    {banner && <picture className="ranking-banner-preview" aria-hidden="true">
+                      <source media="(prefers-reduced-motion: reduce)" srcSet={banner.static} />
+                      <img src={banner.animated} alt="" width="468" height="60" />
+                    </picture>}
+                    <span className="server-ranking-summary"><span>{server.name}</span><span>{server.votes.toLocaleString()} votes</span></span>
+                  </button></li>
+                })}
               </ol>
               {selectedServer && <aside className="game-server-detail" aria-label="Selected server details">
-                {selectedBanner && <figure className="server-banner-preview">
-                  <picture>
-                    <source media="(prefers-reduced-motion: reduce)" srcSet={selectedBanner.static} />
-                    <img src={selectedBanner.animated} alt={selectedBanner.alt} width="468" height="60" />
-                  </picture>
-                  <figcaption>Sample banner preview</figcaption>
-                </figure>}
                 <h3>{selectedServer.name}</h3>
                 <dl><div><dt>Votes</dt><dd>{selectedServer.votes.toLocaleString()}</dd></div></dl>
                 {!siteConfig.votingEnabled && <p role="status">Voting will open after the secure voting service is ready.</p>}
