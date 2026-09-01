@@ -13,6 +13,7 @@
 - The canonical 82-game catalog is seeded in production and verified by total, active, unique-slug, and game-type counts.
 - The read-only Worker is deployed at `https://api.mmorpgtop100.com`; its `workers.dev` route is disabled.
 - The static frontend is deployed on the Cloudflare Pages Free plan at `https://mmorpg-top-100.pages.dev`. Static routes use an SPA fallback and receive restrictive security headers.
+- The canonical production hostname is `https://mmorpgtop100.com`; `www.mmorpgtop100.com` redirects to the apex hostname.
 - CORS permits only the exact apex production origin and the exact production Pages origin. Branch preview hostnames and lookalike origins remain excluded.
 
 ## Cost boundary
