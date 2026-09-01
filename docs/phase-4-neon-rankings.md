@@ -9,18 +9,20 @@
 - The response includes only game slug/name and server ID/name/vote count. Owner, moderation, authentication, submission, and advertising data are not exposed.
 - Vote counts are display-only imported totals in this phase. Voting remains disabled until immutable vote records and abuse controls are implemented.
 - The sample-data frontend remains unchanged until the canonical game catalog and approved server data are seeded and verified.
+- The canonical 82-game catalog is seeded in production and verified by total, active, unique-slug, and game-type counts.
+- The read-only Worker is deployed at `https://api.mmorpgtop100.com`; its `workers.dev` route is disabled.
 
 ## Migration safety
 
 - The first migration was tested on the expiring `phase-4-public-rankings` child branch before production.
 - Migrations use the owner role over a direct, unpooled connection; Hyperdrive never runs migrations.
 - `npm run db:migrate` refuses pooled URLs, requires `ALLOW_DATABASE_MIGRATION=true`, and requires the connection hostname/database to exactly match `EXPECTED_DATABASE_HOST` and `EXPECTED_DATABASE_NAME`.
+- `npm run db:seed-games` reads the single canonical catalog from `src/games/games.ts`, requires the same exact-target guard, uses parameterized values in one transaction, and commits only when all 82 active slugs are present and unique.
 - A fresh project must create the restricted `hyperdrive_reader` role before applying the migration. Its password belongs only in Neon/Cloudflare control planes and must never be committed.
 - Production permission tests confirmed the runtime role can read the public views and cannot insert into application tables.
 
 ## Remaining gate
 
-- Seed and validate all canonical games from `src/games/games.ts` before connecting the frontend.
 - Import only approved servers with verified HTTPS destinations.
 - Keep voting, submission, moderation, and paid-listing mutations fail-closed until their separate authorization and abuse-protection phases pass.
-- Do not deploy the public Worker endpoint until its Cloudflare endpoint-specific rate-limit rule is verified.
+- The rankings endpoint calls the `RANKINGS_RATE_LIMITER` Worker binding before database access. It allows 60 requests per minute for each client/game key in each Cloudflare location and returns a plain `429` response before consuming a Hyperdrive query.

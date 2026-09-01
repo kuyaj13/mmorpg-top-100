@@ -2,6 +2,13 @@
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "mmorpg-top-100-api",
   "main": "worker/index.ts",
+  "workers_dev": false,
+  "routes": [
+    {
+      "pattern": "api.mmorpgtop100.com",
+      "custom_domain": true
+    }
+  ],
   "compatibility_date": "2026-08-30",
   "compatibility_flags": ["nodejs_compat"],
   "vars": {
@@ -17,6 +24,16 @@
     {
       "binding": "HYPERDRIVE",
       "id": "8d7361e0f143460184c7425698a61f99"
+    }
+  ],
+  "ratelimits": [
+    {
+      "name": "RANKINGS_RATE_LIMITER",
+      "namespace_id": "73333251",
+      "simple": {
+        "limit": 60,
+        "period": 60
+      }
     }
   ]
 }

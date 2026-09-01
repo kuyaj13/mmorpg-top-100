@@ -2,7 +2,12 @@ import { describe, expect, it, vi } from 'vitest'
 import type { RankingRepository } from './db/rankingRepository'
 import { createWorker } from './index'
 
-const env = { ALLOWED_ORIGIN: 'https://mmorpgtop100.com' } as Env
+const rateLimit = vi.fn().mockResolvedValue({ success: true })
+const env = {
+  ALLOWED_ORIGIN: 'https://mmorpgtop100.com' as const,
+  HYPERDRIVE: { connectionString: '' } as Hyperdrive,
+  RANKINGS_RATE_LIMITER: { limit: rateLimit } as RateLimit,
+}
 
 function repository(result: Awaited<ReturnType<RankingRepository['findByGameSlug']>>): RankingRepository {
   return { findByGameSlug: vi.fn().mockResolvedValue(result) }
@@ -35,6 +40,18 @@ describe('rankings endpoint', () => {
     const response = await createWorker(() => repo).fetch(new Request('https://api.example/api/games/flyff/rankings', { method: 'POST' }), env)
     expect(response.status).toBe(405)
     expect(response.headers.get('allow')).toBe('GET')
+    expect(repo.findByGameSlug).not.toHaveBeenCalled()
+  })
+
+  it('rate limits before querying the database', async () => {
+    const repo = repository(null)
+    const limitedEnv = {
+      ...env,
+      RANKINGS_RATE_LIMITER: { limit: vi.fn().mockResolvedValue({ success: false }) },
+    }
+    const response = await createWorker(() => repo).fetch(new Request('https://api.example/api/games/flyff/rankings'), limitedEnv)
+    expect(response.status).toBe(429)
+    expect(response.headers.get('retry-after')).toBe('60')
     expect(repo.findByGameSlug).not.toHaveBeenCalled()
   })
 

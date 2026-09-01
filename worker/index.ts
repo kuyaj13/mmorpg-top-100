@@ -1,7 +1,7 @@
 import { parseGameSlug } from './contracts/rankings'
 import { createHyperdriveRankingRepository, type RankingRepository } from './db/rankingRepository'
 
-type WorkerEnv = Env
+type WorkerEnv = Pick<Env, 'ALLOWED_ORIGIN' | 'HYPERDRIVE' | 'RANKINGS_RATE_LIMITER'>
 type RepositoryFactory = (env: WorkerEnv) => RankingRepository
 
 export function createWorker(repositoryFactory: RepositoryFactory) {
@@ -16,6 +16,9 @@ export function createWorker(repositoryFactory: RepositoryFactory) {
           if (request.method !== 'GET') return corsResponse(request, env, methodNotAllowed())
           const gameSlug = parseGameSlug(safeDecode(rankingMatch[1]))
           if (!gameSlug) return corsResponse(request, env, jsonError('Please choose a valid game.', 400))
+          const clientKey = request.headers.get('cf-connecting-ip') ?? 'unknown-client'
+          const rateLimit = await env.RANKINGS_RATE_LIMITER.limit({ key: `${clientKey}:${gameSlug}` })
+          if (!rateLimit.success) return corsResponse(request, env, rateLimited())
           const rankings = await repositoryFactory(env).findByGameSlug(gameSlug)
           if (!rankings) return corsResponse(request, env, jsonError('This game is not available.', 404))
           return corsResponse(request, env, Response.json({ ok: true, ...rankings }, { headers: noStoreHeaders() }))
@@ -35,5 +38,6 @@ export default createWorker((env) => createHyperdriveRankingRepository(env.HYPER
 function noStoreHeaders() { return { 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' } }
 function jsonError(message: string, status: number) { return Response.json({ ok: false, message }, { status, headers: noStoreHeaders() }) }
 function methodNotAllowed() { return Response.json({ ok: false, message: 'Method not allowed.' }, { status: 405, headers: { ...noStoreHeaders(), allow: 'GET' } }) }
-function corsResponse(request: Request, env: WorkerEnv, response: Response) { const origin = request.headers.get('origin'); if (origin === env.ALLOWED_ORIGIN) { response.headers.set('access-control-allow-origin', origin); response.headers.set('access-control-allow-headers', 'authorization, content-type, x-firebase-appcheck'); response.headers.set('access-control-allow-methods', 'GET, POST, OPTIONS'); response.headers.set('vary', 'Origin') } return response }
+function rateLimited() { return Response.json({ ok: false, message: 'Too many requests. Please try again shortly.' }, { status: 429, headers: { ...noStoreHeaders(), 'retry-after': '60' } }) }
+function corsResponse(request: Request, env: WorkerEnv, response: Response) { const origin = request.headers.get('origin'); if (origin === env.ALLOWED_ORIGIN) { response.headers.set('access-control-allow-origin', origin); response.headers.set('access-control-allow-headers', 'authorization, content-type, x-firebase-appcheck'); response.headers.set('access-control-allow-methods', 'GET, OPTIONS'); response.headers.set('vary', 'Origin') } return response }
 function safeDecode(value: string) { try { return decodeURIComponent(value) } catch { return '' } }
