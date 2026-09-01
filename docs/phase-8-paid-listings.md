@@ -14,10 +14,9 @@
 
 - The owner workspace, verified-email account flow, owner-scoped claim contract, claim history, and protected administrator review queue are implemented locally.
 - SQL Connect SDK generation succeeds for the advertiser and administrator connectors.
-- Donation-claim creation is wired exclusively through the Cloudflare-controlled endpoint, which validates Firebase identity, App Check, Turnstile, canonical donor references, and request limits. Deployment and end-to-end production verification remain required before enabling the workspace.
-- Claim mutations remain server-disabled until a cache-disabled `PRIMARY_DB` Hyperdrive binding is provisioned and staging verification passes. The Worker repository now writes claim and submission-audit rows atomically to the same PostgreSQL schema used by SQL Connect. The active Worker uses D1 only for request-rate counters; the unsafe D1 banner endpoint has been removed.
-- Provision Hyperdrive with a dedicated PostgreSQL role limited to the required `SELECT` access on `server` and `ad_package` plus `INSERT` access on `donation_claim` and `donation_review_event`. Require TLS, do not commit its connection string, and keep both claim and banner feature flags disabled until their separate release gates pass.
-- The reviewed least-privilege grants are in `docs/postgres-claim-writer.sql`. The Firebase SQL diff confirms the repository queries use the generated `public.server`, `public.ad_package`, `public.donation_claim`, and `public.donation_review_event` identifiers.
+- Donation-claim creation is intentionally unavailable in the launch scope. The Cloudflare endpoint returns a plain temporary-unavailability response and cannot write product data.
+- Hyperdrive is not used because the current PostgreSQL 18 database is outside its documented compatibility range. Firebase Functions are not used because this project is not on a billing-enabled plan.
+- Paid claims, banner uploads, and placement activation remain disabled until a later compatibility and cost review approves a trusted server-side write boundary.
 - Banner uploads remain intentionally unavailable until the trusted quarantine/scanning service and approved numeric media limits are implemented.
 - Package prices still require product-owner approval before active package records are seeded.
 

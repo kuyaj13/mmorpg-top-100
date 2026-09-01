@@ -7,25 +7,10 @@
   "vars": {
     "ENVIRONMENT": "production",
     "ALLOWED_ORIGIN": "https://mmorpgtop100.com",
-    "FIREBASE_PROJECT_ID": "mmorpg-top-100",
-    "FIREBASE_PROJECT_NUMBER": "502706808300",
-    "MAX_BANNER_BYTES": "750000",
-    "EXCLUSIVE_INVENTORY_PER_GAME": "3"
-    ,"CLAIM_MUTATIONS_ENABLED": "false"
+    "PREVIEW_MODE": "true"
   },
-  "d1_databases": [
-    {
-      "binding": "ADS_DB",
-      "database_name": "mmorpg-top-100-ads",
-      "database_id": "local-development",
-      "migrations_dir": "worker/migrations"
-    }
-  ],
   "observability": {
     "enabled": true,
     "head_sampling_rate": 0.1
-  },
-  "limits": {
-    "cpu_ms": 10
   }
 }

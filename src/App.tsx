@@ -213,9 +213,7 @@ function App({
           <a href="#games">Games</a>
         </nav>
 
-        <a href="#submit" className="nav-button">
-          List your server
-        </a>
+        <a href="#submit" className="nav-button">Submission preview</a>
       </header>
 
       <main id="main-content" className="page-content">
@@ -400,7 +398,7 @@ function App({
                 </div>
               </div>
 
-              {selectedServer && (
+              {selectedServer && siteConfig.votingEnabled && (
                 <div className="vote-panel">
                   <button
                     type="button"
@@ -423,6 +421,11 @@ function App({
                   )}
                   <p className="vote-disclaimer">Demo voting is limited to one vote per server.</p>
                 </div>
+              )}
+              {selectedServer && !siteConfig.votingEnabled && (
+                <p className="vote-disclaimer" role="status">
+                  Voting will open after the secure voting service is ready.
+                </p>
               )}
             </aside>
           </div>
@@ -466,6 +469,7 @@ function App({
             </p>
           </div>
 
+          {siteConfig.submissionsEnabled ? (
           <form className="submission-form" noValidate onSubmit={(event) => void handleSubmission(event)}>
             <label htmlFor="server-name">Server name</label>
             <input
@@ -552,6 +556,12 @@ function App({
               <p className="submission-feedback" role="status">{submissionFeedback}</p>
             )}
           </form>
+          ) : (
+            <div className="submission-form" role="status">
+              <h3>Submissions are coming soon</h3>
+              <p>The form will open after secure review storage and abuse protection are ready.</p>
+            </div>
+          )}
         </section>
 
         <section id="pricing" className="pricing-section">

@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import type { CatalogService, Server, VotingService } from '../catalog/types'
+import type { CatalogService, Server } from '../catalog/types'
 import GamePage from './GamePage'
 
 const flyffServer: Server = {
@@ -58,20 +58,11 @@ describe('GamePage', () => {
     expect(screen.queryByText(/private server rankings/i)).not.toBeInTheDocument()
   })
 
-  it('votes only for a server selected within the game ranking', async () => {
-    const user = userEvent.setup()
+  it('keeps voting fail-closed on game rankings', async () => {
     const catalogService: CatalogService = { listServers: () => Promise.resolve([flyffServer]) }
-    const votingService: VotingService = {
-      voteForServer: (serverId) =>
-        Promise.resolve(serverId === flyffServer.id ? { ok: true, votes: 21 } : { ok: false, message: 'Not available.' }),
-    }
+    render(<GamePage slug="flyff" catalogService={catalogService} />)
 
-    render(
-      <GamePage slug="flyff" catalogService={catalogService} votingService={votingService} />,
-    )
-
-    await user.click(await screen.findByRole('button', { name: 'Vote for Flyff One' }))
-    expect(await screen.findByText('Your vote has been recorded.')).toBeInTheDocument()
-    expect(screen.getByLabelText('Selected server details')).toHaveTextContent('21')
+    expect(await screen.findByText(/voting will open after the secure voting service/i)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Vote for Flyff One' })).not.toBeInTheDocument()
   })
 })

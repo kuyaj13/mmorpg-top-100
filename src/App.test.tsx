@@ -1,8 +1,7 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from './App'
-import type { CatalogService, VotingService } from './catalog/types'
-import type { SubmissionService } from './submission/types'
+import type { CatalogService } from './catalog/types'
 
 describe('App', () => {
   it('renders the home page heading and primary CTA', () => {
@@ -18,7 +17,7 @@ describe('App', () => {
   it('presents the reviewed submission flow and future sponsorships honestly', () => {
     render(<App />)
 
-    expect(screen.getByRole('button', { name: /submit for review/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /submissions are coming soon/i })).toBeInTheDocument()
     expect(screen.getAllByText(/planned sponsorship/i)).toHaveLength(2)
     expect(screen.getByRole('heading', { name: /\$10.*7 days/i })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /\$20.*30 days/i })).toBeInTheDocument()
@@ -85,64 +84,11 @@ describe('App', () => {
     expect(await screen.findByText(/no servers match this filter/i)).toBeInTheDocument()
   })
 
-  it('records a vote using the authoritative total returned by the voting service', async () => {
-    const user = userEvent.setup()
-    const votingService: VotingService = {
-      voteForServer: () => Promise.resolve({ ok: true, votes: 9000 }),
-    }
-
-    render(<App votingService={votingService} />)
-
-    await user.click(await screen.findByRole('button', { name: /vote for eclipse reborn/i }))
-
-    expect(await screen.findByText(/your vote has been recorded/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /vote recorded/i })).toBeDisabled()
-    expect(
-      screen.getByRole('complementary', { name: /selected server details/i }),
-    ).toHaveTextContent('9,000')
-  })
-
-  it('keeps technical voting failures out of the interface', async () => {
-    const user = userEvent.setup()
-    const unavailableVotingService: VotingService = {
-      voteForServer: () => Promise.reject(new Error('voteForServer database timeout')),
-    }
-
-    render(<App votingService={unavailableVotingService} />)
-
-    await user.click(await screen.findByRole('button', { name: /vote for eclipse reborn/i }))
-
-    expect(await screen.findByText(/your vote could not be recorded/i)).toBeInTheDocument()
-    expect(screen.queryByText(/database timeout/i)).not.toBeInTheDocument()
-  })
-
-  it('shows plain inline errors for an incomplete server submission', async () => {
-    const user = userEvent.setup()
+  it('keeps voting and submissions fail-closed in the public preview', async () => {
     render(<App />)
 
-    await user.click(screen.getByRole('button', { name: /submit for review/i }))
-
-    expect(screen.getAllByText('This field is required.')).toHaveLength(4)
-    expect(screen.getByText('Please enter a valid server URL.')).toBeInTheDocument()
-    expect(screen.getByLabelText(/server name/i)).toHaveAttribute('aria-invalid', 'true')
-  })
-
-  it('submits valid server details for review and clears the form', async () => {
-    const user = userEvent.setup()
-    const submissionService: SubmissionService = {
-      submitServer: () => Promise.resolve({ ok: true, reference: 'preview-test' }),
-    }
-
-    render(<App submissionService={submissionService} />)
-
-    await user.type(screen.getByLabelText(/server name/i), 'Moonlight Realms')
-    await user.type(screen.getByLabelText(/^website$/i), 'https://moonlight.example')
-    await user.type(screen.getByLabelText(/game version/i), '1.0')
-    await user.type(screen.getByLabelText(/^region$/i), 'Asia')
-    await user.type(screen.getByLabelText(/community description/i), 'A friendly raid community.')
-    await user.click(screen.getByRole('button', { name: /submit for review/i }))
-
-    expect(await screen.findByText(/submitted for review/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/server name/i)).toHaveValue('')
+    expect(await screen.findByText(/voting will open after the secure voting service/i)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /vote for/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /submit for review/i })).not.toBeInTheDocument()
   })
 })

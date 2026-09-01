@@ -5,6 +5,7 @@ import { votingService as defaultVotingService } from '../catalog/votingService'
 import { findGameBySlug } from './games'
 import './GamePage.css'
 import logoUrl from '../assets/mmorpg-top-100-logo-web.png'
+import { siteConfig } from '../config/site'
 
 type GamePageProps = {
   slug: string
@@ -158,9 +159,13 @@ export default function GamePage({
                     <div><dt>Rating</dt><dd>{selectedServer.rating.toFixed(1)}</dd></div>
                     <div><dt>Region</dt><dd>{selectedServer.region}</dd></div>
                   </dl>
-                  <button type="button" disabled={pendingVoteId === selectedServer.id} onClick={() => void vote(selectedServer)}>
-                    {pendingVoteId === selectedServer.id ? 'Recording vote...' : `Vote for ${selectedServer.name}`}
-                  </button>
+                  {siteConfig.votingEnabled ? (
+                    <button type="button" disabled={pendingVoteId === selectedServer.id} onClick={() => void vote(selectedServer)}>
+                      {pendingVoteId === selectedServer.id ? 'Recording vote...' : `Vote for ${selectedServer.name}`}
+                    </button>
+                  ) : (
+                    <p role="status">Voting will open after the secure voting service is ready.</p>
+                  )}
                   <p className="visually-hidden" role="status" aria-atomic="true">
                     {voteFeedback || `Selected ${selectedServer.name}.`}
                   </p>
