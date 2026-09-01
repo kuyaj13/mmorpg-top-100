@@ -12,6 +12,7 @@
     "test": "vitest run",
     "db:migrate": "node scripts/apply-sql-migration.mjs",
     "db:seed-games": "node scripts/seed-games.mjs",
+    "db:import-servers": "node scripts/import-approved-servers.mjs",
     "worker:types": "wrangler types worker/worker-configuration.d.ts",
     "worker:check": "tsc -p worker/tsconfig.json && wrangler deploy --dry-run",
     "worker:dev": "wrangler dev --local"

@@ -15,10 +15,10 @@ function repository(result: Awaited<ReturnType<RankingRepository['findByGameSlug
 
 describe('rankings endpoint', () => {
   it('returns a game-scoped public response', async () => {
-    const repo = repository({ game: { slug: 'flyff', name: 'Flyff' }, servers: [{ id: 'one', name: 'One', votes: '2' }] })
+    const repo = repository({ game: { slug: 'flyff', name: 'Flyff' }, servers: [{ id: 'one', name: 'One', votes: 2 }] })
     const response = await createWorker(() => repo).fetch(new Request('https://api.example/api/games/flyff/rankings'), env)
     expect(response.status).toBe(200)
-    await expect(response.json()).resolves.toEqual({ ok: true, game: { slug: 'flyff', name: 'Flyff' }, servers: [{ id: 'one', name: 'One', votes: '2' }] })
+    await expect(response.json()).resolves.toEqual({ ok: true, game: { slug: 'flyff', name: 'Flyff' }, servers: [{ id: 'one', name: 'One', votes: 2 }] })
     expect(repo.findByGameSlug).toHaveBeenCalledWith('flyff')
   })
 

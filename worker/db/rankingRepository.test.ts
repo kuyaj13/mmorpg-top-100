@@ -13,14 +13,23 @@ describe('ranking repository', () => {
   it('scopes both queries to one game and closes the connection', async () => {
     const client = fakeClient([
       { rows: [{ slug: 'flyff', name: 'Flyff' }] },
-      { rows: [{ id: 'server-id', name: 'Server', votes: '9007199254740993' }] },
+      { rows: [{ id: 'server-id', name: 'Server', votes: '20' }] },
     ])
     await expect(createRankingRepository(() => client).findByGameSlug('flyff')).resolves.toEqual({
       game: { slug: 'flyff', name: 'Flyff' },
-      servers: [{ id: 'server-id', name: 'Server', votes: '9007199254740993' }],
+      servers: [{ id: 'server-id', name: 'Server', votes: 20 }],
     })
     expect(client.query).toHaveBeenNthCalledWith(1, expect.any(String), ['flyff'])
     expect(client.query).toHaveBeenNthCalledWith(2, expect.stringContaining('LIMIT 100'), ['flyff'])
+    expect(client.end).toHaveBeenCalledOnce()
+  })
+
+  it('rejects vote counts that cannot be represented safely', async () => {
+    const client = fakeClient([
+      { rows: [{ slug: 'flyff', name: 'Flyff' }] },
+      { rows: [{ id: 'server-id', name: 'Server', votes: '9007199254740993' }] },
+    ])
+    await expect(createRankingRepository(() => client).findByGameSlug('flyff')).rejects.toThrow('Invalid public vote count')
     expect(client.end).toHaveBeenCalledOnce()
   })
 

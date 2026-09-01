@@ -37,7 +37,11 @@ export function createRankingRepository(createClient: () => RankingQueryClient):
             LIMIT 100`,
           [gameSlug],
         )
-        const servers: RankingServer[] = serverResult.rows.map(({ id, name, votes }) => ({ id, name, votes }))
+        const servers: RankingServer[] = serverResult.rows.map(({ id, name, votes }) => {
+          const numericVotes = Number(votes)
+          if (!Number.isSafeInteger(numericVotes) || numericVotes < 0) throw new Error('Invalid public vote count')
+          return { id, name, votes: numericVotes }
+        })
         return { game, servers }
       } finally {
         await client.end()

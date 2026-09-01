@@ -34,6 +34,7 @@
 ## Remaining gate
 
 - Import only approved servers with verified HTTPS destinations.
+- The first approved production listing is `Prologic Flyff` under `flyff`, with its reviewed HTTPS destination and an initial vote count of zero.
 - Replace the homepage sample leaderboard only after approved server records exist; do not synthesize missing production metadata.
 - Keep voting, submission, moderation, and paid-listing mutations fail-closed until their separate authorization and abuse-protection phases pass.
 - The rankings endpoint calls the `RANKINGS_RATE_LIMITER` Worker binding before database access. It allows 60 requests per minute for each client/game key in each Cloudflare location and returns a plain `429` response before consuming a Hyperdrive query.
