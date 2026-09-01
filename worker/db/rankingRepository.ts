@@ -14,7 +14,7 @@ export type RankingRepository = {
 }
 
 type GameRow = { slug: string; name: string }
-type ServerRow = { id: string; name: string; votes: string }
+type ServerRow = { id: string; name: string; website: string; votes: string }
 
 export function createRankingRepository(createClient: () => RankingQueryClient): RankingRepository {
   return {
@@ -30,17 +30,19 @@ export function createRankingRepository(createClient: () => RankingQueryClient):
         if (!game) return null
 
         const serverResult = await client.query<ServerRow>(
-          `SELECT id::text AS id, name, vote_count::text AS votes
+          `SELECT id::text AS id, name, website, vote_count::text AS votes
              FROM api.public_rankings
             WHERE game_slug = $1
             ORDER BY vote_count DESC, created_at ASC, id ASC
             LIMIT 100`,
           [gameSlug],
         )
-        const servers: RankingServer[] = serverResult.rows.map(({ id, name, votes }) => {
+        const servers: RankingServer[] = serverResult.rows.map(({ id, name, website, votes }) => {
           const numericVotes = Number(votes)
           if (!Number.isSafeInteger(numericVotes) || numericVotes < 0) throw new Error('Invalid public vote count')
-          return { id, name, votes: numericVotes }
+          const parsedWebsite = new URL(website)
+          if (parsedWebsite.protocol !== 'https:' || parsedWebsite.username || parsedWebsite.password) throw new Error('Invalid public website')
+          return { id, name, website: parsedWebsite.href, votes: numericVotes }
         })
         return { game, servers }
       } finally {

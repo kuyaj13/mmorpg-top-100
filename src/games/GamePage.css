@@ -159,6 +159,11 @@
   font-weight: 800;
 }
 
+.server-website {
+  overflow-wrap: anywhere;
+  color: #bfdbfe;
+}
+
 .game-server-detail button {
   width: 100%;
   min-height: 44px;

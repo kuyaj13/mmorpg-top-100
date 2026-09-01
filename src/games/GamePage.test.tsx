@@ -2,7 +2,7 @@ import { render, screen, within } from '@testing-library/react'
 import type { RankingsService } from './rankingsService'
 import GamePage from './GamePage'
 
-const flyffServer = { id: 'prologic-flyff', name: 'Prologic Flyff', votes: 20 }
+const flyffServer = { id: 'prologic-flyff', name: 'Prologic Flyff', website: 'https://www.prologicflyff.com/', votes: 20 }
 
 function service(servers = [flyffServer]): RankingsService {
   return { getGameRankings: (gameSlug) => Promise.resolve({ game: { slug: gameSlug, name: 'Flyff' }, servers }) }
@@ -34,6 +34,7 @@ describe('GamePage', () => {
     const rankingButton = screen.getByRole('button', { name: 'Prologic Flyff20 votes' })
     expect(rankingButton).toContainElement(banner)
     expect(banner!.compareDocumentPosition(within(rankingButton).getByText('Prologic Flyff')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(screen.getByRole('link', { name: /https:\/\/www\.prologicflyff\.com\/.*opens in a new tab/i })).toHaveAttribute('rel', 'noopener noreferrer')
   })
 
   it('does not fall back to another game for an unsupported slug', () => {

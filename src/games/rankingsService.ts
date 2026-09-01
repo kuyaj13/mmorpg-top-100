@@ -1,4 +1,4 @@
-export type PublicRankingServer = { id: string; name: string; votes: number }
+export type PublicRankingServer = { id: string; name: string; website: string; votes: number }
 
 export type PublicGameRankings = {
   game: { slug: string; name: string }
@@ -14,7 +14,10 @@ const API_ORIGIN = 'https://api.mmorpgtop100.com'
 function isRankingServer(value: unknown): value is PublicRankingServer {
   if (!value || typeof value !== 'object') return false
   const server = value as Record<string, unknown>
+  let website: URL
+  try { website = new URL(String(server.website)) } catch { return false }
   return typeof server.id === 'string' && typeof server.name === 'string' &&
+    website.protocol === 'https:' && !website.username && !website.password &&
     typeof server.votes === 'number' && Number.isSafeInteger(server.votes) && server.votes >= 0
 }
 

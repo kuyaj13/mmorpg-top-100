@@ -19,7 +19,9 @@ if (url.hostname !== expectedHost || url.pathname.slice(1) !== expectedDatabase)
 }
 url.searchParams.set('sslmode', 'verify-full')
 
-const migration = await readFile(new URL('../drizzle/0000_public_rankings.sql', import.meta.url), 'utf8')
+const migrationName = process.env.DATABASE_MIGRATION ?? '0000_public_rankings.sql'
+if (!/^\d{4}_[a-z0-9_]+\.sql$/.test(migrationName)) throw new Error('The migration name is invalid.')
+const migration = await readFile(new URL(`../drizzle/${migrationName}`, import.meta.url), 'utf8')
 const client = new Client({ connectionString: url.toString() })
 
 try {

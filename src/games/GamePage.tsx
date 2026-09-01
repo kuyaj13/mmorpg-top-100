@@ -85,7 +85,10 @@ export default function GamePage({ slug, rankingsService = defaultRankingsServic
               </ol>
               {selectedServer && <aside className="game-server-detail" aria-label="Selected server details">
                 <h3>{selectedServer.name}</h3>
-                <dl><div><dt>Votes</dt><dd>{selectedServer.votes.toLocaleString()}</dd></div></dl>
+                <dl>
+                  <div><dt>Votes</dt><dd>{selectedServer.votes.toLocaleString()}</dd></div>
+                  <div><dt>Website</dt><dd><a className="server-website" href={selectedServer.website} target="_blank" rel="noopener noreferrer">{selectedServer.website}<span className="visually-hidden"> (opens in a new tab)</span></a></dd></div>
+                </dl>
                 {!siteConfig.votingEnabled && <p role="status">Voting will open after the secure voting service is ready.</p>}
                 <p className="visually-hidden" role="status" aria-atomic="true">Selected {selectedServer.name}.</p>
               </aside>}

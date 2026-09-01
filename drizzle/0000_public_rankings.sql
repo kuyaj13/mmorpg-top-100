@@ -40,7 +40,7 @@ CREATE VIEW api.public_games AS
    WHERE is_active;
 
 CREATE VIEW api.public_rankings AS
-  SELECT s.id, s.game_slug, s.name, s.vote_count, s.created_at
+  SELECT s.id, s.game_slug, s.name, s.vote_count, s.created_at, s.website
     FROM app.servers s
     JOIN app.games g ON g.slug = s.game_slug
    WHERE s.status = 'active' AND g.is_active;

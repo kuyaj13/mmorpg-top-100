@@ -6,7 +6,7 @@
 - Cloudflare Hyperdrive connects as `hyperdrive_reader`, a manually created PostgreSQL role with no inherited Neon administrator membership.
 - The runtime role can use only the `api` schema and select from `api.public_games` and `api.public_rankings`.
 - The Worker exposes `GET /api/games/:gameSlug/rankings` with a strict slug, game isolation, active-only records, deterministic ordering, and a hard 100-row limit.
-- The response includes only game slug/name and server ID/name/vote count. Owner, moderation, authentication, submission, and advertising data are not exposed.
+- The response includes only game slug/name and server ID/name, reviewed HTTPS website, and vote count. Owner, moderation, authentication, submission, and advertising data are not exposed.
 - Vote counts are display-only imported totals in this phase. Voting remains disabled until immutable vote records and abuse controls are implemented.
 - Individual game pages use the live read-only rankings API and show an honest empty state when no approved servers exist. They render only verified server name, vote count, and rank data returned by the public contract.
 - The homepage remains explicitly labeled sample preview until approved server data exists; it is not presented as live ranking data.

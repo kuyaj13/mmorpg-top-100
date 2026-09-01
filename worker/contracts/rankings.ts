@@ -3,6 +3,7 @@ export const GAME_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 export type RankingServer = {
   id: string
   name: string
+  website: string
   votes: number
 }
 
