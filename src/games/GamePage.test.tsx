@@ -1,68 +1,44 @@
 import { render, screen, within } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import type { CatalogService, Server } from '../catalog/types'
+import type { RankingsService } from './rankingsService'
 import GamePage from './GamePage'
 
-const flyffServer: Server = {
-  id: 'flyff-one',
-  gameSlug: 'flyff',
-  name: 'Flyff One',
-  players: 100,
-  votes: 20,
-  region: 'Asia',
-  mode: 'PvE',
-  rating: 4.5,
-  description: 'A Flyff community.',
-  status: 'Live',
-  trend: '+1%',
-}
+const flyffServer = { id: 'flyff-one', name: 'Flyff One', votes: 20 }
 
-const otherGameServer: Server = {
-  ...flyffServer,
-  id: 'other-one',
-  gameSlug: 'ragnarok-online',
-  name: 'Ragnarok One',
+function service(servers = [flyffServer]): RankingsService {
+  return { getGameRankings: (gameSlug) => Promise.resolve({ game: { slug: gameSlug, name: 'Flyff' }, servers }) }
 }
 
 describe('GamePage', () => {
-  it('keeps rankings scoped to the selected game even if a service returns extra records', async () => {
-    const catalogService: CatalogService = {
-      listServers: () => Promise.resolve([flyffServer, otherGameServer]),
+  it('fails closed if a service returns a different game', async () => {
+    const rankingsService: RankingsService = {
+      getGameRankings: () => Promise.resolve({
+        game: { slug: 'ragnarok-online', name: 'Ragnarok Online' },
+        servers: [flyffServer],
+      }),
     }
-
-    render(<GamePage slug="flyff" catalogService={catalogService} />)
-
-    const rankings = await screen.findByRole('list', { name: 'Flyff server rankings' })
-    expect(within(rankings).getByText('Flyff One')).toBeInTheDocument()
-    expect(within(rankings).queryByText('Ragnarok One')).not.toBeInTheDocument()
+    render(<GamePage slug="flyff" rankingsService={rankingsService} />)
+    expect(await screen.findByText(/no approved flyff servers yet/i)).toBeInTheDocument()
+    expect(screen.queryByRole('list', { name: 'Flyff server rankings' })).not.toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Exclusive Flyff servers' })).toBeInTheDocument()
-    expect(screen.getByText(/no active sponsored servers for this game/i)).toBeInTheDocument()
-    expect(document.body).not.toHaveTextContent('â€¦')
   })
 
-  it('announces sorting changes without making the ranking list live', async () => {
-    const user = userEvent.setup()
-    const catalogService: CatalogService = { listServers: () => Promise.resolve([flyffServer]) }
-    render(<GamePage slug="flyff" catalogService={catalogService} />)
-
+  it('renders only the minimal verified ranking contract', async () => {
+    render(<GamePage slug="flyff" rankingsService={service()} />)
     const rankings = await screen.findByRole('list', { name: 'Flyff server rankings' })
-    await user.selectOptions(screen.getByLabelText('Sort by'), 'players')
-    expect(screen.getByText('Rankings sorted by players.')).toHaveAttribute('role', 'status')
-    expect(rankings).not.toHaveAttribute('aria-live')
+    expect(within(rankings).getByText('Flyff One')).toBeInTheDocument()
+    expect(within(rankings).getByText('20 votes')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Sort by')).not.toBeInTheDocument()
   })
 
   it('does not fall back to another game for an unsupported slug', () => {
     render(<GamePage slug="unsupported-game" />)
-
     expect(screen.getByRole('heading', { name: 'Game not found' })).toBeInTheDocument()
     expect(screen.queryByText(/private server rankings/i)).not.toBeInTheDocument()
   })
 
   it('keeps voting fail-closed on game rankings', async () => {
-    const catalogService: CatalogService = { listServers: () => Promise.resolve([flyffServer]) }
-    render(<GamePage slug="flyff" catalogService={catalogService} />)
-
+    render(<GamePage slug="flyff" rankingsService={service()} />)
     expect(await screen.findByText(/voting will open after the secure voting service/i)).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Vote for Flyff One' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /vote for/i })).not.toBeInTheDocument()
   })
 })

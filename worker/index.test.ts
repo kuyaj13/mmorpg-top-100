@@ -4,7 +4,7 @@ import { createWorker } from './index'
 
 const rateLimit = vi.fn().mockResolvedValue({ success: true })
 const env = {
-  ALLOWED_ORIGIN: 'https://mmorpgtop100.com' as const,
+  ALLOWED_ORIGIN: 'https://mmorpgtop100.com,https://mmorpg-top-100.pages.dev' as const,
   HYPERDRIVE: { connectionString: '' } as Hyperdrive,
   RANKINGS_RATE_LIMITER: { limit: rateLimit } as RateLimit,
 }
@@ -57,9 +57,10 @@ describe('rankings endpoint', () => {
 
   it('allows CORS only for the configured exact origin', async () => {
     const worker = createWorker(() => repository(null))
-    const allowed = await worker.fetch(new Request('https://api.example/api/games/flyff/rankings', { headers: { origin: env.ALLOWED_ORIGIN } }), env)
-    const lookalike = await worker.fetch(new Request('https://api.example/api/games/flyff/rankings', { headers: { origin: `${env.ALLOWED_ORIGIN}.evil.test` } }), env)
-    expect(allowed.headers.get('access-control-allow-origin')).toBe(env.ALLOWED_ORIGIN)
+    const allowedOrigin = 'https://mmorpg-top-100.pages.dev'
+    const allowed = await worker.fetch(new Request('https://api.example/api/games/flyff/rankings', { headers: { origin: allowedOrigin } }), env)
+    const lookalike = await worker.fetch(new Request('https://api.example/api/games/flyff/rankings', { headers: { origin: `${allowedOrigin}.evil.test` } }), env)
+    expect(allowed.headers.get('access-control-allow-origin')).toBe(allowedOrigin)
     expect(lookalike.headers.has('access-control-allow-origin')).toBe(false)
   })
 
