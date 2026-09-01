@@ -34,7 +34,9 @@ describe('GamePage', () => {
     const rankingButton = screen.getByRole('button', { name: 'Prologic Flyff20 votes' })
     expect(rankingButton).toContainElement(banner)
     expect(banner!.compareDocumentPosition(within(rankingButton).getByText('Prologic Flyff')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(screen.getByRole('link', { name: /https:\/\/www\.prologicflyff\.com\/.*opens in a new tab/i })).toHaveAttribute('rel', 'noopener noreferrer')
+    const websiteLink = screen.getByRole('link', { name: /visit website\s*for prologic flyff.*opens in a new tab/i })
+    expect(websiteLink).toHaveAttribute('href', 'https://www.prologicflyff.com/')
+    expect(websiteLink).toHaveAttribute('rel', 'noopener noreferrer')
   })
 
   it('does not fall back to another game for an unsupported slug', () => {
