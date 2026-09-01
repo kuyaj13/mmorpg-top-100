@@ -8,6 +8,14 @@ import type { PublicRankingServer, RankingsService } from './rankingsService'
 
 type GamePageProps = { slug: string; rankingsService?: RankingsService }
 
+const bannerPreviews: Record<string, { animated: string; static: string; alt: string }> = {
+  'flyff:Prologic Flyff': {
+    animated: '/banners/prologic-flyff-preview.gif',
+    static: '/banners/prologic-flyff-preview-static.png',
+    alt: 'Prologic Flyff banner with its gold logo over a blue and pink cloudscape',
+  },
+}
+
 export default function GamePage({ slug, rankingsService = defaultRankingsService }: GamePageProps) {
   const game = findGameBySlug(slug)
   const [servers, setServers] = useState<PublicRankingServer[]>([])
@@ -31,6 +39,7 @@ export default function GamePage({ slug, rankingsService = defaultRankingsServic
   }, [game, rankingsService])
 
   const selectedServer = servers.find((server) => server.id === selectedId) ?? servers[0]
+  const selectedBanner = selectedServer ? bannerPreviews[`${game?.slug}:${selectedServer.name}`] : undefined
 
   if (!game) return (
     <div className="game-page">
@@ -69,7 +78,15 @@ export default function GamePage({ slug, rankingsService = defaultRankingsServic
                 </button></li>)}
               </ol>
               {selectedServer && <aside className="game-server-detail" aria-label="Selected server details">
-                <h3>{selectedServer.name}</h3><dl><div><dt>Votes</dt><dd>{selectedServer.votes.toLocaleString()}</dd></div></dl>
+                <h3>{selectedServer.name}</h3>
+                {selectedBanner && <figure className="server-banner-preview">
+                  <picture>
+                    <source media="(prefers-reduced-motion: reduce)" srcSet={selectedBanner.static} />
+                    <img src={selectedBanner.animated} alt={selectedBanner.alt} width="468" height="60" />
+                  </picture>
+                  <figcaption>Sample banner preview</figcaption>
+                </figure>}
+                <dl><div><dt>Votes</dt><dd>{selectedServer.votes.toLocaleString()}</dd></div></dl>
                 {!siteConfig.votingEnabled && <p role="status">Voting will open after the secure voting service is ready.</p>}
                 <p className="visually-hidden" role="status" aria-atomic="true">Selected {selectedServer.name}.</p>
               </aside>}

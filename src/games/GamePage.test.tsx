@@ -2,7 +2,7 @@ import { render, screen, within } from '@testing-library/react'
 import type { RankingsService } from './rankingsService'
 import GamePage from './GamePage'
 
-const flyffServer = { id: 'flyff-one', name: 'Flyff One', votes: 20 }
+const flyffServer = { id: 'prologic-flyff', name: 'Prologic Flyff', votes: 20 }
 
 function service(servers = [flyffServer]): RankingsService {
   return { getGameRankings: (gameSlug) => Promise.resolve({ game: { slug: gameSlug, name: 'Flyff' }, servers }) }
@@ -25,9 +25,12 @@ describe('GamePage', () => {
   it('renders only the minimal verified ranking contract', async () => {
     render(<GamePage slug="flyff" rankingsService={service()} />)
     const rankings = await screen.findByRole('list', { name: 'Flyff server rankings' })
-    expect(within(rankings).getByText('Flyff One')).toBeInTheDocument()
+    expect(within(rankings).getByText('Prologic Flyff')).toBeInTheDocument()
     expect(within(rankings).getByText('20 votes')).toBeInTheDocument()
     expect(screen.queryByLabelText('Sort by')).not.toBeInTheDocument()
+    const banner = screen.getByRole('img', { name: /prologic flyff banner/i })
+    expect(banner).toHaveAttribute('src', '/banners/prologic-flyff-preview.gif')
+    expect(screen.getByText('Sample banner preview')).toBeInTheDocument()
   })
 
   it('does not fall back to another game for an unsupported slug', () => {
