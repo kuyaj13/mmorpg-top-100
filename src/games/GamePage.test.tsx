@@ -31,6 +31,9 @@ describe('GamePage', () => {
     const banner = screen.getByRole('img', { name: /prologic flyff banner/i })
     expect(banner).toHaveAttribute('src', '/banners/prologic-flyff-preview.gif')
     expect(screen.getByText('Sample banner preview')).toBeInTheDocument()
+    const figure = banner.closest('figure')
+    expect(figure).not.toBeNull()
+    expect(figure!.compareDocumentPosition(screen.getByRole('heading', { name: 'Prologic Flyff' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it('does not fall back to another game for an unsupported slug', () => {

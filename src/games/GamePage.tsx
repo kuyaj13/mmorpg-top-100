@@ -78,7 +78,6 @@ export default function GamePage({ slug, rankingsService = defaultRankingsServic
                 </button></li>)}
               </ol>
               {selectedServer && <aside className="game-server-detail" aria-label="Selected server details">
-                <h3>{selectedServer.name}</h3>
                 {selectedBanner && <figure className="server-banner-preview">
                   <picture>
                     <source media="(prefers-reduced-motion: reduce)" srcSet={selectedBanner.static} />
@@ -86,6 +85,7 @@ export default function GamePage({ slug, rankingsService = defaultRankingsServic
                   </picture>
                   <figcaption>Sample banner preview</figcaption>
                 </figure>}
+                <h3>{selectedServer.name}</h3>
                 <dl><div><dt>Votes</dt><dd>{selectedServer.votes.toLocaleString()}</dd></div></dl>
                 {!siteConfig.votingEnabled && <p role="status">Voting will open after the secure voting service is ready.</p>}
                 <p className="visually-hidden" role="status" aria-atomic="true">Selected {selectedServer.name}.</p>
