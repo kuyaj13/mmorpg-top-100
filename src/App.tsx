@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import './App.css'
-import { catalogService as defaultCatalogService } from './catalog/catalogService'
 import { votingService as defaultVotingService } from './catalog/votingService'
 import type { CatalogService, Server, VotingService } from './catalog/types'
 import { submissionService as defaultSubmissionService } from './submission/submissionService'
@@ -9,6 +8,8 @@ import type { ServerSubmission, SubmissionService } from './submission/types'
 import GameDirectory from './games/GameDirectory'
 import { siteConfig } from './config/site'
 import logoUrl from './assets/mmorpg-top-100-logo-web.png'
+import ApprovedServersSection from './home/ApprovedServersSection'
+import type { ApprovedServersService } from './home/approvedServersService'
 
 const emptyServer: Server = {
   id: 'catalog-placeholder',
@@ -51,15 +52,18 @@ const packages = [
 
 type AppProps = {
   catalogService?: CatalogService
+  approvedServersService?: ApprovedServersService
   votingService?: VotingService
   submissionService?: SubmissionService
 }
 
 function App({
-  catalogService = defaultCatalogService,
+  catalogService,
+  approvedServersService,
   votingService = defaultVotingService,
   submissionService = defaultSubmissionService,
 }: AppProps) {
+  const samplePreview = catalogService !== undefined
   const [servers, setServers] = useState<Server[]>([])
   const [catalogStatus, setCatalogStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [selectedMode, setSelectedMode] = useState<'All' | Server['mode']>('All')
@@ -73,6 +77,9 @@ function App({
   const [submissionFeedback, setSubmissionFeedback] = useState('')
 
   useEffect(() => {
+    if (!catalogService) {
+      return
+    }
     let active = true
 
     catalogService.listServers().then(
@@ -220,7 +227,7 @@ function App({
         <section className="hero-section">
           <div className="hero-copy">
             <p className="eyebrow">Community ranked</p>
-            <p className="preview-note">Public preview · Sample listing data</p>
+            <p className="preview-note">Live approved server directory</p>
             <h1>Find the best MMORPG private servers.</h1>
             <p className="hero-text">
               Discover the most active worlds, compare player counts, and vote for the
@@ -243,7 +250,7 @@ function App({
             </ul>
           </div>
 
-          <aside className="hero-panel" aria-label="Featured server summary">
+          {samplePreview ? <aside className="hero-panel" aria-label="Featured server summary">
             <div className="panel-header">
               <span className="live-pill">{displayServer.status}</span>
               <span>Featured world</span>
@@ -272,7 +279,12 @@ function App({
             <a href="#server-detail" className="visit-button">
               View server details
             </a>
-          </aside>
+          </aside> : <aside className="hero-panel" aria-label="Live directory summary">
+            <div className="panel-header"><span className="live-pill">Live</span><span>Verified listings</span></div>
+            <h2>Approved private servers</h2>
+            <p className="panel-subtitle">Browse each game's independent ranking without sample statistics.</p>
+            <a href="#rankings" className="visit-button">Browse approved servers</a>
+          </aside>}
           {siteConfig.advertisingWorkspaceEnabled && (
             <a className="secondary-action advertiser-workspace-link" href="/advertise">
               Open advertiser workspace
@@ -280,24 +292,15 @@ function App({
           )}
         </section>
 
-        <section className="stats-bar" aria-label="Marketplace statistics">
-          <div>
-            <strong>5</strong>
-            <span>Sample listings</span>
-          </div>
-          <div>
-            <strong>35,912</strong>
-            <span>Sample votes</span>
-          </div>
-          <div>
-            <strong>3</strong>
-            <span>Game modes</span>
-          </div>
+        <section className="stats-bar" aria-label="Directory status">
+          <div><strong>82</strong><span>Supported games</span></div>
+          <div><strong>Live</strong><span>Approved listings</span></div>
+          <div><strong>Locked</strong><span>Voting until Phase 5</span></div>
         </section>
 
         <GameDirectory />
 
-        <section id="rankings" className="rankings-section">
+        {samplePreview ? <section id="rankings" className="rankings-section">
           <div className="section-heading">
             <div>
               <p className="eyebrow">Top servers</p>
@@ -429,7 +432,7 @@ function App({
               )}
             </aside>
           </div>
-        </section>
+        </section> : <ApprovedServersSection service={approvedServersService} />}
 
         <section className="feature-grid" aria-label="Platform features">
           <article className="feature-card">

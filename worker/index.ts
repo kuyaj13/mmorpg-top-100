@@ -11,6 +11,14 @@ export function createWorker(repositoryFactory: RepositoryFactory) {
         const url = new URL(request.url)
         if (request.method === 'OPTIONS') return corsResponse(request, env, new Response(null, { status: 204 }))
         if (url.pathname === '/api/health' && request.method === 'GET') return corsResponse(request, env, Response.json({ ok: true }, { headers: noStoreHeaders() }))
+        if (url.pathname === '/api/servers') {
+          if (request.method !== 'GET') return corsResponse(request, env, methodNotAllowed())
+          const clientKey = request.headers.get('cf-connecting-ip') ?? 'unknown-client'
+          const rateLimit = await env.RANKINGS_RATE_LIMITER.limit({ key: `${clientKey}:approved-servers` })
+          if (!rateLimit.success) return corsResponse(request, env, rateLimited())
+          const servers = await repositoryFactory(env).listApprovedServers()
+          return corsResponse(request, env, Response.json({ ok: true, servers }, { headers: noStoreHeaders() }))
+        }
         const rankingMatch = url.pathname.match(/^\/api\/games\/([^/]+)\/rankings$/)
         if (rankingMatch) {
           if (request.method !== 'GET') return corsResponse(request, env, methodNotAllowed())

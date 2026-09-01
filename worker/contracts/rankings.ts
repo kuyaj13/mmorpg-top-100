@@ -12,6 +12,10 @@ export type GameRankings = {
   servers: RankingServer[]
 }
 
+export type ApprovedServer = RankingServer & {
+  game: { slug: string; name: string }
+}
+
 export function parseGameSlug(value: string): string | null {
   if (value.length === 0 || value.length > 100 || !GAME_SLUG_PATTERN.test(value)) return null
   return value

@@ -48,6 +48,15 @@ describe('ranking repository', () => {
     expect(client.end).toHaveBeenCalledOnce()
   })
 
+  it('lists approved servers with their game for homepage discovery', async () => {
+    const client = fakeClient([{ rows: [{ id: 'server-id', name: 'Server', website: 'https://server.example/', votes: '4', game_slug: 'flyff', game_name: 'Flyff' }] }])
+    await expect(createRankingRepository(() => client).listApprovedServers()).resolves.toEqual([
+      { id: 'server-id', name: 'Server', website: 'https://server.example/', votes: 4, game: { slug: 'flyff', name: 'Flyff' } },
+    ])
+    expect(client.query).toHaveBeenCalledWith(expect.stringContaining('LIMIT 100'))
+    expect(client.end).toHaveBeenCalledOnce()
+  })
+
   it('closes the connection when a query fails', async () => {
     const client = fakeClient([])
     client.query.mockRejectedValueOnce(new Error('database detail'))

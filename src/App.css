@@ -132,6 +132,57 @@
   background: rgba(15, 23, 42, 0.7);
 }
 
+.approved-server-list {
+  display: grid;
+  gap: 12px;
+  margin: 22px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.approved-server-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 14px;
+  background: #111c31;
+}
+
+.approved-server-list h3,
+.approved-server-list p {
+  margin: 0;
+}
+
+.approved-server-list p {
+  color: #94a3b8;
+}
+
+.approved-server-list a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #2563eb;
+  color: #fff;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+@media (max-width: 620px) {
+  .approved-server-list li {
+    grid-template-columns: 1fr;
+  }
+
+  .approved-server-list a {
+    width: 100%;
+  }
+}
+
 .hero-copy {
   padding: 24px 20px;
 }

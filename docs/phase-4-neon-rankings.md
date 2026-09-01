@@ -9,7 +9,7 @@
 - The response includes only game slug/name and server ID/name, reviewed HTTPS website, and vote count. Owner, moderation, authentication, submission, and advertising data are not exposed.
 - Vote counts are display-only imported totals in this phase. Voting remains disabled until immutable vote records and abuse controls are implemented.
 - Individual game pages use the live read-only rankings API and show an honest empty state when no approved servers exist. They render only verified server name, vote count, and rank data returned by the public contract.
-- The homepage remains explicitly labeled sample preview until approved server data exists; it is not presented as live ranking data.
+- The homepage uses `GET /api/servers` for a bounded, read-only cross-game directory of approved listings. It no longer displays sample server statistics or sample rankings in production.
 - The canonical 82-game catalog is seeded in production and verified by total, active, unique-slug, and game-type counts.
 - The read-only Worker is deployed at `https://api.mmorpgtop100.com`; its `workers.dev` route is disabled.
 - The static frontend is deployed on the Cloudflare Pages Free plan at `https://mmorpg-top-100.pages.dev`. Static routes use an SPA fallback and receive restrictive security headers.
@@ -35,6 +35,5 @@
 
 - Import only approved servers with verified HTTPS destinations.
 - The first approved production listing is `Prologic Flyff` under `flyff`, with its reviewed HTTPS destination and an initial vote count of zero.
-- Replace the homepage sample leaderboard only after approved server records exist; do not synthesize missing production metadata.
 - Keep voting, submission, moderation, and paid-listing mutations fail-closed until their separate authorization and abuse-protection phases pass.
 - The rankings endpoint calls the `RANKINGS_RATE_LIMITER` Worker binding before database access. It allows 60 requests per minute for each client/game key in each Cloudflare location and returns a plain `429` response before consuming a Hyperdrive query.
