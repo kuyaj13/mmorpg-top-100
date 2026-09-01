@@ -15,8 +15,8 @@
 - The owner workspace, verified-email account flow, owner-scoped claim contract, claim history, and protected administrator review queue are implemented locally.
 - SQL Connect SDK generation succeeds for the advertiser and administrator connectors.
 - Donation-claim creation is intentionally unavailable in the launch scope. The Cloudflare endpoint returns a plain temporary-unavailability response and cannot write product data.
-- Hyperdrive is not used because the current PostgreSQL 18 database is outside its documented compatibility range. Firebase Functions are not used because this project is not on a billing-enabled plan.
-- Paid claims, banner uploads, and placement activation remain disabled until a later compatibility and cost review approves a trusted server-side write boundary.
+- A Neon Free PostgreSQL 17 production database and a project-specific Cloudflare Hyperdrive configuration are provisioned and pass connection/configuration validation. The previous PostgreSQL 18 project remains untouched for rollback.
+- Paid claims, banner uploads, and placement activation remain disabled until the trusted Worker repository, schema migrations, authorization checks, and abuse controls pass their own regression gate.
 - Banner uploads remain intentionally unavailable until the trusted quarantine/scanning service and approved numeric media limits are implemented.
 - Package prices still require product-owner approval before active package records are seeded.
 

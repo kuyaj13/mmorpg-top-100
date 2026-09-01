@@ -12,5 +12,11 @@
   "observability": {
     "enabled": true,
     "head_sampling_rate": 0.1
-  }
+  },
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "8d7361e0f143460184c7425698a61f99"
+    }
+  ]
 }
