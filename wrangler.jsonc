@@ -15,14 +15,15 @@
     "ENVIRONMENT": "production",
     "ALLOWED_ORIGIN": "https://mmorpgtop100.com,https://mmorpg-top-100.pages.dev",
     "PREVIEW_MODE": "true",
-    "VOTING_ENABLED": "false",
+    "VOTING_ENABLED": "true",
     "FIREBASE_PROJECT_ID": "mmorpg-top-100",
     "TURNSTILE_HOSTNAME": "mmorpgtop100.com",
     "TURNSTILE_ACTION": "vote"
   },
   "observability": {
     "enabled": true,
-    "head_sampling_rate": 0.1
+    "logs": { "enabled": true, "head_sampling_rate": 0.1 },
+    "traces": { "enabled": true, "head_sampling_rate": 0.1 }
   },
   "hyperdrive": [
     {

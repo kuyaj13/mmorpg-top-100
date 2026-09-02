@@ -23,20 +23,20 @@
 
 The voting UI and endpoint must remain disabled until every control above passes its regression gate.
 
-## Implemented but disabled
+## Implemented and activated
 
 - The Worker verifies Firebase ID-token signatures and exact issuer, audience, verified-email, algorithm, type, expiry, and issued-time claims.
 - Turnstile verification is server-side, single-attempt, time-bounded, and restricted to the `mmorpgtop100.com` hostname and `vote` action.
 - A dedicated Cloudflare binding limits vote attempts to 6 per IP per minute before token or database work.
 - The React flow provides player sign-in, account creation, email verification, a keyboard-accessible Turnstile control, non-optimistic totals, and live announcements.
-- `VOTING_ENABLED` and `VITE_VOTING_ENABLED` default to false. Missing verification configuration cannot expose voting.
+- Voting was activated on September 2, 2026 after both Worker secrets, the production Turnstile widget, production migration, dedicated limiter, and regression gate were verified. The public Turnstile site key is committed in `.env.production`; secret values remain only in Cloudflare.
 
 ## Activation gate
 
-1. Create the production Turnstile widget for only `mmorpgtop100.com` and store its secret as the Worker secret `TURNSTILE_SECRET`.
+1. Completed September 2, 2026: the production Turnstile widget was restricted to `mmorpgtop100.com`, and its private value was stored as Worker secret `TURNSTILE_SECRET`.
 2. Completed September 2, 2026: a randomly generated 32-byte value was stored as the Worker secret `VOTER_HMAC_SECRET`; do not rotate it during a UTC voting day.
 3. Completed September 2, 2026: migration `0002_secure_daily_votes.sql` was applied to production with the direct owner connection and passed rollback-only verification through both owner and restricted application roles.
-4. Enable both feature flags, rebuild, run the full gate, deploy API first, smoke-test, then deploy Pages.
+4. Completed September 2, 2026: both feature flags were enabled, the full gate passed, the API was deployed and checked before Pages, and the live bundle was verified to contain the public site key and voting UI.
 
 ## No-cost App Check compatibility decision
 
