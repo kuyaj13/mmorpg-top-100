@@ -1,4 +1,4 @@
-import { bigint, boolean, check, index, pgSchema, text, timestamp, unique, uuid, varchar } from 'drizzle-orm/pg-core'
+import { bigint, boolean, check, customType, date, index, pgSchema, text, timestamp, unique, uuid, varchar } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
 
 export const app = pgSchema('app')
@@ -31,4 +31,18 @@ export const servers = app.table('servers', {
   check('servers_status_allowed', sql`${table.status} IN ('active', 'inactive', 'suspended')`),
   check('servers_votes_nonnegative', sql`${table.voteCount} >= 0`),
   index('servers_public_ranking_idx').on(table.gameSlug.asc(), table.voteCount.desc(), table.createdAt.asc(), table.id.asc()).where(sql`${table.status} = 'active'`),
+])
+
+const bytea = customType<{ data: Uint8Array }>({ dataType: () => 'bytea' })
+
+export const votes = app.table('votes', {
+  id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+  serverId: uuid('server_id').notNull().references(() => servers.id, { onDelete: 'restrict', onUpdate: 'restrict' }),
+  voterKey: bytea('voter_key').notNull(),
+  votingDay: date('voting_day').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  unique('votes_one_per_server_day').on(table.serverId, table.voterKey, table.votingDay),
+  check('votes_voter_key_length', sql`octet_length(${table.voterKey}) = 32`),
+  index('votes_server_created_idx').on(table.serverId, table.createdAt.desc()),
 ])
