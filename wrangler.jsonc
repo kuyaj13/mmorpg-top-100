@@ -14,7 +14,13 @@
   "vars": {
     "ENVIRONMENT": "production",
     "ALLOWED_ORIGIN": "https://mmorpgtop100.com,https://mmorpg-top-100.pages.dev",
-    "PREVIEW_MODE": "true"
+    "PREVIEW_MODE": "true",
+    "VOTING_ENABLED": "false",
+    "FIREBASE_PROJECT_ID": "mmorpg-top-100",
+    "FIREBASE_PROJECT_NUMBER": "502706808300",
+    "FIREBASE_APP_ID": "1:502706808300:web:334f3c935a1b25cb874cc9",
+    "TURNSTILE_HOSTNAME": "mmorpgtop100.com",
+    "TURNSTILE_ACTION": "vote"
   },
   "observability": {
     "enabled": true,
@@ -32,6 +38,14 @@
       "namespace_id": "73333251",
       "simple": {
         "limit": 60,
+        "period": 60
+      }
+    },
+    {
+      "name": "VOTE_RATE_LIMITER",
+      "namespace_id": "73333252",
+      "simple": {
+        "limit": 6,
         "period": 60
       }
     }

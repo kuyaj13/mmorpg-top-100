@@ -1,6 +1,6 @@
 export const siteConfig = {
   paypalDonationUrl: 'https://www.paypal.com/paypalme/VivaMU',
-  votingEnabled: false,
+  votingEnabled: import.meta.env.VITE_VOTING_ENABLED === 'true' && Boolean(import.meta.env.VITE_TURNSTILE_SITE_KEY),
   submissionsEnabled: false,
   adminWorkspaceEnabled: false,
   advertisingWorkspaceEnabled: false,

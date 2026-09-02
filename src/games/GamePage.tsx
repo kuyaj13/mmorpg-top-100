@@ -5,8 +5,10 @@ import './GamePage.css'
 import { findGameBySlug } from './games'
 import { rankingsService as defaultRankingsService } from './rankingsService'
 import type { PublicRankingServer, RankingsService } from './rankingsService'
+import { VotePanel } from '../voting/VotePanel'
+import type { VotingService } from '../voting/types'
 
-type GamePageProps = { slug: string; rankingsService?: RankingsService }
+type GamePageProps = { slug: string; rankingsService?: RankingsService; votingEnabled?: boolean; votingService?: VotingService; turnstileSiteKey?: string }
 
 const bannerPreviews: Record<string, { animated: string; static: string; alt: string }> = {
   'flyff:Prologic Flyff': {
@@ -16,7 +18,7 @@ const bannerPreviews: Record<string, { animated: string; static: string; alt: st
   },
 }
 
-export default function GamePage({ slug, rankingsService = defaultRankingsService }: GamePageProps) {
+export default function GamePage({ slug, rankingsService = defaultRankingsService, votingEnabled = siteConfig.votingEnabled, votingService, turnstileSiteKey }: GamePageProps) {
   const game = findGameBySlug(slug)
   const [servers, setServers] = useState<PublicRankingServer[]>([])
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
@@ -90,7 +92,14 @@ export default function GamePage({ slug, rankingsService = defaultRankingsServic
                   Visit website
                   <span className="visually-hidden"> for {selectedServer.name} (opens in a new tab)</span>
                 </a>
-                {!siteConfig.votingEnabled && <p role="status">Voting will open after the secure voting service is ready.</p>}
+                {votingEnabled && <VotePanel
+                  serverId={selectedServer.id}
+                  serverName={selectedServer.name}
+                  service={votingService}
+                  turnstileSiteKey={turnstileSiteKey}
+                  onVoteRecorded={(votes) => setServers((current) => current.map((server) => server.id === selectedServer.id ? { ...server, votes } : server))}
+                />}
+                {!votingEnabled && <p role="status">Voting will open after the secure voting service is ready.</p>}
                 <p className="visually-hidden" role="status" aria-atomic="true">Selected {selectedServer.name}.</p>
               </aside>}
             </div>

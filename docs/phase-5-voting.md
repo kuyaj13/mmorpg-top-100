@@ -23,3 +23,19 @@
 - Return plain user-facing errors and never disclose whether a particular verification layer failed.
 
 The voting UI and endpoint must remain disabled until every control above passes its regression gate.
+
+## Implemented but disabled
+
+- The Worker verifies Firebase ID and App Check JWT signatures and exact issuer, audience, application, verified-email, algorithm, type, expiry, and issued-time claims.
+- Turnstile verification is server-side, single-attempt, time-bounded, and restricted to the `mmorpgtop100.com` hostname and `vote` action.
+- A dedicated Cloudflare binding limits vote attempts to 6 per IP per minute before token or database work.
+- The React flow provides player sign-in, account creation, email verification, a keyboard-accessible Turnstile control, non-optimistic totals, and live announcements.
+- `VOTING_ENABLED` and `VITE_VOTING_ENABLED` default to false. Missing verification configuration cannot expose voting.
+
+## Activation gate
+
+1. Create the production Turnstile widget for only `mmorpgtop100.com` and store its secret as the Worker secret `TURNSTILE_SECRET`.
+2. Register the production Firebase web app with App Check and place only its public site key in the Pages build environment as `VITE_FIREBASE_APP_CHECK_SITE_KEY`.
+3. Store a randomly generated 32-byte or longer value as the Worker secret `VOTER_HMAC_SECRET`; do not rotate it during a UTC voting day.
+4. Apply and re-verify migration `0002_secure_daily_votes.sql` on production using the direct owner connection.
+5. Enable both feature flags, rebuild, run the full gate, deploy API first, smoke-test, then deploy Pages.

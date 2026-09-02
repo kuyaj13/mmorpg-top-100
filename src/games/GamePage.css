@@ -188,6 +188,12 @@
   font-weight: 800;
 }
 
+.player-auth-panel { display: grid; gap: 8px; margin: 12px 0; }
+.player-auth-panel input { width: 100%; min-height: 44px; padding: 9px 11px; border: 1px solid #64748b; border-radius: 9px; background: #020817; color: #f8fafc; }
+.player-auth-actions, .player-auth-ready { display: flex; align-items: center; gap: 10px; }
+.player-auth-actions button, .player-auth-ready button { min-height: 44px; padding: 9px 12px; }
+.vote-panel { margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(148, 163, 184, .25); }
+
 .game-not-found {
   padding-top: 64px;
 }
@@ -222,4 +228,6 @@
     align-items: flex-start;
     flex-direction: column;
   }
+
+  .player-auth-actions, .player-auth-ready { align-items: stretch; flex-direction: column; }
 }

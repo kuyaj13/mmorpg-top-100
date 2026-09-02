@@ -7,6 +7,15 @@ const env = {
   ALLOWED_ORIGIN: 'https://mmorpgtop100.com,https://mmorpg-top-100.pages.dev' as const,
   HYPERDRIVE: { connectionString: '' } as Hyperdrive,
   RANKINGS_RATE_LIMITER: { limit: rateLimit } as RateLimit,
+  VOTE_RATE_LIMITER: { limit: rateLimit } as RateLimit,
+  VOTING_ENABLED: 'false',
+  FIREBASE_PROJECT_ID: 'project',
+  FIREBASE_PROJECT_NUMBER: '123',
+  FIREBASE_APP_ID: 'app',
+  TURNSTILE_SECRET: 'secret',
+  TURNSTILE_HOSTNAME: 'mmorpgtop100.com',
+  TURNSTILE_ACTION: 'vote',
+  VOTER_HMAC_SECRET: 'secret',
 }
 
 function repository(result: Awaited<ReturnType<RankingRepository['findByGameSlug']>>): RankingRepository {
@@ -107,5 +116,33 @@ describe('rankings endpoint', () => {
   it('keeps donation claims unavailable', async () => {
     const response = await createWorker(() => repository(null)).fetch(new Request('https://api.example/api/advertising/claims', { method: 'POST' }), env)
     expect(response.status).toBe(503)
+  })
+
+  it('keeps voting disabled before invoking the protected handler', async () => {
+    const voteHandler = vi.fn()
+    const worker = createWorker(() => repository(null), () => voteHandler)
+    const response = await worker.fetch(new Request('https://api.example/api/servers/123e4567-e89b-42d3-a456-426614174000/votes', {
+      method: 'POST', headers: { origin: 'https://mmorpgtop100.com' },
+    }), env)
+    expect(response.status).toBe(503)
+    expect(voteHandler).not.toHaveBeenCalled()
+  })
+
+  it('rejects a disallowed vote origin before invoking security or database work', async () => {
+    const voteHandler = vi.fn()
+    const worker = createWorker(() => repository(null), () => voteHandler)
+    const response = await worker.fetch(new Request('https://api.example/api/servers/123e4567-e89b-42d3-a456-426614174000/votes', {
+      method: 'POST', headers: { origin: 'https://evil.test' },
+    }), { ...env, VOTING_ENABLED: 'true' })
+    expect(response.status).toBe(403)
+    expect(voteHandler).not.toHaveBeenCalled()
+  })
+
+  it('advertises POST only for vote preflight', async () => {
+    const worker = createWorker(() => repository(null))
+    const response = await worker.fetch(new Request('https://api.example/api/servers/123e4567-e89b-42d3-a456-426614174000/votes', {
+      method: 'OPTIONS', headers: { origin: 'https://mmorpgtop100.com' },
+    }), env)
+    expect(response.headers.get('access-control-allow-methods')).toBe('POST, OPTIONS')
   })
 })

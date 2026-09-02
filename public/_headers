@@ -1,5 +1,5 @@
 /*
-  Content-Security-Policy: default-src 'self'; base-uri 'self'; connect-src 'self' https://api.mmorpgtop100.com https://*.firebaseapp.com https://*.firebaseio.com https://*.googleapis.com; font-src 'self'; form-action 'self' https://www.paypal.com; frame-ancestors 'none'; frame-src https://*.firebaseapp.com; img-src 'self' data:; object-src 'none'; script-src 'self'; style-src 'self'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'self'; base-uri 'self'; connect-src 'self' https://api.mmorpgtop100.com https://*.firebaseapp.com https://*.firebaseio.com https://*.googleapis.com https://challenges.cloudflare.com; font-src 'self'; form-action 'self' https://www.paypal.com; frame-ancestors 'none'; frame-src https://*.firebaseapp.com https://challenges.cloudflare.com; img-src 'self' data:; object-src 'none'; script-src 'self' https://challenges.cloudflare.com; style-src 'self'; upgrade-insecure-requests
   Permissions-Policy: camera=(), geolocation=(), microphone=(), payment=(), usb=()
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
