@@ -13,8 +13,6 @@ type WorkerEnv = {
   VOTE_RATE_LIMITER: RateLimit
   VOTING_ENABLED: string
   FIREBASE_PROJECT_ID: string
-  FIREBASE_PROJECT_NUMBER: string
-  FIREBASE_APP_ID: string
   TURNSTILE_SECRET: string
   TURNSTILE_HOSTNAME: string
   TURNSTILE_ACTION: string
@@ -30,7 +28,7 @@ export function createWorker(repositoryFactory: RepositoryFactory, voteHandlerFa
       try {
         const url = new URL(request.url)
         const voteMatch = url.pathname.match(/^\/api\/servers\/([^/]+)\/votes$/)
-        if (request.method === 'OPTIONS') return corsResponse(request, env, new Response(null, { status: 204 }), voteMatch ? 'POST, OPTIONS' : 'GET, OPTIONS')
+        if (request.method === 'OPTIONS') return corsResponse(request, env, new Response(null, { status: 204 }), voteMatch ? 'POST, OPTIONS' : 'GET, OPTIONS', voteMatch ? 'authorization, content-type' : undefined)
         if (url.pathname === '/api/health' && request.method === 'GET') return corsResponse(request, env, Response.json({ ok: true }, { headers: noStoreHeaders() }))
         if (url.pathname === '/api/servers') {
           if (request.method !== 'GET') return corsResponse(request, env, methodNotAllowed())
@@ -41,11 +39,11 @@ export function createWorker(repositoryFactory: RepositoryFactory, voteHandlerFa
           return corsResponse(request, env, Response.json({ ok: true, servers }, { headers: noStoreHeaders() }))
         }
         if (voteMatch) {
-          if (request.method !== 'POST') return corsResponse(request, env, methodNotAllowed('POST'), 'POST, OPTIONS')
+          if (request.method !== 'POST') return corsResponse(request, env, methodNotAllowed('POST'), 'POST, OPTIONS', 'authorization, content-type')
           if (!isAllowedOrigin(request, env)) return jsonError('This request is not allowed.', 403)
-          if (env.VOTING_ENABLED !== 'true' || !voteHandlerFactory) return corsResponse(request, env, jsonError('Voting is not available yet.', 503), 'POST, OPTIONS')
+          if (env.VOTING_ENABLED !== 'true' || !voteHandlerFactory) return corsResponse(request, env, jsonError('Voting is not available yet.', 503), 'POST, OPTIONS', 'authorization, content-type')
           const response = await voteHandlerFactory(env)(request, safeDecode(voteMatch[1]))
-          return corsResponse(request, env, response, 'POST, OPTIONS')
+          return corsResponse(request, env, response, 'POST, OPTIONS', 'authorization, content-type')
         }
         const rankingMatch = url.pathname.match(/^\/api\/games\/([^/]+)\/rankings$/)
         if (rankingMatch) {
@@ -72,7 +70,7 @@ export function createWorker(repositoryFactory: RepositoryFactory, voteHandlerFa
 export default createWorker(
   (env) => createHyperdriveRankingRepository(env.HYPERDRIVE.connectionString),
   (env) => {
-    const firebase = createFirebaseVerifier({ projectId: env.FIREBASE_PROJECT_ID, projectNumber: env.FIREBASE_PROJECT_NUMBER, appId: env.FIREBASE_APP_ID })
+    const firebase = createFirebaseVerifier({ projectId: env.FIREBASE_PROJECT_ID })
     return createVoteEndpoint({
       verifyFirebase: (request) => firebase.verify(request),
       verifyTurnstile: createTurnstileVerifier(env.TURNSTILE_SECRET, env.TURNSTILE_HOSTNAME, env.TURNSTILE_ACTION),
@@ -88,5 +86,5 @@ function jsonError(message: string, status: number) { return Response.json({ ok:
 function methodNotAllowed(allow = 'GET') { return Response.json({ ok: false, message: 'Method not allowed.' }, { status: 405, headers: { ...noStoreHeaders(), allow } }) }
 function rateLimited() { return Response.json({ ok: false, message: 'Too many requests. Please try again shortly.' }, { status: 429, headers: { ...noStoreHeaders(), 'retry-after': '60' } }) }
 function isAllowedOrigin(request: Request, env: WorkerEnv) { const origin = request.headers.get('origin'); return Boolean(origin && env.ALLOWED_ORIGIN.split(',').includes(origin)) }
-function corsResponse(request: Request, env: WorkerEnv, response: Response, methods = 'GET, OPTIONS') { const origin = request.headers.get('origin'); if (origin && env.ALLOWED_ORIGIN.split(',').includes(origin)) { response.headers.set('access-control-allow-origin', origin); response.headers.set('access-control-allow-headers', 'authorization, content-type, x-firebase-appcheck'); response.headers.set('access-control-allow-methods', methods); response.headers.set('vary', 'Origin') } return response }
+function corsResponse(request: Request, env: WorkerEnv, response: Response, methods = 'GET, OPTIONS', headers = 'authorization, content-type, x-firebase-appcheck') { const origin = request.headers.get('origin'); if (origin && env.ALLOWED_ORIGIN.split(',').includes(origin)) { response.headers.set('access-control-allow-origin', origin); response.headers.set('access-control-allow-headers', headers); response.headers.set('access-control-allow-methods', methods); response.headers.set('vary', 'Origin') } return response }
 function safeDecode(value: string) { try { return decodeURIComponent(value) } catch { return '' } }

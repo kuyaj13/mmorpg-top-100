@@ -1,4 +1,4 @@
-import { getFirebaseAppCheckToken, getFirebaseAuth } from '../firebase'
+import { getFirebaseAuth } from '../firebase'
 import type { VoteResult, VotingService } from './types'
 
 type VoteResponse = { votes?: unknown; message?: unknown }
@@ -14,13 +14,9 @@ export const votingService: VotingService = {
 
       const apiBaseUrl = import.meta.env.VITE_API_BASE_URL
       if (!apiBaseUrl) return { ok: false, message: 'Voting is temporarily unavailable.' }
-      const [idToken, appCheckToken] = await Promise.all([
-        user.getIdToken(),
-        getFirebaseAppCheckToken(),
-      ])
+      const idToken = await user.getIdToken()
       const response = await submitProtectedVote(apiBaseUrl, serverId, {
         idToken,
-        appCheckToken,
         turnstileToken,
       })
       const body = await response.json().catch(() => null) as VoteResponse | null
@@ -38,7 +34,7 @@ export const votingService: VotingService = {
 export function submitProtectedVote(
   apiBaseUrl: string,
   serverId: string,
-  credentials: { idToken: string; appCheckToken: string; turnstileToken: string },
+  credentials: { idToken: string; turnstileToken: string },
   fetcher: typeof fetch = fetch,
 ) {
   return fetcher(new URL(`/api/servers/${encodeURIComponent(serverId)}/votes`, apiBaseUrl), {
@@ -46,7 +42,6 @@ export function submitProtectedVote(
     headers: {
       authorization: `Bearer ${credentials.idToken}`,
       'content-type': 'application/json',
-      'x-firebase-appcheck': credentials.appCheckToken,
     },
     body: JSON.stringify({ turnstileToken: credentials.turnstileToken }),
   })

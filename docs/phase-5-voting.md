@@ -16,7 +16,6 @@
 ## Required release controls
 
 - Verify Firebase ID tokens server-side and require a verified email address.
-- Verify Firebase App Check tokens server-side.
 - Verify a fresh Cloudflare Turnstile token server-side and bind it to the expected hostname and action.
 - Apply a stricter vote endpoint rate limit before authentication or database work.
 - Keep all verification secrets in Cloudflare Worker secrets, never frontend variables or committed files.
@@ -26,7 +25,7 @@ The voting UI and endpoint must remain disabled until every control above passes
 
 ## Implemented but disabled
 
-- The Worker verifies Firebase ID and App Check JWT signatures and exact issuer, audience, application, verified-email, algorithm, type, expiry, and issued-time claims.
+- The Worker verifies Firebase ID-token signatures and exact issuer, audience, verified-email, algorithm, type, expiry, and issued-time claims.
 - Turnstile verification is server-side, single-attempt, time-bounded, and restricted to the `mmorpgtop100.com` hostname and `vote` action.
 - A dedicated Cloudflare binding limits vote attempts to 6 per IP per minute before token or database work.
 - The React flow provides player sign-in, account creation, email verification, a keyboard-accessible Turnstile control, non-optimistic totals, and live announcements.
@@ -35,7 +34,10 @@ The voting UI and endpoint must remain disabled until every control above passes
 ## Activation gate
 
 1. Create the production Turnstile widget for only `mmorpgtop100.com` and store its secret as the Worker secret `TURNSTILE_SECRET`.
-2. Register the production Firebase web app with App Check and place only its public site key in the Pages build environment as `VITE_FIREBASE_APP_CHECK_SITE_KEY`.
-3. Store a randomly generated 32-byte or longer value as the Worker secret `VOTER_HMAC_SECRET`; do not rotate it during a UTC voting day.
-4. Completed September 2, 2026: migration `0002_secure_daily_votes.sql` was applied to production with the direct owner connection and passed rollback-only verification through both owner and restricted application roles.
-5. Enable both feature flags, rebuild, run the full gate, deploy API first, smoke-test, then deploy Pages.
+2. Completed September 2, 2026: a randomly generated 32-byte value was stored as the Worker secret `VOTER_HMAC_SECRET`; do not rotate it during a UTC voting day.
+3. Completed September 2, 2026: migration `0002_secure_daily_votes.sql` was applied to production with the direct owner connection and passed rollback-only verification through both owner and restricted application roles.
+4. Enable both feature flags, rebuild, run the full gate, deploy API first, smoke-test, then deploy Pages.
+
+## No-cost App Check compatibility decision
+
+The Firebase Console currently offers reCAPTCHA Enterprise for new App Check web registrations and marks the non-Enterprise reCAPTCHA provider deprecated. Enterprise has a free assessment allowance but can become billable above it; the deprecated option creates avoidable migration risk. The project owner therefore approved omitting App Check from Phase 5 voting rather than accepting a deprecated or potentially billable dependency. Verified Firebase Authentication, exact-origin enforcement, server-validated single-use Turnstile, Cloudflare rate limiting, HMAC-pseudonymous voter identity, and the PostgreSQL unique constraint remain mandatory and independent. This exception applies only to the voting endpoint and must be reviewed again if Firebase introduces a durable no-cost web attestation option.

@@ -17,8 +17,6 @@
     "PREVIEW_MODE": "true",
     "VOTING_ENABLED": "false",
     "FIREBASE_PROJECT_ID": "mmorpg-top-100",
-    "FIREBASE_PROJECT_NUMBER": "502706808300",
-    "FIREBASE_APP_ID": "1:502706808300:web:334f3c935a1b25cb874cc9",
     "TURNSTILE_HOSTNAME": "mmorpgtop100.com",
     "TURNSTILE_ACTION": "vote"
   },

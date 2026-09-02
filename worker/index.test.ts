@@ -10,8 +10,6 @@ const env = {
   VOTE_RATE_LIMITER: { limit: rateLimit } as RateLimit,
   VOTING_ENABLED: 'false',
   FIREBASE_PROJECT_ID: 'project',
-  FIREBASE_PROJECT_NUMBER: '123',
-  FIREBASE_APP_ID: 'app',
   TURNSTILE_SECRET: 'secret',
   TURNSTILE_HOSTNAME: 'mmorpgtop100.com',
   TURNSTILE_ACTION: 'vote',
