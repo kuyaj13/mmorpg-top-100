@@ -37,5 +37,5 @@ The voting UI and endpoint must remain disabled until every control above passes
 1. Create the production Turnstile widget for only `mmorpgtop100.com` and store its secret as the Worker secret `TURNSTILE_SECRET`.
 2. Register the production Firebase web app with App Check and place only its public site key in the Pages build environment as `VITE_FIREBASE_APP_CHECK_SITE_KEY`.
 3. Store a randomly generated 32-byte or longer value as the Worker secret `VOTER_HMAC_SECRET`; do not rotate it during a UTC voting day.
-4. Apply and re-verify migration `0002_secure_daily_votes.sql` on production using the direct owner connection.
+4. Completed September 2, 2026: migration `0002_secure_daily_votes.sql` was applied to production with the direct owner connection and passed rollback-only verification through both owner and restricted application roles.
 5. Enable both feature flags, rebuild, run the full gate, deploy API first, smoke-test, then deploy Pages.
