@@ -43,7 +43,7 @@ describe('AdvertisePage', () => {
     }
     render(<AdvertisePage authService={readyAuth} advertisingService={advertisingService} />)
 
-    await user.selectOptions(await screen.findByLabelText('Approved server'), 'server-1')
+    await user.selectOptions(await screen.findByLabelText('Approved server', { selector: '#claim-server' }), 'server-1')
     await user.selectOptions(screen.getByLabelText('Placement duration'), 'exclusive_7_day')
     await user.type(screen.getByLabelText('PayPal transaction reference'), 'PAYPAL123456')
     const turnstileResponse = document.createElement('input')
@@ -70,7 +70,7 @@ describe('AdvertisePage', () => {
       createClaim: () => { submitted = true; return Promise.resolve({ ok: true, message: 'Submitted.' }) },
     }
     render(<AdvertisePage authService={readyAuth} advertisingService={advertisingService} />)
-    await user.selectOptions(await screen.findByLabelText('Approved server'), 'server-1')
+    await user.selectOptions(await screen.findByLabelText('Approved server', { selector: '#claim-server' }), 'server-1')
     await user.selectOptions(screen.getByLabelText('Placement duration'), 'exclusive_7_day')
     await user.type(screen.getByLabelText('PayPal transaction reference'), 'PAYPAL123456')
     await user.click(screen.getByRole('button', { name: 'Submit for manual review' }))
@@ -79,14 +79,16 @@ describe('AdvertisePage', () => {
     expect(screen.getByRole('group', { name: 'Security check' })).toHaveFocus()
   })
 
-  it('keeps banner upload locked until trusted scanning is available', async () => {
+  it('offers free banner upload only for an approved owner server', async () => {
     const advertisingService: AdvertisingService = {
       loadWorkspace: () => Promise.resolve({ servers: [], packages: [], claims: [] }),
       createClaim: () => Promise.resolve({ ok: false, message: 'Not available.' }),
     }
     render(<AdvertisePage authService={readyAuth} advertisingService={advertisingService} />)
 
-    expect(await screen.findByText(/uploading is currently locked for safety/i)).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Upload a server banner' })).toBeInTheDocument()
+    expect(screen.getByText(/free for every approved server owner/i)).toBeInTheDocument()
+    expect(screen.getByText(/need an approved server before uploading/i)).toBeInTheDocument()
     expect(document.querySelector('input[type="file"]')).not.toBeInTheDocument()
     expect(document.body.textContent).not.toMatch(/â|Â/)
   })

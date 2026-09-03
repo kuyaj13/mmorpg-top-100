@@ -1,4 +1,4 @@
-import { getFirebaseAuth } from '../firebase'
+import { getFirebaseAppCheckToken, getFirebaseAuth } from '../firebase'
 import type { BannerUploadService, ExclusiveServerAd, ExclusiveServersService } from './bannerTypes'
 
 const imageTypes = new Set(['image/gif', 'image/png', 'image/jpeg'])
@@ -12,8 +12,8 @@ export const bannerUploadService: BannerUploadService = {
       if (!user.emailVerified) return { ok: false, message: 'Verify your email address before uploading a banner.' }
       const apiBaseUrl = import.meta.env.VITE_API_BASE_URL
       if (!apiBaseUrl) return { ok: false, message: 'Banner uploads are temporarily unavailable.' }
-      const idToken = await user.getIdToken()
-      const response = await uploadProtectedBanner(apiBaseUrl, input, { idToken })
+      const [idToken,appCheckToken] = await Promise.all([user.getIdToken(),getFirebaseAppCheckToken()])
+      const response = await uploadProtectedBanner(apiBaseUrl, input, { idToken,appCheckToken })
       if (!response.ok) return { ok: false, message: uploadError(response.status) }
       return { ok: true, message: 'Your banner was uploaded for moderation review.' }
     } catch {
@@ -22,15 +22,11 @@ export const bannerUploadService: BannerUploadService = {
   },
 }
 
-export function uploadProtectedBanner(apiBaseUrl: string, input: { serverId: string; altText: string; file: File }, credentials: { idToken: string }, fetcher: typeof fetch = fetch) {
-  const form = new FormData()
-  form.set('serverId', input.serverId)
-  form.set('altText', input.altText)
-  form.set('banner', input.file)
-  return fetcher(new URL('/api/advertising/banners', apiBaseUrl), {
-    method: 'POST',
-    headers: { authorization: `Bearer ${credentials.idToken}` },
-    body: form,
+export function uploadProtectedBanner(apiBaseUrl: string, input: { serverId: string; altText: string; file: File }, credentials: { idToken: string; appCheckToken: string }, fetcher: typeof fetch = fetch) {
+  return fetcher(new URL(`/api/advertising/servers/${encodeURIComponent(input.serverId)}/banner`, apiBaseUrl), {
+    method: 'PUT',
+    headers: { authorization: `Bearer ${credentials.idToken}`,'x-firebase-appcheck':credentials.appCheckToken,'x-banner-alt-text':input.altText,'content-type':input.file.type },
+    body: input.file,
   })
 }
 

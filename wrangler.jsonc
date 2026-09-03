@@ -18,6 +18,9 @@
     "VOTING_ENABLED": "true",
     "SUBMISSIONS_ENABLED": "true",
     "ADMIN_ENABLED": "true",
+    "BANNER_UPLOADS_ENABLED": "false",
+    "EXCLUSIVE_ADS_ENABLED": "false",
+    "BANNER_MODERATION_ENABLED": "false",
     "FIREBASE_PROJECT_ID": "mmorpg-top-100",
     "TURNSTILE_HOSTNAME": "mmorpgtop100.com",
     "TURNSTILE_ACTION": "vote",
@@ -62,6 +65,14 @@
     {
       "name": "ADMIN_RATE_LIMITER",
       "namespace_id": "73333254",
+      "simple": {
+        "limit": 20,
+        "period": 60
+      }
+    },
+    {
+      "name": "ADVERTISING_RATE_LIMITER",
+      "namespace_id": "73333255",
       "simple": {
         "limit": 20,
         "period": 60

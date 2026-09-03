@@ -12,24 +12,25 @@ import { createAdminVerifier } from './adminAuth'
 import { createHyperdriveModerationRepository } from './db/moderationRepository'
 import { createModerationEndpoints } from './moderationEndpoints'
 import { deriveModeratorKey } from './moderatorKey'
+import { createAdvertisingEndpoints } from './advertisingEndpoints'
+import { createHyperdriveAdvertisingRepository } from './db/advertisingRepository'
 
-type WorkerEnv = {
+type GeneratedBindings = Pick<Env,'HYPERDRIVE'|'RANKINGS_RATE_LIMITER'|'VOTE_RATE_LIMITER'|'SUBMISSION_RATE_LIMITER'|'ADMIN_RATE_LIMITER'|'ADVERTISING_RATE_LIMITER'>
+type WorkerEnv = GeneratedBindings & {
   ALLOWED_ORIGIN: string
-  HYPERDRIVE: Hyperdrive
-  RANKINGS_RATE_LIMITER: RateLimit
-  VOTE_RATE_LIMITER: RateLimit
-  VOTING_ENABLED: string
-  SUBMISSIONS_ENABLED: string
   FIREBASE_PROJECT_ID: string
-  TURNSTILE_SECRET: string
   TURNSTILE_HOSTNAME: string
   TURNSTILE_ACTION: string
   SUBMISSION_TURNSTILE_ACTION: string
+  VOTING_ENABLED: string
+  SUBMISSIONS_ENABLED: string
+  ADMIN_ENABLED: string
+  BANNER_UPLOADS_ENABLED: string
+  EXCLUSIVE_ADS_ENABLED: string
+  BANNER_MODERATION_ENABLED: string
+  TURNSTILE_SECRET: string
   VOTER_HMAC_SECRET: string
   OWNER_HMAC_SECRET: string
-  SUBMISSION_RATE_LIMITER: RateLimit
-  ADMIN_ENABLED: string
-  ADMIN_RATE_LIMITER: RateLimit
   MODERATOR_HMAC_SECRET: string
 }
 type RepositoryFactory = (env: WorkerEnv) => RankingRepository
@@ -38,8 +39,9 @@ type VoteHandlerFactory = (env: WorkerEnv) => VoteHandler
 type SubmissionHandler = (request: Request) => Promise<Response>
 type SubmissionHandlerFactory = (env: WorkerEnv) => SubmissionHandler
 type ModerationFactory = (env: WorkerEnv) => ReturnType<typeof createModerationEndpoints>
+type AdvertisingFactory = (env: WorkerEnv) => ReturnType<typeof createAdvertisingEndpoints>
 
-export function createWorker(repositoryFactory: RepositoryFactory, voteHandlerFactory?: VoteHandlerFactory, submissionHandlerFactory?: SubmissionHandlerFactory, moderationFactory?: ModerationFactory) {
+export function createWorker(repositoryFactory: RepositoryFactory, voteHandlerFactory?: VoteHandlerFactory, submissionHandlerFactory?: SubmissionHandlerFactory, moderationFactory?: ModerationFactory, advertisingFactory?: AdvertisingFactory) {
   return {
     async fetch(request, env): Promise<Response> {
       try {
@@ -48,7 +50,16 @@ export function createWorker(repositoryFactory: RepositoryFactory, voteHandlerFa
         const isSubmission = url.pathname === '/api/server-submissions'
         const adminList = url.pathname === '/api/admin/server-submissions'
         const adminDecision = url.pathname.match(/^\/api\/admin\/server-submissions\/([^/]+)\/decision$/)
-        if (request.method === 'OPTIONS') return corsResponse(request, env, new Response(null, { status: 204 }), voteMatch || isSubmission || adminDecision ? 'POST, OPTIONS' : 'GET, OPTIONS', voteMatch || isSubmission || adminList || adminDecision ? 'authorization, content-type' : undefined)
+        const bannerUpload = url.pathname.match(/^\/api\/advertising\/servers\/([^/]+)\/banner$/)
+        const publicAds = url.pathname.match(/^\/api\/games\/([^/]+)\/exclusive-servers$/)
+        const publicBanner = url.pathname.match(/^\/api\/advertising\/banners\/([^/]+)$/)
+        const adminBannerList = url.pathname === '/api/admin/banners'
+        const adminBannerDecision = url.pathname.match(/^\/api\/admin\/banners\/([^/]+)\/decision$/)
+        if (request.method === 'OPTIONS') {
+          const writeRoute = voteMatch || isSubmission || adminDecision || bannerUpload || adminBannerDecision
+          const protectedRoute = voteMatch || isSubmission || adminList || adminDecision || bannerUpload || adminBannerList || adminBannerDecision
+          return corsResponse(request, env, new Response(null, { status: 204 }), writeRoute ? `${bannerUpload ? 'PUT' : 'POST'}, OPTIONS` : 'GET, OPTIONS', protectedRoute ? `authorization, content-type${bannerUpload ? ', x-firebase-appcheck, x-banner-alt-text' : ''}` : undefined)
+        }
         if (url.pathname === '/api/health' && request.method === 'GET') return corsResponse(request, env, Response.json({ ok: true }, { headers: noStoreHeaders() }))
         if (url.pathname === '/api/servers') {
           if (request.method !== 'GET') return corsResponse(request, env, methodNotAllowed())
@@ -76,6 +87,35 @@ export function createWorker(repositoryFactory: RepositoryFactory, voteHandlerFa
           const moderation = moderationFactory(env)
           const response = adminDecision ? await moderation.decide(request, safeDecode(adminDecision[1])) : await moderation.list(request)
           return corsResponse(request, env, response, adminDecision ? 'POST, OPTIONS' : 'GET, OPTIONS', 'authorization, content-type')
+        }
+        if (bannerUpload) {
+          if (request.method !== 'PUT') return corsResponse(request, env, methodNotAllowed('PUT'), 'PUT, OPTIONS', 'authorization, content-type, x-firebase-appcheck, x-banner-alt-text')
+          if (!isAllowedOrigin(request, env)) return jsonError('This request is not allowed.', 403)
+          if (env.BANNER_UPLOADS_ENABLED !== 'true' || !advertisingFactory) return corsResponse(request, env, jsonError('Banner uploads are not available yet.', 503), 'PUT, OPTIONS', 'authorization, content-type, x-firebase-appcheck, x-banner-alt-text')
+          return corsResponse(request, env, await advertisingFactory(env).upload(request, safeDecode(bannerUpload[1])), 'PUT, OPTIONS', 'authorization, content-type, x-firebase-appcheck, x-banner-alt-text')
+        }
+        if (adminBannerList || adminBannerDecision) {
+          const methods = adminBannerDecision ? 'POST, OPTIONS' : 'GET, OPTIONS'
+          if (env.BANNER_MODERATION_ENABLED !== 'true' || !advertisingFactory) return corsResponse(request, env, jsonError('Banner moderation is not available yet.', 503), methods, 'authorization, content-type')
+          const advertising = advertisingFactory(env)
+          const response = adminBannerDecision ? await advertising.moderate(request, safeDecode(adminBannerDecision[1])) : await advertising.listPending(request)
+          return corsResponse(request, env, response, methods, 'authorization, content-type')
+        }
+        if (publicAds) {
+          if (request.method !== 'GET') return corsResponse(request, env, methodNotAllowed())
+          if (env.EXCLUSIVE_ADS_ENABLED !== 'true' || !advertisingFactory) return corsResponse(request, env, jsonError('Exclusive servers are not available yet.', 503))
+          const gameSlug = parseGameSlug(safeDecode(publicAds[1]))
+          if (!gameSlug) return corsResponse(request, env, jsonError('Please choose a valid game.', 400))
+          const clientKey = request.headers.get('cf-connecting-ip') ?? 'unknown-client'
+          if (!(await env.ADVERTISING_RATE_LIMITER.limit({ key: `${clientKey}:exclusive:${gameSlug}` })).success) return corsResponse(request, env, rateLimited())
+          return corsResponse(request, env, await advertisingFactory(env).listPublic(request, gameSlug))
+        }
+        if (publicBanner) {
+          if (request.method !== 'GET') return corsResponse(request, env, methodNotAllowed())
+          if (env.EXCLUSIVE_ADS_ENABLED !== 'true' || !advertisingFactory) return corsResponse(request, env, jsonError('Banner not found.', 404))
+          const clientKey = request.headers.get('cf-connecting-ip') ?? 'unknown-client'
+          if (!(await env.ADVERTISING_RATE_LIMITER.limit({ key: `${clientKey}:banner` })).success) return corsResponse(request, env, rateLimited())
+          return corsResponse(request, env, await advertisingFactory(env).banner(request, safeDecode(publicBanner[1])))
         }
         const rankingMatch = url.pathname.match(/^\/api\/games\/([^/]+)\/rankings$/)
         if (rankingMatch) {
@@ -128,6 +168,18 @@ export default createWorker(
     repository: createHyperdriveModerationRepository(env.HYPERDRIVE.connectionString),
     rateLimit: (key) => env.ADMIN_RATE_LIMITER.limit({ key }),
   }),
+  (env) => {
+    const firebase = createFirebaseVerifier({ projectId: env.FIREBASE_PROJECT_ID })
+    return createAdvertisingEndpoints({
+      allowedOrigins: env.ALLOWED_ORIGIN.split(','),
+      verifyOwner: (request) => firebase.verify(request),
+      verifyAdmin: createAdminVerifier(env.FIREBASE_PROJECT_ID),
+      deriveOwnerKey: (uid) => deriveOwnerKey(env.OWNER_HMAC_SECRET, uid),
+      deriveModeratorKey: (uid) => deriveModeratorKey(env.MODERATOR_HMAC_SECRET, uid),
+      rateLimit: (key) => env.ADVERTISING_RATE_LIMITER.limit({ key }),
+      repository: createHyperdriveAdvertisingRepository(env.HYPERDRIVE.connectionString),
+    })
+  },
 )
 
 function noStoreHeaders() { return { 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' } }

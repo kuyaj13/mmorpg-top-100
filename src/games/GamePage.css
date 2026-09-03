@@ -52,6 +52,13 @@
   border-color: rgba(251, 191, 36, 0.38);
 }
 
+.exclusive-banner a,
+.exclusive-banner picture,
+.exclusive-banner img { display: block; max-width: 100%; }
+.exclusive-banner img { width: 468px; height: auto; }
+.exclusive-controls { display: flex; flex-wrap: wrap; gap: 10px; }
+.exclusive-controls button { min-width: 44px; min-height: 44px; padding: 8px 12px; }
+
 .game-ranking-heading label {
   display: grid;
   gap: 6px;

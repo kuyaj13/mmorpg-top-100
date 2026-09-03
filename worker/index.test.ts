@@ -21,6 +21,10 @@ const env = {
   ADMIN_ENABLED: 'false',
   ADMIN_RATE_LIMITER: { limit: rateLimit } as RateLimit,
   MODERATOR_HMAC_SECRET: 'secret',
+  BANNER_UPLOADS_ENABLED: 'false',
+  EXCLUSIVE_ADS_ENABLED: 'false',
+  BANNER_MODERATION_ENABLED: 'false',
+  ADVERTISING_RATE_LIMITER: { limit: rateLimit } as RateLimit,
 }
 
 function repository(result: Awaited<ReturnType<RankingRepository['findByGameSlug']>>): RankingRepository {

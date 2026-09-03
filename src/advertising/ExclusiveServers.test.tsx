@@ -36,6 +36,18 @@ describe('ExclusiveServers', () => {
     expect(screen.getByText(/Flyff Two$/)).toBeInTheDocument()
   })
 
+  it('keeps rotation paused until the visitor resumes it and announces only manual changes', async () => {
+    render(<ExclusiveServers gameSlug="flyff" gameName="Flyff" service={{ list: vi.fn().mockResolvedValue(ads) }} />)
+    await act(async () => {})
+    fireEvent.click(screen.getByRole('button', { name: 'Pause rotation' }))
+    act(() => vi.advanceTimersByTime(30_000))
+    expect(screen.getByText(/Flyff One$/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Resume rotation' })).toHaveAttribute('aria-pressed','true')
+    expect(screen.getByRole('status', { hidden: true })).toBeEmptyDOMElement()
+    fireEvent.click(screen.getByRole('button', { name: 'Show next sponsored server' }))
+    expect(screen.getByRole('status', { hidden: true })).toHaveTextContent('Sponsored server 2 of 2: Flyff Two')
+  })
+
   it('uses the static image and stops automatic rotation for reduced motion', async () => {
     window.matchMedia = vi.fn().mockReturnValue({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() })
     render(<ExclusiveServers gameSlug="flyff" gameName="Flyff" service={{ list: vi.fn().mockResolvedValue(ads) }} />)

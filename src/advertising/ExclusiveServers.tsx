@@ -8,7 +8,10 @@ export function ExclusiveServers({ gameSlug, gameName, service = productionServi
   const [ads, setAds] = useState<ExclusiveServerAd[]>([])
   const [index, setIndex] = useState(0)
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
-  const [paused, setPaused] = useState(false)
+  const [userPaused, setUserPaused] = useState(false)
+  const [interactionPaused, setInteractionPaused] = useState(false)
+  const [pageHidden, setPageHidden] = useState(document.hidden)
+  const [announcement, setAnnouncement] = useState('')
   const [reducedMotion, setReducedMotion] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches)
   const sectionRef = useRef<HTMLElement>(null)
 
@@ -27,19 +30,19 @@ export function ExclusiveServers({ gameSlug, gameName, service = productionServi
     return () => { active = false; controller.abort() }
   }, [gameSlug, service])
   useEffect(() => {
-    const visibility = () => setPaused(document.hidden)
+    const visibility = () => setPageHidden(document.hidden)
     document.addEventListener('visibilitychange', visibility)
     return () => document.removeEventListener('visibilitychange', visibility)
   }, [])
   useEffect(() => {
-    if (ads.length < 2 || paused || reducedMotion) return
+    if (ads.length < 2 || userPaused || interactionPaused || pageHidden || reducedMotion) return
     const timer = window.setInterval(() => setIndex((current) => (current + 1) % ads.length), rotationMilliseconds)
     return () => window.clearInterval(timer)
-  }, [ads.length, paused, reducedMotion])
+  }, [ads.length, userPaused, interactionPaused, pageHidden, reducedMotion])
 
-  const show = (offset: number) => setIndex((current) => (current + offset + ads.length) % ads.length)
+  const show = (offset: number) => {const next=(index+offset+ads.length)%ads.length;setIndex(next);setAnnouncement(`Sponsored server ${next+1} of ${ads.length}: ${ads[next].serverName}`)}
   const ad = ads[index]
-  return <section ref={sectionRef} className="exclusive-servers" aria-labelledby={`exclusive-heading-${gameSlug}`} onPointerEnter={() => setPaused(true)} onPointerLeave={() => setPaused(false)} onFocus={() => setPaused(true)} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setPaused(false) }}>
+  return <section ref={sectionRef} className="exclusive-servers" aria-labelledby={`exclusive-heading-${gameSlug}`} onPointerEnter={() => setInteractionPaused(true)} onPointerLeave={() => setInteractionPaused(false)} onFocus={() => setInteractionPaused(true)} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setInteractionPaused(false) }}>
     <p className="eyebrow">Advertisement</p><h2 id={`exclusive-heading-${gameSlug}`}>Exclusive {gameName} servers</h2>
     {status === 'loading' && <p role="status">Loading sponsored servers…</p>}
     {status === 'error' && <p role="status">Sponsored servers are unavailable right now.</p>}
@@ -48,8 +51,9 @@ export function ExclusiveServers({ gameSlug, gameName, service = productionServi
       <a href={ad.website} target="_blank" rel="noopener noreferrer sponsored external" aria-label={`${ad.serverName}, Sponsored — opens in a new tab`}>
         <picture><source media="(prefers-reduced-motion: reduce)" srcSet={ad.staticBannerUrl} /><img src={reducedMotion ? ad.staticBannerUrl : ad.bannerUrl} alt={ad.altText} width="468" height="60" /></picture>
       </a>
-      <p aria-live="polite" aria-atomic="true">Sponsored server {index + 1} of {ads.length}: {ad.serverName}</p>
-      {ads.length > 1 && <div className="exclusive-controls"><button type="button" onClick={() => show(-1)} aria-label="Show previous sponsored server">Previous</button><button type="button" onClick={() => show(1)} aria-label="Show next sponsored server">Next</button></div>}
+      <p>Sponsored server {index + 1} of {ads.length}: {ad.serverName}</p>
+      <span className="visually-hidden" role="status" aria-atomic="true">{announcement}</span>
+      {ads.length > 1 && <div className="exclusive-controls"><button type="button" onClick={() => show(-1)} aria-label="Show previous sponsored server">Previous</button><button type="button" onClick={() => setUserPaused((current) => !current)} aria-pressed={userPaused}>{userPaused ? 'Resume rotation' : 'Pause rotation'}</button><button type="button" onClick={() => show(1)} aria-label="Show next sponsored server">Next</button></div>}
     </div>}
   </section>
 }
