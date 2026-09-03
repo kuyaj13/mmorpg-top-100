@@ -46,3 +46,22 @@ export type DonationClaimReviewService = {
     reasonCode?: string
   }) => Promise<{ ok: boolean; message: string }>
 }
+
+export type BannerReviewItem = {
+  id: string
+  serverId: string
+  serverName: string
+  gameSlug: string
+  mediaType: 'image/gif' | 'image/png' | 'image/jpeg'
+  byteSize: number
+  frameCount: number
+  animationDurationMs: number
+  altText: string
+  createdAt: string
+}
+
+export type BannerReviewService = {
+  listPending: () => Promise<BannerReviewItem[]>
+  loadPreview: (id: string) => Promise<Blob>
+  decide: (id: string, decision: 'approve' | 'reject') => Promise<{ ok: boolean; message: string }>
+}

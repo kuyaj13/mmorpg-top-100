@@ -38,12 +38,13 @@ function loadTurnstile(): Promise<void> {
 
 export type TurnstileWidgetHandle = { reset: () => void }
 
-export function TurnstileWidget({ onToken, resetRef, siteKey: configuredSiteKey, action = 'vote', idPrefix = 'vote' }: {
+export function TurnstileWidget({ onToken, resetRef, siteKey: configuredSiteKey, action = 'vote', idPrefix = 'vote', label = 'Security check' }: {
   onToken: (token: string) => void
   resetRef?: React.RefObject<TurnstileWidgetHandle | null>
   siteKey?: string
   action?: string
   idPrefix?: string
+  label?: string
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const widgetIdRef = useRef<string | null>(null)
@@ -82,7 +83,7 @@ export function TurnstileWidget({ onToken, resetRef, siteKey: configuredSiteKey,
   }, [action, onToken, resetRef, siteKey])
 
   return <div role="group" aria-labelledby={`${idPrefix}-security-label`} aria-describedby={error ? `${idPrefix}-security-error` : undefined}>
-    <p id={`${idPrefix}-security-label`}>Security check</p>
+    <p id={`${idPrefix}-security-label`}>{label}</p>
     <div ref={containerRef} />
     {error && <p id={`${idPrefix}-security-error`} role="alert">{error}</p>}
   </div>

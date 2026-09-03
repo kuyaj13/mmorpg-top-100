@@ -75,7 +75,7 @@ describe('AdvertisePage', () => {
     await user.type(screen.getByLabelText('PayPal transaction reference'), 'PAYPAL123456')
     await user.click(screen.getByRole('button', { name: 'Submit for manual review' }))
     expect(submitted).toBe(false)
-    expect(screen.getByRole('alert')).toHaveTextContent('Complete the security check.')
+    expect(screen.getByText('Complete the security check.')).toHaveAttribute('role', 'alert')
     expect(screen.getByRole('group', { name: 'Security check' })).toHaveFocus()
   })
 

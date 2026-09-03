@@ -9,6 +9,7 @@ export type AdvertisingRepository = {
   putBanner(serverId: string, ownerKey: Uint8Array, banner: SanitizedBanner, altText: string): Promise<'stored' | 'unavailable'>
   listPublic(gameSlug: string): Promise<PublicAd[]>
   getPublicBanner(id: string, staticFallback: boolean): Promise<{ bytes: Uint8Array; mediaType: string } | null>
+  getBannerReviewPreview(id: string): Promise<{ bytes: Uint8Array; mediaType: 'image/png' } | null>
   listPendingBanners(): Promise<PendingBanner[]>
   moderateBanner(id: string, moderatorKey: Uint8Array, decision: 'approve' | 'reject' | 'suspend', operationId: string): Promise<BannerModerationOutcome>
 }
@@ -33,6 +34,11 @@ export function createAdvertisingRepository(createClient: () => RankingQueryClie
     }),
     getPublicBanner: (id, staticFallback) => run(async (client) => {
       const result = await client.query<{ content: Uint8Array; media_type: string }>('SELECT content,media_type FROM api.get_public_banner($1::uuid,$2::boolean)', [id, staticFallback])
+      const row = result.rows[0]
+      return row ? { bytes: row.content, mediaType: row.media_type } : null
+    }),
+    getBannerReviewPreview: (id) => run(async (client) => {
+      const result = await client.query<{ content: Uint8Array; media_type: 'image/png' }>('SELECT content,media_type FROM api.get_banner_review_preview($1::uuid)', [id])
       const row = result.rows[0]
       return row ? { bytes: row.content, mediaType: row.media_type } : null
     }),

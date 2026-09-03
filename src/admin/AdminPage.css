@@ -127,6 +127,27 @@
   font-weight: 700;
 }
 
+.banner-review-preview {
+  display: block;
+  width: min(100%, 468px);
+  height: auto;
+  margin: 14px 0;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: #020817;
+  object-fit: contain;
+}
+
+.banner-review-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 20px;
+  margin: 14px 0 0;
+}
+
+.banner-review-details div { min-width: 0; }
+.banner-review-details dt { color: #cbd5e1; font-size: 0.875rem; }
+.banner-review-details dd { margin: 2px 0 0; overflow-wrap: anywhere; font-weight: 700; }
+
 @media (max-width: 600px) {
   .moderation-card {
     grid-template-columns: 1fr;
@@ -135,4 +156,6 @@
   .moderation-actions button {
     flex: 1;
   }
+
+  .banner-review-details { grid-template-columns: 1fr; }
 }

@@ -4,6 +4,7 @@ export type BannerUploadInput = {
   serverId: string
   altText: string
   file: File
+  turnstileToken: string
 }
 
 export type BannerUploadResult = { ok: true; message: string } | { ok: false; message: string }
@@ -30,5 +31,5 @@ export type ExclusiveServersService = {
 export type BannerUploadFormProps = {
   servers: EligibleServer[]
   service?: BannerUploadService
+  turnstileSiteKey?: string
 }
-

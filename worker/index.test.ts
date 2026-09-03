@@ -16,6 +16,7 @@ const env = {
   TURNSTILE_HOSTNAME: 'mmorpgtop100.com',
   TURNSTILE_ACTION: 'vote',
   SUBMISSION_TURNSTILE_ACTION: 'submit-server',
+  BANNER_TURNSTILE_ACTION: 'banner-upload',
   VOTER_HMAC_SECRET: 'secret',
   OWNER_HMAC_SECRET: 'secret',
   ADMIN_ENABLED: 'false',
@@ -181,5 +182,14 @@ describe('rankings endpoint', () => {
     }), env)
     expect(response.headers.get('access-control-allow-methods')).toBe('POST, OPTIONS')
     expect(response.headers.get('access-control-allow-headers')).toBe('authorization, content-type')
+  })
+
+  it('advertises the Turnstile token header for banner upload preflight', async () => {
+    const response = await createWorker(() => repository(null)).fetch(new Request(`https://api.example/api/advertising/servers/123e4567-e89b-42d3-a456-426614174000/banner`, {
+      method: 'OPTIONS', headers: { origin: 'https://mmorpgtop100.com' },
+    }), env)
+    expect(response.headers.get('access-control-allow-methods')).toBe('PUT, OPTIONS')
+    expect(response.headers.get('access-control-allow-headers')).toBe('authorization, content-type, x-banner-alt-text, x-turnstile-token')
+    expect(response.headers.get('access-control-allow-headers')).not.toContain('x-firebase-appcheck')
   })
 })

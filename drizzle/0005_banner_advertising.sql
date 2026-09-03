@@ -139,6 +139,13 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog AS $$
  FROM app.banner_assets b JOIN app.servers s ON s.id=b.server_id
  WHERE b.moderation_status='pending' AND s.status='active'
  ORDER BY b.created_at,b.id
+ LIMIT 20
+$$;
+CREATE FUNCTION api.get_banner_review_preview(uuid) RETURNS TABLE(content bytea,media_type varchar)
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog AS $$
+ SELECT b.static_content,'image/png'::varchar
+ FROM app.banner_assets b JOIN app.servers s ON s.id=b.server_id
+ WHERE b.id=$1 AND b.moderation_status='pending' AND s.status='active'
 $$;
 CREATE FUNCTION api.moderate_banner(uuid,bytea,varchar,uuid) RETURNS text LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
 DECLARE existing app.banner_moderation_events%ROWTYPE; requested varchar;
@@ -160,11 +167,13 @@ REVOKE ALL ON FUNCTION api.put_server_banner(uuid,bytea,bytea,bytea,bytea,bytea,
 REVOKE ALL ON FUNCTION api.get_public_banner(uuid,boolean) FROM PUBLIC;
 REVOKE ALL ON FUNCTION api.activate_exclusive_placement(uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION api.list_pending_banners() FROM PUBLIC;
+REVOKE ALL ON FUNCTION api.get_banner_review_preview(uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION api.moderate_banner(uuid,bytea,varchar,uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION api.put_server_banner(uuid,bytea,bytea,bytea,bytea,bytea,varchar,integer,integer,integer,integer,varchar) TO hyperdrive_reader;
 GRANT EXECUTE ON FUNCTION api.get_public_banner(uuid,boolean) TO hyperdrive_reader;
 GRANT EXECUTE ON FUNCTION api.activate_exclusive_placement(uuid) TO hyperdrive_reader;
 GRANT EXECUTE ON FUNCTION api.list_pending_banners() TO hyperdrive_reader;
+GRANT EXECUTE ON FUNCTION api.get_banner_review_preview(uuid) TO hyperdrive_reader;
 GRANT EXECUTE ON FUNCTION api.moderate_banner(uuid,bytea,varchar,uuid) TO hyperdrive_reader;
 GRANT SELECT ON api.public_exclusive_ads TO hyperdrive_reader;
 COMMIT;

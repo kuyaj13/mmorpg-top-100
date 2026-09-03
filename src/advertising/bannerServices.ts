@@ -1,19 +1,19 @@
-import { getFirebaseAppCheckToken, getFirebaseAuth } from '../firebase'
+import { getFirebaseAuth } from '../firebase'
 import type { BannerUploadService, ExclusiveServerAd, ExclusiveServersService } from './bannerTypes'
 
 const imageTypes = new Set(['image/gif', 'image/png', 'image/jpeg'])
 
 export const bannerUploadService: BannerUploadService = {
   async upload(input) {
-    if (!input.serverId || !input.altText || !imageTypes.has(input.file.type)) return { ok: false, message: 'Check the banner details and choose an approved image.' }
+    if (!input.serverId || !input.altText || !input.turnstileToken || !imageTypes.has(input.file.type)) return { ok: false, message: 'Check the banner details and choose an approved image.' }
     try {
       const user = getFirebaseAuth()?.currentUser
       if (!user) return { ok: false, message: 'Sign in to upload a banner.' }
       if (!user.emailVerified) return { ok: false, message: 'Verify your email address before uploading a banner.' }
       const apiBaseUrl = import.meta.env.VITE_API_BASE_URL
       if (!apiBaseUrl) return { ok: false, message: 'Banner uploads are temporarily unavailable.' }
-      const [idToken,appCheckToken] = await Promise.all([user.getIdToken(),getFirebaseAppCheckToken()])
-      const response = await uploadProtectedBanner(apiBaseUrl, input, { idToken,appCheckToken })
+      const idToken = await user.getIdToken()
+      const response = await uploadProtectedBanner(apiBaseUrl, input, { idToken })
       if (!response.ok) return { ok: false, message: uploadError(response.status) }
       return { ok: true, message: 'Your banner was uploaded for moderation review.' }
     } catch {
@@ -22,10 +22,10 @@ export const bannerUploadService: BannerUploadService = {
   },
 }
 
-export function uploadProtectedBanner(apiBaseUrl: string, input: { serverId: string; altText: string; file: File }, credentials: { idToken: string; appCheckToken: string }, fetcher: typeof fetch = fetch) {
+export function uploadProtectedBanner(apiBaseUrl: string, input: { serverId: string; altText: string; file: File; turnstileToken:string }, credentials: { idToken: string }, fetcher: typeof fetch = fetch) {
   return fetcher(new URL(`/api/advertising/servers/${encodeURIComponent(input.serverId)}/banner`, apiBaseUrl), {
     method: 'PUT',
-    headers: { authorization: `Bearer ${credentials.idToken}`,'x-firebase-appcheck':credentials.appCheckToken,'x-banner-alt-text':input.altText,'content-type':input.file.type },
+    headers: { authorization: `Bearer ${credentials.idToken}`,'x-turnstile-token':input.turnstileToken,'x-banner-alt-text':encodeURIComponent(input.altText),'content-type':input.file.type },
     body: input.file,
   })
 }

@@ -6,6 +6,7 @@ import type { AdvertisingRepository } from './db/advertisingRepository'
 type Dependencies = {
   allowedOrigins: readonly string[]
   verifyOwner(request: Request): Promise<VerifiedFirebaseUser | null>
+  verifyTurnstile(token: string, remoteIp?: string): Promise<boolean>
   verifyAdmin(request: Request): Promise<VerifiedAdministrator | null>
   deriveOwnerKey(uid: string): Promise<Uint8Array>
   deriveModeratorKey(uid: string): Promise<Uint8Array>
@@ -73,7 +74,13 @@ export function createAdvertisingEndpoints(dependencies: Dependencies) {
       if (request.method !== 'PUT') return error('Method not allowed.', 405, { allow: 'PUT' })
       const owner = await authorize(request, dependencies, 'owner', 'banner-upload')
       if (owner instanceof Response) return owner
-      const altText = request.headers.get('x-banner-alt-text')?.trim()
+      const turnstileToken = request.headers.get('x-turnstile-token')
+      if (!turnstileToken || turnstileToken.length > 2048 || !await dependencies.verifyTurnstile(turnstileToken, request.headers.get('cf-connecting-ip') ?? undefined)) {
+        return error('Your upload could not be verified.', 401)
+      }
+      const encodedAltText = request.headers.get('x-banner-alt-text')
+      let altText = ''
+      try { if (encodedAltText && encodedAltText.length <= 2_000) altText = decodeURIComponent(encodedAltText).trim() } catch { /* invalid encoding */ }
       if (!uuid.test(serverId) || !validContentLength(request) || !altText || altText.length < 10 || altText.length > 160) return error('Please check the banner details.', 400)
       const bytes = await readBannerBytes(request)
       if (!bytes) return error('Please choose a valid banner image.', 400)
@@ -111,6 +118,15 @@ export function createAdvertisingEndpoints(dependencies: Dependencies) {
       const admin = await authorize(request, dependencies, 'admin', 'list-banners')
       if (admin instanceof Response) return admin
       return Response.json({ ok: true, banners: await dependencies.repository.listPendingBanners() }, { headers: safe })
+    },
+
+    async previewPending(request: Request, bannerId: string): Promise<Response> {
+      if (request.method !== 'GET') return error('Method not allowed.', 405, { allow: 'GET' })
+      const admin = await authorize(request, dependencies, 'admin', 'preview-banner')
+      if (admin instanceof Response) return admin
+      if (!uuid.test(bannerId)) return error('Banner not found.', 404)
+      const banner = await dependencies.repository.getBannerReviewPreview(bannerId)
+      return banner ? new Response(banner.bytes, { headers: { 'content-type': banner.mediaType, 'x-content-type-options': 'nosniff', 'cache-control': 'no-store', 'content-security-policy': "default-src 'none'; sandbox" } }) : error('Banner not found.', 404)
     },
 
     async moderate(request: Request, bannerId: string): Promise<Response> {

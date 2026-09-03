@@ -22,6 +22,7 @@ type WorkerEnv = GeneratedBindings & {
   TURNSTILE_HOSTNAME: string
   TURNSTILE_ACTION: string
   SUBMISSION_TURNSTILE_ACTION: string
+  BANNER_TURNSTILE_ACTION: string
   VOTING_ENABLED: string
   SUBMISSIONS_ENABLED: string
   ADMIN_ENABLED: string
@@ -54,11 +55,12 @@ export function createWorker(repositoryFactory: RepositoryFactory, voteHandlerFa
         const publicAds = url.pathname.match(/^\/api\/games\/([^/]+)\/exclusive-servers$/)
         const publicBanner = url.pathname.match(/^\/api\/advertising\/banners\/([^/]+)$/)
         const adminBannerList = url.pathname === '/api/admin/banners'
+        const adminBannerPreview = url.pathname.match(/^\/api\/admin\/banners\/([^/]+)\/preview$/)
         const adminBannerDecision = url.pathname.match(/^\/api\/admin\/banners\/([^/]+)\/decision$/)
         if (request.method === 'OPTIONS') {
           const writeRoute = voteMatch || isSubmission || adminDecision || bannerUpload || adminBannerDecision
-          const protectedRoute = voteMatch || isSubmission || adminList || adminDecision || bannerUpload || adminBannerList || adminBannerDecision
-          return corsResponse(request, env, new Response(null, { status: 204 }), writeRoute ? `${bannerUpload ? 'PUT' : 'POST'}, OPTIONS` : 'GET, OPTIONS', protectedRoute ? `authorization, content-type${bannerUpload ? ', x-firebase-appcheck, x-banner-alt-text' : ''}` : undefined)
+          const protectedRoute = voteMatch || isSubmission || adminList || adminDecision || bannerUpload || adminBannerList || adminBannerPreview || adminBannerDecision
+          return corsResponse(request, env, new Response(null, { status: 204 }), writeRoute ? `${bannerUpload ? 'PUT' : 'POST'}, OPTIONS` : 'GET, OPTIONS', protectedRoute ? `authorization, content-type${bannerUpload ? ', x-banner-alt-text, x-turnstile-token' : ''}` : undefined)
         }
         if (url.pathname === '/api/health' && request.method === 'GET') return corsResponse(request, env, Response.json({ ok: true }, { headers: noStoreHeaders() }))
         if (url.pathname === '/api/servers') {
@@ -89,16 +91,16 @@ export function createWorker(repositoryFactory: RepositoryFactory, voteHandlerFa
           return corsResponse(request, env, response, adminDecision ? 'POST, OPTIONS' : 'GET, OPTIONS', 'authorization, content-type')
         }
         if (bannerUpload) {
-          if (request.method !== 'PUT') return corsResponse(request, env, methodNotAllowed('PUT'), 'PUT, OPTIONS', 'authorization, content-type, x-firebase-appcheck, x-banner-alt-text')
+          if (request.method !== 'PUT') return corsResponse(request, env, methodNotAllowed('PUT'), 'PUT, OPTIONS', 'authorization, content-type, x-banner-alt-text, x-turnstile-token')
           if (!isAllowedOrigin(request, env)) return jsonError('This request is not allowed.', 403)
-          if (env.BANNER_UPLOADS_ENABLED !== 'true' || !advertisingFactory) return corsResponse(request, env, jsonError('Banner uploads are not available yet.', 503), 'PUT, OPTIONS', 'authorization, content-type, x-firebase-appcheck, x-banner-alt-text')
-          return corsResponse(request, env, await advertisingFactory(env).upload(request, safeDecode(bannerUpload[1])), 'PUT, OPTIONS', 'authorization, content-type, x-firebase-appcheck, x-banner-alt-text')
+          if (env.BANNER_UPLOADS_ENABLED !== 'true' || !advertisingFactory) return corsResponse(request, env, jsonError('Banner uploads are not available yet.', 503), 'PUT, OPTIONS', 'authorization, content-type, x-banner-alt-text, x-turnstile-token')
+          return corsResponse(request, env, await advertisingFactory(env).upload(request, safeDecode(bannerUpload[1])), 'PUT, OPTIONS', 'authorization, content-type, x-banner-alt-text, x-turnstile-token')
         }
-        if (adminBannerList || adminBannerDecision) {
+        if (adminBannerList || adminBannerPreview || adminBannerDecision) {
           const methods = adminBannerDecision ? 'POST, OPTIONS' : 'GET, OPTIONS'
           if (env.BANNER_MODERATION_ENABLED !== 'true' || !advertisingFactory) return corsResponse(request, env, jsonError('Banner moderation is not available yet.', 503), methods, 'authorization, content-type')
           const advertising = advertisingFactory(env)
-          const response = adminBannerDecision ? await advertising.moderate(request, safeDecode(adminBannerDecision[1])) : await advertising.listPending(request)
+          const response = adminBannerDecision ? await advertising.moderate(request, safeDecode(adminBannerDecision[1])) : adminBannerPreview ? await advertising.previewPending(request, safeDecode(adminBannerPreview[1])) : await advertising.listPending(request)
           return corsResponse(request, env, response, methods, 'authorization, content-type')
         }
         if (publicAds) {
@@ -173,6 +175,7 @@ export default createWorker(
     return createAdvertisingEndpoints({
       allowedOrigins: env.ALLOWED_ORIGIN.split(','),
       verifyOwner: (request) => firebase.verify(request),
+      verifyTurnstile: createTurnstileVerifier(env.TURNSTILE_SECRET, env.TURNSTILE_HOSTNAME, env.BANNER_TURNSTILE_ACTION),
       verifyAdmin: createAdminVerifier(env.FIREBASE_PROJECT_ID),
       deriveOwnerKey: (uid) => deriveOwnerKey(env.OWNER_HMAC_SECRET, uid),
       deriveModeratorKey: (uid) => deriveModeratorKey(env.MODERATOR_HMAC_SECRET, uid),
