@@ -6,9 +6,11 @@ export type PublicAd = { id: string; serverId: string; serverName: string; banne
 export type PendingBanner = { id: string; serverId: string; serverName: string; gameSlug: string; mediaType: string; byteSize: number; frameCount: number; animationDurationMs: number; altText: string; createdAt: string }
 export type OwnedServer = { id: string; name: string; gameSlug: string; gameName: string }
 export type BannerModerationOutcome = 'approved' | 'rejected' | 'suspended' | 'unavailable'
+export type DonationClaimOutcome = { outcome: 'accepted'; claimId: string } | { outcome: 'invalid'|'unavailable'|'limit_reached'|'duplicate' }
 export type AdvertisingRepository = {
   putBanner(serverId: string, ownerKey: Uint8Array, banner: SanitizedBanner, altText: string): Promise<'stored' | 'unavailable'>
   listOwnedServers(ownerKey: Uint8Array): Promise<OwnedServer[]>
+  submitDonationClaim(ownerKey: Uint8Array, serverId: string, packageCode: string, donorReference: string): Promise<DonationClaimOutcome>
   listPublic(gameSlug: string): Promise<PublicAd[]>
   getPublicBanner(id: string, staticFallback: boolean): Promise<{ bytes: Uint8Array; mediaType: string } | null>
   getBannerReviewPreview(id: string): Promise<{ bytes: Uint8Array; mediaType: 'image/png' } | null>
@@ -25,6 +27,13 @@ export function createAdvertisingRepository(createClient: () => RankingQueryClie
     try { await client.connect(); return await operation(client) } finally { await client.end() }
   }
   return {
+    submitDonationClaim: (ownerKey, serverId, packageCode, donorReference) => run(async (client) => {
+      const result = await client.query<{ outcome:string; claim_id:string|null }>('SELECT outcome,claim_id::text FROM api.submit_donation_claim($1::bytea,$2::uuid,$3::varchar,$4::varchar)', [ownerKey,serverId,packageCode,donorReference])
+      const row=result.rows[0]
+      if (row?.outcome==='accepted' && row.claim_id) return { outcome:'accepted',claimId:row.claim_id }
+      if (row?.outcome==='invalid'||row?.outcome==='unavailable'||row?.outcome==='limit_reached'||row?.outcome==='duplicate') return { outcome:row.outcome }
+      throw new Error('Invalid claim outcome')
+    }),
     listOwnedServers: (ownerKey) => run(async (client) => {
       const result = await client.query<OwnedServerRow>('SELECT id::text,name,game_slug,game_name FROM api.list_owned_servers($1::bytea)', [ownerKey])
       return result.rows.map((row) => ({ id: row.id, name: row.name, gameSlug: row.game_slug, gameName: row.game_name }))

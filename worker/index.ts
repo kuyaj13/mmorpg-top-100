@@ -29,6 +29,8 @@ type WorkerEnv = GeneratedBindings & {
   BANNER_UPLOADS_ENABLED: string
   EXCLUSIVE_ADS_ENABLED: string
   BANNER_MODERATION_ENABLED: string
+  DONATION_CLAIMS_ENABLED: string
+  DONATION_TURNSTILE_ACTION: string
   TURNSTILE_SECRET: string
   VOTER_HMAC_SECRET: string
   OWNER_HMAC_SECRET: string
@@ -58,9 +60,10 @@ export function createWorker(repositoryFactory: RepositoryFactory, voteHandlerFa
         const adminBannerList = url.pathname === '/api/admin/banners'
         const adminBannerPreview = url.pathname.match(/^\/api\/admin\/banners\/([^/]+)\/preview$/)
         const adminBannerDecision = url.pathname.match(/^\/api\/admin\/banners\/([^/]+)\/decision$/)
+        const donationClaim = url.pathname === '/api/advertising/claims'
         if (request.method === 'OPTIONS') {
-          const writeRoute = voteMatch || isSubmission || adminDecision || bannerUpload || adminBannerDecision
-          const protectedRoute = voteMatch || isSubmission || adminList || adminDecision || bannerUpload || ownerBannerWorkspace || adminBannerList || adminBannerPreview || adminBannerDecision
+          const writeRoute = voteMatch || isSubmission || adminDecision || bannerUpload || adminBannerDecision || donationClaim
+          const protectedRoute = voteMatch || isSubmission || adminList || adminDecision || bannerUpload || ownerBannerWorkspace || adminBannerList || adminBannerPreview || adminBannerDecision || donationClaim
           return corsResponse(request, env, new Response(null, { status: 204 }), writeRoute ? `${bannerUpload ? 'PUT' : 'POST'}, OPTIONS` : 'GET, OPTIONS', protectedRoute ? `authorization, content-type${bannerUpload ? ', x-banner-alt-text, x-turnstile-token' : ''}` : undefined)
         }
         if (url.pathname === '/api/health' && request.method === 'GET') return corsResponse(request, env, Response.json({ ok: true }, { headers: noStoreHeaders() }))
@@ -137,7 +140,11 @@ export function createWorker(repositoryFactory: RepositoryFactory, voteHandlerFa
           if (!rankings) return corsResponse(request, env, jsonError('This game is not available.', 404))
           return corsResponse(request, env, Response.json({ ok: true, ...rankings }, { headers: noStoreHeaders() }))
         }
-        if (url.pathname === '/api/advertising/claims' && request.method === 'POST') return corsResponse(request, env, jsonError('Donation claims are not available yet.', 503))
+        if (donationClaim) {
+          if (request.method!=='POST') return corsResponse(request,env,methodNotAllowed('POST'),'POST, OPTIONS','authorization, content-type')
+          if(env.DONATION_CLAIMS_ENABLED!=='true'||!advertisingFactory) return corsResponse(request,env,jsonError('Donation claims are not available yet.',503),'POST, OPTIONS','authorization, content-type')
+          return corsResponse(request,env,await advertisingFactory(env).submitClaim(request),'POST, OPTIONS','authorization, content-type')
+        }
         return corsResponse(request, env, jsonError('Not found.', 404))
       } catch (error) {
         console.error(JSON.stringify({ event: 'request_failed', error: error instanceof Error ? error.name : 'unknown' }))
@@ -182,6 +189,7 @@ export default createWorker(
       allowedOrigins: env.ALLOWED_ORIGIN.split(','),
       verifyOwner: (request) => firebase.verify(request),
       verifyTurnstile: createTurnstileVerifier(env.TURNSTILE_SECRET, env.TURNSTILE_HOSTNAME, env.BANNER_TURNSTILE_ACTION),
+      verifyDonationTurnstile: createTurnstileVerifier(env.TURNSTILE_SECRET, env.TURNSTILE_HOSTNAME, env.DONATION_TURNSTILE_ACTION),
       verifyAdmin: createAdminVerifier(env.FIREBASE_PROJECT_ID),
       deriveOwnerKey: (uid) => deriveOwnerKey(env.OWNER_HMAC_SECRET, uid),
       deriveModeratorKey: (uid) => deriveModeratorKey(env.MODERATOR_HMAC_SECRET, uid),

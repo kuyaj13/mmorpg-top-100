@@ -5,7 +5,7 @@ import {
   signInWithEmailAndPassword,
   signOut,
 } from 'firebase/auth'
-import { getFirebaseAppCheckToken, getFirebaseAuth } from '../firebase'
+import { getFirebaseAuth } from '../firebase'
 import {
   advertiserListActivePackages,
   advertiserListMyClaims,
@@ -105,13 +105,9 @@ export const advertisingService: AdvertisingService = {
     try {
       const apiBaseUrl = import.meta.env.VITE_API_BASE_URL
       if (!apiBaseUrl) throw new Error('The advertising API is unavailable.')
-      const [idToken, appCheckToken] = await Promise.all([
-        user.getIdToken(),
-        getFirebaseAppCheckToken(),
-      ])
+      const idToken = await user.getIdToken()
       const response = await submitProtectedClaim(apiBaseUrl, {
         idToken,
-        appCheckToken,
       }, {
         serverId: input.serverId,
         packageCode: input.packageCode,
@@ -129,7 +125,7 @@ export const advertisingService: AdvertisingService = {
 
 export function submitProtectedClaim(
   apiBaseUrl: string,
-  credentials: { idToken: string; appCheckToken: string },
+  credentials: { idToken: string },
   input: { serverId: string; packageCode: string; donorReference: string; turnstileToken: string },
   fetcher: typeof fetch = fetch,
 ) {
@@ -138,7 +134,6 @@ export function submitProtectedClaim(
         headers: {
           authorization: `Bearer ${credentials.idToken}`,
           'content-type': 'application/json',
-          'x-firebase-appcheck': credentials.appCheckToken,
         },
         body: JSON.stringify(input),
       })

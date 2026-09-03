@@ -21,11 +21,13 @@
     "BANNER_UPLOADS_ENABLED": "true",
     "EXCLUSIVE_ADS_ENABLED": "false",
     "BANNER_MODERATION_ENABLED": "true",
+    "DONATION_CLAIMS_ENABLED": "false",
     "FIREBASE_PROJECT_ID": "mmorpg-top-100",
     "TURNSTILE_HOSTNAME": "mmorpgtop100.com",
     "TURNSTILE_ACTION": "vote",
     "SUBMISSION_TURNSTILE_ACTION": "submit-server",
-    "BANNER_TURNSTILE_ACTION": "banner-upload"
+    "BANNER_TURNSTILE_ACTION": "banner-upload",
+    "DONATION_TURNSTILE_ACTION": "donation-claim"
   },
   "observability": {
     "enabled": true,

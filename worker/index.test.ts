@@ -17,6 +17,7 @@ const env = {
   TURNSTILE_ACTION: 'vote',
   SUBMISSION_TURNSTILE_ACTION: 'submit-server',
   BANNER_TURNSTILE_ACTION: 'banner-upload',
+  DONATION_TURNSTILE_ACTION: 'donation-claim',
   VOTER_HMAC_SECRET: 'secret',
   OWNER_HMAC_SECRET: 'secret',
   ADMIN_ENABLED: 'false',
@@ -25,6 +26,7 @@ const env = {
   BANNER_UPLOADS_ENABLED: 'false',
   EXCLUSIVE_ADS_ENABLED: 'false',
   BANNER_MODERATION_ENABLED: 'false',
+  DONATION_CLAIMS_ENABLED: 'false',
   ADVERTISING_RATE_LIMITER: { limit: rateLimit } as RateLimit,
 }
 
@@ -128,6 +130,15 @@ describe('rankings endpoint', () => {
     expect(response.status).toBe(503)
   })
 
+  it('advertises the protected donation claim contract during preflight', async () => {
+    const response = await createWorker(() => repository(null)).fetch(new Request('https://api.example/api/advertising/claims', {
+      method: 'OPTIONS', headers: { origin: 'https://mmorpgtop100.com' },
+    }), env)
+    expect(response.status).toBe(204)
+    expect(response.headers.get('access-control-allow-methods')).toBe('POST, OPTIONS')
+    expect(response.headers.get('access-control-allow-headers')).toBe('authorization, content-type')
+  })
+
   it('keeps voting disabled before invoking the protected handler', async () => {
     const voteHandler = vi.fn()
     const worker = createWorker(() => repository(null), () => voteHandler)
@@ -204,7 +215,7 @@ describe('rankings endpoint', () => {
   it('routes the enabled owner workspace through the protected advertising boundary', async () => {
     const ownerWorkspace = vi.fn().mockResolvedValue(Response.json({ ok: true, servers: [] }))
     const advertising = {
-      ownerWorkspace,
+      ownerWorkspace, submitClaim: vi.fn(),
       upload: vi.fn(), listPublic: vi.fn(), banner: vi.fn(), listPending: vi.fn(), previewPending: vi.fn(), moderate: vi.fn(),
     }
     const worker = createWorker(() => repository(null), undefined, undefined, undefined, () => advertising)

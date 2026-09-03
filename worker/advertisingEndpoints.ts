@@ -7,6 +7,7 @@ type Dependencies = {
   allowedOrigins: readonly string[]
   verifyOwner(request: Request): Promise<VerifiedFirebaseUser | null>
   verifyTurnstile(token: string, remoteIp?: string): Promise<boolean>
+  verifyDonationTurnstile(token: string, remoteIp?: string): Promise<boolean>
   verifyAdmin(request: Request): Promise<VerifiedAdministrator | null>
   deriveOwnerKey(uid: string): Promise<Uint8Array>
   deriveModeratorKey(uid: string): Promise<Uint8Array>
@@ -23,9 +24,9 @@ async function authorize(request: Request, dependencies: Dependencies, role: 'ow
   const client = request.headers.get('cf-connecting-ip') ?? 'unknown-client'
   if (!(await dependencies.rateLimit(`${client}:${action}`)).success) return error('Too many requests. Please try again later.', 429, { 'retry-after': '60' })
   const origin = request.headers.get('origin')
-  if (!origin || !dependencies.allowedOrigins.includes(origin)) return error(role === 'admin' ? 'Administrator access is required.' : 'Your upload could not be verified.', 403)
+  if (!origin || !dependencies.allowedOrigins.includes(origin)) return error(role === 'admin' ? 'Administrator access is required.' : 'Your request could not be verified.', 403)
   const user = role === 'admin' ? await dependencies.verifyAdmin(request) : await dependencies.verifyOwner(request)
-  return user ?? error(role === 'admin' ? 'Administrator access is required.' : 'Your upload could not be verified.', role === 'admin' ? 403 : 401)
+  return user ?? error(role === 'admin' ? 'Administrator access is required.' : 'Your request could not be verified.', role === 'admin' ? 403 : 401)
 }
 
 function validContentLength(request: Request) {
@@ -52,6 +53,23 @@ async function readBannerBytes(request: Request): Promise<Uint8Array | null> {
   return bytes
 }
 
+async function readBoundedBytes(request: Request, maximum: number): Promise<Uint8Array | null> {
+  const reader = request.body?.getReader()
+  if (!reader) return null
+  const chunks: Uint8Array[] = []; let size = 0
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    size += value.byteLength
+    if (size > maximum) { await reader.cancel(); return null }
+    chunks.push(value)
+  }
+  if (size < 1) return null
+  const bytes = new Uint8Array(size); let offset = 0
+  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength }
+  return bytes
+}
+
 async function readDecision(request: Request): Promise<{ decision: 'approve' | 'reject' | 'suspend'; operationId: string } | null> {
   if (!request.headers.get('content-type')?.toLowerCase().startsWith('application/json')) return null
   const rawLength = request.headers.get('content-length')
@@ -70,6 +88,22 @@ async function readDecision(request: Request): Promise<{ decision: 'approve' | '
 
 export function createAdvertisingEndpoints(dependencies: Dependencies) {
   return {
+    async submitClaim(request: Request): Promise<Response> {
+      if (request.method!=='POST') return error('Method not allowed.',405,{allow:'POST'})
+      const owner=await authorize(request,dependencies,'owner','donation-claim')
+      if (owner instanceof Response) return owner
+      if (!request.headers.get('content-type')?.toLowerCase().startsWith('application/json')) return error('Please check the claim details.',400)
+      const rawLength=request.headers.get('content-length'); if(rawLength&&(!/^\d+$/.test(rawLength)||Number(rawLength)>1024)) return error('Please check the claim details.',400)
+      const bytes=await readBoundedBytes(request,1024); if(!bytes) return error('Please check the claim details.',400)
+      let body:Record<string,unknown>; try { const parsed:unknown=JSON.parse(new TextDecoder().decode(bytes)); if(!parsed||typeof parsed!=='object'||Array.isArray(parsed)) throw new Error(); body=parsed as Record<string,unknown> } catch { return error('Please check the claim details.',400) }
+      if(Object.keys(body).some((key)=>!['serverId','packageCode','donorReference','turnstileToken'].includes(key))||typeof body.serverId!=='string'||!uuid.test(body.serverId)||typeof body.packageCode!=='string'||!['exclusive_7_day','exclusive_30_day'].includes(body.packageCode)||typeof body.donorReference!=='string'||!/^[A-Z0-9]{8,128}$/.test(body.donorReference)||typeof body.turnstileToken!=='string'||body.turnstileToken.length<1||body.turnstileToken.length>2048) return error('Please check the claim details.',400)
+      if(!await dependencies.verifyDonationTurnstile(body.turnstileToken,request.headers.get('cf-connecting-ip')??undefined)) return error('Your claim could not be verified.',401)
+      const result=await dependencies.repository.submitDonationClaim(await dependencies.deriveOwnerKey(owner.uid),body.serverId,body.packageCode,body.donorReference)
+      if(result.outcome==='accepted') return Response.json({ok:true,message:'Your donation claim was submitted for manual review.',claimId:result.claimId},{status:201,headers:safe})
+      if(result.outcome==='duplicate') return error('This claim could not be submitted.',409)
+      if(result.outcome==='limit_reached') return error('You already have several claims awaiting review.',429)
+      return error('This claim is not available for submission.',400)
+    },
     async ownerWorkspace(request: Request): Promise<Response> {
       if (request.method !== 'GET') return error('Method not allowed.', 405, { allow: 'GET' })
       const owner = await authorize(request, dependencies, 'owner', 'owner-banner-workspace')

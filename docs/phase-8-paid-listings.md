@@ -12,13 +12,13 @@
 
 ### Current implementation status
 
-- The owner workspace, verified-email account flow, owner-scoped claim contract, claim history, and protected administrator review queue are implemented locally.
-- SQL Connect SDK generation succeeds for the advertiser and administrator connectors.
-- Donation-claim creation is intentionally unavailable in the launch scope. The Cloudflare endpoint returns a plain temporary-unavailability response and cannot write product data.
+- The owner workspace and free, moderated banner workflow are live for approved server owners.
+- The trusted Worker donation-claim submission boundary is implemented and validated on an isolated database branch, but its production feature flag remains off.
+- Claim submission accepts only an owned server, a server-defined package code, a unique PayPal reference, and a server-verified Turnstile token. Amount, currency, status, duration, and eligibility cannot be supplied by the browser.
 - A Neon Free PostgreSQL 17 production database and a project-specific Cloudflare Hyperdrive configuration are provisioned and pass connection/configuration validation. The previous PostgreSQL 18 project remains untouched for rollback.
-- Paid claims, banner uploads, and placement activation remain disabled until the trusted Worker repository, schema migrations, authorization checks, and abuse controls pass their own regression gate.
-- Banner uploads remain intentionally unavailable until the trusted quarantine/scanning service and approved numeric media limits are implemented.
-- Package prices still require product-owner approval before active package records are seeded.
+- Paid claims and placement activation remain disabled until the administrator review flow passes its own regression gate.
+- Free banner uploads and moderation are enabled with the approved no-cost MVP limits below; a donation is never required to upload a banner.
+- Package prices are server-owned records and are never accepted from the browser.
 
 ## Package rules
 
@@ -50,7 +50,7 @@
 - GIF limit: 30 frames and 15 seconds total declared frame delay. Static formats are recorded as one frame with zero animation duration.
 - Alternative text is required and limited to 180 characters. Replacements return to pending moderation.
 - Banner bytes stay in PostgreSQL `bytea` for the no-cost MVP. Public responses use the stored fixed media type, `nosniff`, a restrictive content policy, and only the approved server website as destination.
-- Feature flags remain off. Animated GIF production enablement additionally requires a trusted decoded static-fallback generation step; header/structure inspection alone is not a substitute for full media decoding or malware scanning.
+- Donation claims and exclusive placement flags remain off while their remaining moderation workflow is built. Banner uploads use trusted decoding and a generated static fallback before storage.
 
 ## Rotation and game isolation
 
