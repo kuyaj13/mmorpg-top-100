@@ -14,7 +14,9 @@
 
 - The owner workspace and free, moderated banner workflow are live for approved server owners.
 - The trusted Worker donation-claim submission boundary is implemented and validated on an isolated database branch, but its production feature flag remains off.
+- The administrator donation-review boundary is implemented through the trusted Worker, validated on an isolated branch, and installed in production. Its feature flag remains off while placement activation receives its own release gate.
 - Claim submission accepts only an owned server, a server-defined package code, a unique PayPal reference, and a server-verified Turnstile token. Amount, currency, status, duration, and eligibility cannot be supplied by the browser.
+- Administrators compare PayPal records manually. Verification records the package amount and currency from the database, uses a recent administrator login, and appends an immutable decision event; browser-supplied financial values are not accepted.
 - A Neon Free PostgreSQL 17 production database and a project-specific Cloudflare Hyperdrive configuration are provisioned and pass connection/configuration validation. The previous PostgreSQL 18 project remains untouched for rollback.
 - Paid claims and placement activation remain disabled until the administrator review flow passes its own regression gate.
 - Free banner uploads and moderation are enabled with the approved no-cost MVP limits below; a donation is never required to upload a banner.

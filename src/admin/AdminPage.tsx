@@ -23,13 +23,15 @@ export default function AdminPage({
   accessService = defaultAccessService,
   authService = defaultAuthService,
   moderationService = defaultModerationService,
-  donationClaimReviewService = defaultDonationClaimReviewService,
+  donationClaimReviewService,
   bannerReviewService,
 }: AdminPageProps) {
   const activeBannerReviewService = bannerReviewService ?? (siteConfig.bannerModerationEnabled ? defaultBannerReviewService : null)
+  const activeDonationReviewService = donationClaimReviewService ?? (siteConfig.donationModerationEnabled ? defaultDonationClaimReviewService : null)
   const [state, setState] = useState<'checking' | 'denied' | 'ready' | 'error'>('checking')
   const [items, setItems] = useState<ModerationItem[]>([])
   const [donationClaims, setDonationClaims] = useState<DonationClaimReviewItem[]>([])
+  const [donationReviewUnavailable, setDonationReviewUnavailable] = useState(false)
   const [banners, setBanners] = useState<BannerReviewItem[]>([])
   const [feedback, setFeedback] = useState('')
   const [pendingId, setPendingId] = useState('')
@@ -38,7 +40,12 @@ export default function AdminPage({
   const [needsVerification, setNeedsVerification] = useState(false)
   const [accessCheck, setAccessCheck] = useState(0)
   const [focusAfterDecision, setFocusAfterDecision] = useState(0)
-  const [confirmation, setConfirmation] = useState<{ kind: 'submission' | 'banner'; id: string; name: string; decision: 'approve' | 'reject' } | null>(null)
+  const [confirmation, setConfirmation] = useState<
+    | { kind: 'submission'; id: string; name: string; decision: 'approve' | 'reject' }
+    | { kind: 'banner'; id: string; name: string; decision: 'approve' | 'reject' }
+    | { kind: 'donation'; claim: DonationClaimReviewItem; name: string; decision: 'verify' | 'reject' }
+    | null
+  >(null)
   const decisionTriggerRef = useRef<HTMLButtonElement | null>(null)
   const confirmationRef = useRef<HTMLDivElement>(null)
   const workspaceHeadingRef = useRef<HTMLHeadingElement>(null)
@@ -57,14 +64,15 @@ export default function AdminPage({
         return
       }
       try {
-        const [pendingItems, pendingDonationClaims, pendingBanners] = await Promise.all([
+        const [pendingItems, donationResult, pendingBanners] = await Promise.all([
           moderationService.listPending(),
-          donationClaimReviewService.listPending(),
+          activeDonationReviewService?.listPending().then((claims)=>({claims,failed:false}),()=>({claims:[],failed:true})) ?? Promise.resolve({claims:[],failed:false}),
           activeBannerReviewService?.listPending() ?? Promise.resolve([]),
         ])
         if (active) {
           setItems(pendingItems)
-          setDonationClaims(pendingDonationClaims)
+          setDonationClaims(donationResult.claims)
+          setDonationReviewUnavailable(donationResult.failed)
           setBanners(pendingBanners)
           setState('ready')
         }
@@ -77,7 +85,7 @@ export default function AdminPage({
     return () => {
       active = false
     }
-  }, [accessCheck, accessService, activeBannerReviewService, donationClaimReviewService, moderationService])
+  }, [accessCheck, accessService, activeBannerReviewService, activeDonationReviewService, moderationService])
 
   const handleSignIn = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -172,6 +180,11 @@ export default function AdminPage({
     setConfirmation({ kind: 'banner', id: item.id, name: `${item.serverName} banner`, decision })
   }
 
+  const requestDonationDecision = (trigger: HTMLButtonElement, claim: DonationClaimReviewItem, decision: 'verify' | 'reject') => {
+    decisionTriggerRef.current = trigger
+    setConfirmation({ kind: 'donation', claim, name: `${claim.serverName} donation claim`, decision })
+  }
+
   const cancelDecision = () => {
     setConfirmation(null)
     requestAnimationFrame(() => decisionTriggerRef.current?.focus())
@@ -179,10 +192,11 @@ export default function AdminPage({
 
   const confirmDecision = async () => {
     if (!confirmation) return
-    const { kind, id, decision } = confirmation
+    const current = confirmation
     setConfirmation(null)
-    if (kind === 'submission') await decide(id, decision)
-    else await decideBanner(id, decision)
+    if (current.kind === 'submission') await decide(current.id, current.decision)
+    else if (current.kind === 'banner') await decideBanner(current.id, current.decision)
+    else await decideDonationClaim(current.claim, current.decision)
   }
 
   const decideBanner = async (id: string, decision: 'approve' | 'reject') => {
@@ -219,20 +233,20 @@ export default function AdminPage({
     setPendingId(claim.id)
     setFeedback('')
     try {
-      const result = await donationClaimReviewService.decide({
+      if (!activeDonationReviewService) throw new Error('Unavailable')
+      const result = await activeDonationReviewService.decide({
         id: claim.id,
         decision,
-        expectedAmountMinor: claim.expectedAmountMinor,
-        currency: claim.currency,
         reasonCode: decision === 'reject' ? 'not_matched' : undefined,
       })
       setFeedback(result.message)
       if (result.ok) {
         setDonationClaims((current) => current.filter((item) => item.id !== claim.id))
         setFocusAfterDecision((value) => value + 1)
-      }
+      } else requestAnimationFrame(() => decisionTriggerRef.current?.focus())
     } catch {
       setFeedback('The donation decision could not be saved. Please try again.')
+      requestAnimationFrame(() => decisionTriggerRef.current?.focus())
     } finally {
       setPendingId('')
     }
@@ -271,7 +285,8 @@ export default function AdminPage({
         </section>
       )}
       {state === 'error' && <p role="alert">Submissions are unavailable right now. Please try again later.</p>}
-      {state === 'ready' && items.length === 0 && donationClaims.length === 0 && banners.length === 0 && <p role="status">There are no pending reviews.</p>}
+      {state === 'ready' && !donationReviewUnavailable && items.length === 0 && donationClaims.length === 0 && banners.length === 0 && <p role="status">There are no pending reviews.</p>}
+      {state === 'ready' && donationReviewUnavailable && <p role="status">Donation claims are unavailable right now. Other moderation tools are still available.</p>}
       {state === 'ready' && (
         <button type="button" className="sign-out-button" onClick={() => void handleSignOut()}>
           Sign out
@@ -299,7 +314,7 @@ export default function AdminPage({
         </section>
       )}
       {state === 'ready' && donationClaims.length > 0 && (
-        <section aria-labelledby="donation-review-heading">
+        <section aria-labelledby="donation-review-heading" aria-busy={donationClaims.some((claim)=>pendingId===claim.id)}>
           <h2 id="donation-review-heading">Pending donation claims</h2>
           <div className="moderation-list" role="list" aria-label="Pending donation claims">
             {donationClaims.map((claim) => (
@@ -308,12 +323,12 @@ export default function AdminPage({
                   <p className="moderation-meta">{claim.gameName} | {claim.durationDays} days</p>
                   <h3>{claim.serverName}</h3>
                   <p><strong>Expected:</strong> {formatMoney(claim.expectedAmountMinor, claim.currency)}</p>
-                  <p><strong>PayPal reference:</strong> <code>{claim.donorReference}</code></p>
+                  <p className="donation-reference"><strong>PayPal reference:</strong> <code>{claim.donorReference}</code></p>
                   <a href={claim.website} target="_blank" rel="noopener noreferrer">Review server website <span className="visually-hidden">(opens in a new tab)</span></a>
                 </div>
                 <div className="moderation-actions">
-                  <button aria-label={`Verify donation match for ${claim.serverName}`} disabled={pendingId === claim.id} onClick={() => void decideDonationClaim(claim, 'verify')}>Verify match</button>
-                  <button aria-label={`Reject donation claim for ${claim.serverName}`} disabled={pendingId === claim.id} onClick={() => void decideDonationClaim(claim, 'reject')}>Reject claim</button>
+                  <button aria-label={`Verify donation match for ${claim.serverName}`} disabled={pendingId === claim.id} onClick={(event) => requestDonationDecision(event.currentTarget,claim,'verify')}>{pendingId===claim.id?'Verifying...':'Verify match'}</button>
+                  <button aria-label={`Reject donation claim for ${claim.serverName}`} disabled={pendingId === claim.id} onClick={(event) => requestDonationDecision(event.currentTarget,claim,'reject')}>{pendingId===claim.id?'Rejecting...':'Reject claim'}</button>
                 </div>
               </article>
             ))}
@@ -353,7 +368,7 @@ export default function AdminPage({
         <p id="moderation-confirmation-description">Are you sure you want to {confirmation.decision} {confirmation.name}?</p>
         <div className="moderation-actions">
           <button type="button" onClick={cancelDecision}>Cancel</button>
-          <button type="button" autoFocus onClick={() => void confirmDecision()}>{confirmation.decision === 'approve' ? 'Confirm approval' : 'Confirm rejection'}</button>
+          <button type="button" autoFocus onClick={() => void confirmDecision()}>{confirmation.decision === 'approve' ? 'Confirm approval' : confirmation.decision==='verify'?'Confirm verification':'Confirm rejection'}</button>
         </div>
       </div>}
     </main>

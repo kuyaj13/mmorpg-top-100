@@ -5,12 +5,16 @@ import type { RankingQueryClient } from './rankingRepository'
 export type PublicAd = { id: string; serverId: string; serverName: string; bannerId: string; mediaType: string; altText: string; destinationUrl: string; startsAt: string; expiresAt: string }
 export type PendingBanner = { id: string; serverId: string; serverName: string; gameSlug: string; mediaType: string; byteSize: number; frameCount: number; animationDurationMs: number; altText: string; createdAt: string }
 export type OwnedServer = { id: string; name: string; gameSlug: string; gameName: string }
+export type PendingDonationClaim = { id: string; serverName: string; gameName: string; website: string; donorReference: string; durationDays: number; expectedAmountMinor: string; currency: string; createdAt: string }
 export type BannerModerationOutcome = 'approved' | 'rejected' | 'suspended' | 'unavailable'
+export type DonationModerationOutcome = 'verified' | 'rejected' | 'invalid' | 'unavailable'
 export type DonationClaimOutcome = { outcome: 'accepted'; claimId: string } | { outcome: 'invalid'|'unavailable'|'limit_reached'|'duplicate' }
 export type AdvertisingRepository = {
   putBanner(serverId: string, ownerKey: Uint8Array, banner: SanitizedBanner, altText: string): Promise<'stored' | 'unavailable'>
   listOwnedServers(ownerKey: Uint8Array): Promise<OwnedServer[]>
   submitDonationClaim(ownerKey: Uint8Array, serverId: string, packageCode: string, donorReference: string): Promise<DonationClaimOutcome>
+  listPendingDonationClaims(): Promise<PendingDonationClaim[]>
+  moderateDonationClaim(id: string, moderatorKey: Uint8Array, decision: 'verify'|'reject', reasonCode: string|null, operationId: string): Promise<DonationModerationOutcome>
   listPublic(gameSlug: string): Promise<PublicAd[]>
   getPublicBanner(id: string, staticFallback: boolean): Promise<{ bytes: Uint8Array; mediaType: string } | null>
   getBannerReviewPreview(id: string): Promise<{ bytes: Uint8Array; mediaType: 'image/png' } | null>
@@ -27,6 +31,16 @@ export function createAdvertisingRepository(createClient: () => RankingQueryClie
     try { await client.connect(); return await operation(client) } finally { await client.end() }
   }
   return {
+    listPendingDonationClaims: () => run(async (client) => {
+      const result = await client.query<Record<string, string|number|Date>>('SELECT id::text,server_name,game_name,website,donor_reference,duration_days,expected_amount_minor::text,currency,created_at FROM api.list_pending_donation_claims()')
+      return result.rows.map((row) => ({ id:String(row.id),serverName:String(row.server_name),gameName:String(row.game_name),website:String(row.website),donorReference:String(row.donor_reference),durationDays:Number(row.duration_days),expectedAmountMinor:String(row.expected_amount_minor),currency:String(row.currency).trim(),createdAt:new Date(row.created_at).toISOString() }))
+    }),
+    moderateDonationClaim: (id, moderatorKey, decision, reasonCode, operationId) => run(async (client) => {
+      const result=await client.query<{ moderate_donation_claim:string }>('SELECT api.moderate_donation_claim($1::uuid,$2::bytea,$3::varchar,$4::varchar,$5::uuid) AS moderate_donation_claim',[id,moderatorKey,decision,reasonCode,operationId])
+      const outcome=result.rows[0]?.moderate_donation_claim
+      if(outcome==='verified'||outcome==='rejected'||outcome==='invalid'||outcome==='unavailable') return outcome
+      throw new Error('Invalid donation moderation outcome')
+    }),
     submitDonationClaim: (ownerKey, serverId, packageCode, donorReference) => run(async (client) => {
       const result = await client.query<{ outcome:string; claim_id:string|null }>('SELECT outcome,claim_id::text FROM api.submit_donation_claim($1::bytea,$2::uuid,$3::varchar,$4::varchar)', [ownerKey,serverId,packageCode,donorReference])
       const row=result.rows[0]

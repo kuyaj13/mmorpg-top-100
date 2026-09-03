@@ -9,9 +9,6 @@ import {
   adminApproveSubmission,
   adminListPendingSubmissions,
   adminRejectSubmission,
-  adminListPendingDonationClaims,
-  adminVerifyDonationClaim,
-  adminRejectDonationClaim,
 } from '../generated/sql-connect'
 import type { ModerationItem } from './types'
 import type { AdminAccessService, AdminAuthService, DonationClaimReviewService, ModerationService } from './types'
@@ -96,35 +93,39 @@ export const moderationService: ModerationService = {
 
 export const donationClaimReviewService: DonationClaimReviewService = {
   async listPending() {
-    const result = await adminListPendingDonationClaims({ fetchPolicy: 'SERVER_ONLY' })
-    return result.data.donationClaims.map((claim) => ({
-      id: claim.id,
-      serverName: claim.server.name,
-      gameName: claim.server.game.name,
-      website: claim.server.website,
-      donorReference: claim.donorReference,
-      durationDays: claim.package.durationDays,
-      expectedAmountMinor: claim.package.priceMinor,
-      currency: claim.package.currency,
-      createdAt: claim.createdAt,
-    }))
+    const apiBaseUrl=import.meta.env.VITE_API_BASE_URL
+    const user=requireAuth().currentUser
+    if(!apiBaseUrl||!user||!user.emailVerified) throw new Error('Donation review is unavailable.')
+    const response=await requestDonationReview(apiBaseUrl,'/api/admin/donation-claims',await user.getIdToken())
+    if(!response.ok) throw new Error('Donation review is unavailable.')
+    const body=await response.json() as { donationClaims?:unknown }
+    if(!Array.isArray(body.donationClaims)||!body.donationClaims.every(isDonationClaimReviewItem)) throw new Error('Donation review is unavailable.')
+    return body.donationClaims
   },
   async decide(input) {
     try {
-      if (input.decision === 'verify') {
-        await adminVerifyDonationClaim({
-          id: input.id,
-          verifiedAmountMinor: input.expectedAmountMinor,
-          verifiedCurrency: input.currency,
-        })
-        return { ok: true, message: 'The donation claim was verified.' }
-      }
-      await adminRejectDonationClaim({ id: input.id, reasonCode: input.reasonCode ?? 'not_matched' })
-      return { ok: true, message: 'The donation claim was rejected.' }
+      const apiBaseUrl=import.meta.env.VITE_API_BASE_URL
+      const user=requireAuth().currentUser
+      if(!apiBaseUrl||!user||!user.emailVerified) throw new Error('Unavailable')
+      const response=await requestDonationReview(apiBaseUrl,`/api/admin/donation-claims/${encodeURIComponent(input.id)}/decision`,await user.getIdToken(true),input.decision,input.reasonCode)
+      const body=await response.json().catch(()=>null) as {message?:unknown}|null
+      if(!response.ok) return {ok:false,message:typeof body?.message==='string'?body.message:'The donation decision could not be saved. Please try again.'}
+      return {ok:true,message:input.decision==='verify'?'The donation claim was verified.':'The donation claim was rejected.'}
     } catch {
-      return { ok: false, message: 'This donation claim is no longer pending review.' }
+      return { ok: false, message: 'The donation decision could not be saved. Please try again.' }
     }
   },
+}
+
+export function requestDonationReview(apiBaseUrl:string,path:string,idToken:string,decision?:'verify'|'reject',reasonCode?:string,fetcher:typeof fetch=fetch){
+  return fetcher(new URL(path,apiBaseUrl),{method:decision?'POST':'GET',headers:{authorization:`Bearer ${idToken}`,...(decision?{'content-type':'application/json'}:{})},body:decision?JSON.stringify({decision,...(decision==='reject'?{reasonCode:reasonCode??'not_matched'}:{}),operationId:crypto.randomUUID()}):undefined})
+}
+
+function isDonationClaimReviewItem(value:unknown):value is Awaited<ReturnType<DonationClaimReviewService['listPending']>>[number]{
+  if(!value||typeof value!=='object'||Array.isArray(value)) return false
+  const item=value as Record<string,unknown>,keys=new Set(['id','serverName','gameName','website','donorReference','durationDays','expectedAmountMinor','currency','createdAt'])
+  if(!Object.keys(item).every((key)=>keys.has(key))||typeof item.id!=='string'||typeof item.serverName!=='string'||typeof item.gameName!=='string'||typeof item.donorReference!=='string'||typeof item.durationDays!=='number'||!Number.isInteger(item.durationDays)||typeof item.expectedAmountMinor!=='string'||typeof item.currency!=='string'||typeof item.createdAt!=='string'||!Number.isFinite(Date.parse(item.createdAt))) return false
+  try{return typeof item.website==='string'&&new URL(item.website).protocol==='https:'}catch{return false}
 }
 
 function toServerMode(mode: string): ModerationItem['mode'] {

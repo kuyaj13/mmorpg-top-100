@@ -116,6 +116,8 @@ describe('AdminPage', () => {
 
     expect(await screen.findByText('PAYPAL123456')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Verify donation match for Flyff One' }))
+    expect(screen.getByRole('alertdialog')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Confirm verification' }))
     expect(await screen.findByText('The donation claim was verified.')).toBeInTheDocument()
     expect(screen.queryByText('PAYPAL123456')).not.toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Moderation workspace' })).toHaveFocus()

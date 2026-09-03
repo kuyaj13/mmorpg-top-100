@@ -27,6 +27,7 @@ const env = {
   EXCLUSIVE_ADS_ENABLED: 'false',
   BANNER_MODERATION_ENABLED: 'false',
   DONATION_CLAIMS_ENABLED: 'false',
+  DONATION_MODERATION_ENABLED: 'false',
   ADVERTISING_RATE_LIMITER: { limit: rateLimit } as RateLimit,
 }
 
@@ -139,6 +140,16 @@ describe('rankings endpoint', () => {
     expect(response.headers.get('access-control-allow-headers')).toBe('authorization, content-type')
   })
 
+  it('keeps donation moderation unavailable and advertises its protected preflight contract', async () => {
+    const worker=createWorker(()=>repository(null))
+    const disabled=await worker.fetch(new Request('https://api.example/api/admin/donation-claims',{headers:{origin:'https://mmorpgtop100.com'}}),env)
+    const preflight=await worker.fetch(new Request('https://api.example/api/admin/donation-claims/123e4567-e89b-42d3-a456-426614174000/decision',{method:'OPTIONS',headers:{origin:'https://mmorpgtop100.com'}}),env)
+    expect(disabled.status).toBe(503)
+    expect(preflight.status).toBe(204)
+    expect(preflight.headers.get('access-control-allow-methods')).toBe('POST, OPTIONS')
+    expect(preflight.headers.get('access-control-allow-headers')).toBe('authorization, content-type')
+  })
+
   it('keeps voting disabled before invoking the protected handler', async () => {
     const voteHandler = vi.fn()
     const worker = createWorker(() => repository(null), () => voteHandler)
@@ -215,7 +226,7 @@ describe('rankings endpoint', () => {
   it('routes the enabled owner workspace through the protected advertising boundary', async () => {
     const ownerWorkspace = vi.fn().mockResolvedValue(Response.json({ ok: true, servers: [] }))
     const advertising = {
-      ownerWorkspace, submitClaim: vi.fn(),
+      ownerWorkspace, submitClaim: vi.fn(), listPendingClaims: vi.fn(), moderateClaim: vi.fn(),
       upload: vi.fn(), listPublic: vi.fn(), banner: vi.fn(), listPending: vi.fn(), previewPending: vi.fn(), moderate: vi.fn(),
     }
     const worker = createWorker(() => repository(null), undefined, undefined, undefined, () => advertising)

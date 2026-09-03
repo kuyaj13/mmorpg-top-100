@@ -18,6 +18,7 @@ type Dependencies = {
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const safe = { 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' }
 const decisions = new Set(['approve', 'reject', 'suspend'])
+const claimRejectionReasons = new Set(['not_matched', 'wrong_amount', 'wrong_currency', 'refunded'])
 const error = (message: string, status: number, extra?: HeadersInit) => Response.json({ ok: false, message }, { status, headers: { ...safe, ...extra } })
 
 async function authorize(request: Request, dependencies: Dependencies, role: 'owner' | 'admin', action: string) {
@@ -88,6 +89,29 @@ async function readDecision(request: Request): Promise<{ decision: 'approve' | '
 
 export function createAdvertisingEndpoints(dependencies: Dependencies) {
   return {
+    async listPendingClaims(request: Request): Promise<Response> {
+      if (request.method !== 'GET') return error('Method not allowed.', 405, { allow: 'GET' })
+      const admin = await authorize(request, dependencies, 'admin', 'list-donation-claims')
+      if (admin instanceof Response) return admin
+      return Response.json({ ok: true, donationClaims: await dependencies.repository.listPendingDonationClaims() }, { headers: safe })
+    },
+    async moderateClaim(request: Request, claimId: string): Promise<Response> {
+      if (request.method !== 'POST') return error('Method not allowed.', 405, { allow: 'POST' })
+      const admin = await authorize(request, dependencies, 'admin', 'moderate-donation-claim')
+      if (admin instanceof Response) return admin
+      if (!uuid.test(claimId) || !request.headers.get('content-type')?.toLowerCase().startsWith('application/json')) return error('Please submit a valid donation decision.', 400)
+      const rawLength=request.headers.get('content-length'); if(rawLength&&(!/^\d+$/.test(rawLength)||Number(rawLength)>512)) return error('Please submit a valid donation decision.',400)
+      const bytes=await readBoundedBytes(request,512); if(!bytes) return error('Please submit a valid donation decision.',400)
+      let body:Record<string,unknown>; try { const parsed:unknown=JSON.parse(new TextDecoder().decode(bytes)); if(!parsed||typeof parsed!=='object'||Array.isArray(parsed)) throw new Error(); body=parsed as Record<string,unknown> } catch { return error('Please submit a valid donation decision.',400) }
+      if(Object.keys(body).some((key)=>!['decision','reasonCode','operationId'].includes(key))||typeof body.decision!=='string'||!['verify','reject'].includes(body.decision)||typeof body.operationId!=='string'||!uuid.test(body.operationId)) return error('Please submit a valid donation decision.',400)
+      const reasonCode=body.reasonCode
+      if((body.decision==='verify'&&reasonCode!==undefined)||(body.decision==='reject'&&(typeof reasonCode!=='string'||!claimRejectionReasons.has(reasonCode)))) return error('Please submit a valid donation decision.',400)
+      const outcome=await dependencies.repository.moderateDonationClaim(claimId,await dependencies.deriveModeratorKey(admin.uid),body.decision as 'verify'|'reject',typeof reasonCode==='string'?reasonCode:null,body.operationId)
+      if(outcome==='verified') return Response.json({ok:true,message:'The donation claim was verified.'},{headers:safe})
+      if(outcome==='rejected') return Response.json({ok:true,message:'The donation claim was rejected.'},{headers:safe})
+      if(outcome==='invalid') return error('Please submit a valid donation decision.',400)
+      return error('This donation claim is no longer pending review.',409)
+    },
     async submitClaim(request: Request): Promise<Response> {
       if (request.method!=='POST') return error('Method not allowed.',405,{allow:'POST'})
       const owner=await authorize(request,dependencies,'owner','donation-claim')

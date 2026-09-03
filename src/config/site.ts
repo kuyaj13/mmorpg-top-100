@@ -5,6 +5,7 @@ export const siteConfig = {
   adminWorkspaceEnabled: import.meta.env.VITE_ADMIN_ENABLED === 'true',
   advertisingWorkspaceEnabled: false,
   bannerModerationEnabled: import.meta.env.VITE_BANNER_MODERATION_ENABLED === 'true',
+  donationModerationEnabled: import.meta.env.VITE_DONATION_MODERATION_ENABLED === 'true',
   bannerUploadsEnabled: import.meta.env.VITE_BANNER_UPLOADS_ENABLED === 'true' && Boolean(import.meta.env.VITE_TURNSTILE_SITE_KEY),
   exclusiveAdvertisersPerGame: 3,
 } as const

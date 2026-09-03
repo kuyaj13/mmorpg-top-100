@@ -30,6 +30,7 @@ type WorkerEnv = GeneratedBindings & {
   EXCLUSIVE_ADS_ENABLED: string
   BANNER_MODERATION_ENABLED: string
   DONATION_CLAIMS_ENABLED: string
+  DONATION_MODERATION_ENABLED: string
   DONATION_TURNSTILE_ACTION: string
   TURNSTILE_SECRET: string
   VOTER_HMAC_SECRET: string
@@ -61,9 +62,11 @@ export function createWorker(repositoryFactory: RepositoryFactory, voteHandlerFa
         const adminBannerPreview = url.pathname.match(/^\/api\/admin\/banners\/([^/]+)\/preview$/)
         const adminBannerDecision = url.pathname.match(/^\/api\/admin\/banners\/([^/]+)\/decision$/)
         const donationClaim = url.pathname === '/api/advertising/claims'
+        const adminDonationClaims = url.pathname === '/api/admin/donation-claims'
+        const adminDonationDecision = url.pathname.match(/^\/api\/admin\/donation-claims\/([^/]+)\/decision$/)
         if (request.method === 'OPTIONS') {
-          const writeRoute = voteMatch || isSubmission || adminDecision || bannerUpload || adminBannerDecision || donationClaim
-          const protectedRoute = voteMatch || isSubmission || adminList || adminDecision || bannerUpload || ownerBannerWorkspace || adminBannerList || adminBannerPreview || adminBannerDecision || donationClaim
+          const writeRoute = voteMatch || isSubmission || adminDecision || bannerUpload || adminBannerDecision || donationClaim || adminDonationDecision
+          const protectedRoute = voteMatch || isSubmission || adminList || adminDecision || bannerUpload || ownerBannerWorkspace || adminBannerList || adminBannerPreview || adminBannerDecision || donationClaim || adminDonationClaims || adminDonationDecision
           return corsResponse(request, env, new Response(null, { status: 204 }), writeRoute ? `${bannerUpload ? 'PUT' : 'POST'}, OPTIONS` : 'GET, OPTIONS', protectedRoute ? `authorization, content-type${bannerUpload ? ', x-banner-alt-text, x-turnstile-token' : ''}` : undefined)
         }
         if (url.pathname === '/api/health' && request.method === 'GET') return corsResponse(request, env, Response.json({ ok: true }, { headers: noStoreHeaders() }))
@@ -111,6 +114,13 @@ export function createWorker(repositoryFactory: RepositoryFactory, voteHandlerFa
           const advertising = advertisingFactory(env)
           const response = adminBannerDecision ? await advertising.moderate(request, safeDecode(adminBannerDecision[1])) : adminBannerPreview ? await advertising.previewPending(request, safeDecode(adminBannerPreview[1])) : await advertising.listPending(request)
           return corsResponse(request, env, response, methods, 'authorization, content-type')
+        }
+        if (adminDonationClaims || adminDonationDecision) {
+          const methods=adminDonationDecision?'POST, OPTIONS':'GET, OPTIONS'
+          if(env.ADMIN_ENABLED!=='true'||env.DONATION_MODERATION_ENABLED!=='true'||!advertisingFactory) return corsResponse(request,env,jsonError('Donation review is not available yet.',503),methods,'authorization, content-type')
+          const advertising=advertisingFactory(env)
+          const response=adminDonationDecision?await advertising.moderateClaim(request,safeDecode(adminDonationDecision[1])):await advertising.listPendingClaims(request)
+          return corsResponse(request,env,response,methods,'authorization, content-type')
         }
         if (publicAds) {
           if (request.method !== 'GET') return corsResponse(request, env, methodNotAllowed())

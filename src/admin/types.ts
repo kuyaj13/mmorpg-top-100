@@ -41,8 +41,6 @@ export type DonationClaimReviewService = {
   decide: (input: {
     id: string
     decision: 'verify' | 'reject'
-    expectedAmountMinor: string
-    currency: string
     reasonCode?: string
   }) => Promise<{ ok: boolean; message: string }>
 }
