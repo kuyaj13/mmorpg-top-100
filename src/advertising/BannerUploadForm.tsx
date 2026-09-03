@@ -3,7 +3,7 @@ import { bannerUploadService } from './bannerServices'
 import type { BannerUploadFormProps } from './bannerTypes'
 
 const maximumBytes = 512 * 1024
-const allowedTypes = new Set(['image/gif', 'image/png', 'image/jpeg', 'image/webp'])
+const allowedTypes = new Set(['image/gif', 'image/png', 'image/jpeg'])
 
 export function BannerUploadForm({ servers, service = bannerUploadService }: BannerUploadFormProps) {
   const [pending, setPending] = useState(false)
@@ -25,7 +25,7 @@ export function BannerUploadForm({ servers, service = bannerUploadService }: Ban
     const nextErrors: Record<string, string> = {}
     if (!servers.some((server) => server.id === serverId)) nextErrors.serverId = 'Select one of your approved servers.'
     if (!file || file.size === 0) nextErrors.file = 'Choose a banner image.'
-    else if (!allowedTypes.has(file.type) || file.size > maximumBytes) nextErrors.file = 'Choose a GIF, PNG, JPEG, or WebP image no larger than 512 KiB.'
+    else if (!allowedTypes.has(file.type) || file.size > maximumBytes) nextErrors.file = 'Choose a GIF, PNG, or JPEG image no larger than 512 KiB.'
     if (altText.length < 10 || altText.length > 160) nextErrors.altText = 'Describe the banner in 10 to 160 characters.'
     setErrors(nextErrors); setFeedback('')
     if (nextErrors.serverId) serverRef.current?.focus()
@@ -52,8 +52,8 @@ export function BannerUploadForm({ servers, service = bannerUploadService }: Ban
       <select ref={serverRef} id="banner-server" name="serverId" defaultValue="" aria-invalid={Boolean(errors.serverId)} aria-describedby={errors.serverId ? 'banner-server-error' : undefined}><option value="" disabled>Select a server</option>{servers.map((server) => <option key={server.id} value={server.id}>{server.name} — {server.gameName}</option>)}</select>
       {errors.serverId && <p id="banner-server-error">{errors.serverId}</p>}
       <label htmlFor="banner-file">Banner image</label>
-      <input ref={fileRef} id="banner-file" name="banner" type="file" required accept="image/gif,image/png,image/jpeg,image/webp,.gif,.png,.jpg,.jpeg,.webp" aria-invalid={Boolean(errors.file)} aria-describedby={`banner-requirements${errors.file ? ' banner-file-error' : ''}`} />
-      <p id="banner-requirements">Exactly 468 by 60 pixels; GIF, PNG, JPEG, or WebP; maximum 512 KiB. Animated banners require a reduced-motion alternative during moderation.</p>
+      <input ref={fileRef} id="banner-file" name="banner" type="file" required accept="image/gif,image/png,image/jpeg,.gif,.png,.jpg,.jpeg" aria-invalid={Boolean(errors.file)} aria-describedby={`banner-requirements${errors.file ? ' banner-file-error' : ''}`} />
+      <p id="banner-requirements">Exactly 468 by 60 pixels; GIF, PNG, or JPEG; maximum 512 KiB. Animated banners require a reduced-motion alternative during moderation.</p>
       {errors.file && <p id="banner-file-error">{errors.file}</p>}
       <label htmlFor="banner-alt">Banner description</label>
       <input ref={altRef} id="banner-alt" name="altText" type="text" required minLength={10} maxLength={160} aria-invalid={Boolean(errors.altText)} aria-describedby={errors.altText ? 'banner-alt-error' : undefined} />

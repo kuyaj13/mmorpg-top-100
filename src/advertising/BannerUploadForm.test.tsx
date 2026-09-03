@@ -25,4 +25,9 @@ describe('BannerUploadForm', () => {
     expect(screen.getByRole('status')).toHaveTextContent('approved server')
     expect(screen.queryByLabelText('Banner image')).not.toBeInTheDocument()
   })
+
+  it('limits the file picker to the sanitizer-supported formats', () => {
+    render(<BannerUploadForm servers={[server]} service={{ upload: vi.fn() }} />)
+    expect(screen.getByLabelText('Banner image')).toHaveAttribute('accept', 'image/gif,image/png,image/jpeg,.gif,.png,.jpg,.jpeg')
+  })
 })

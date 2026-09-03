@@ -1,7 +1,7 @@
 import { getFirebaseAuth } from '../firebase'
 import type { BannerUploadService, ExclusiveServerAd, ExclusiveServersService } from './bannerTypes'
 
-const imageTypes = new Set(['image/gif', 'image/png', 'image/jpeg', 'image/webp'])
+const imageTypes = new Set(['image/gif', 'image/png', 'image/jpeg'])
 
 export const bannerUploadService: BannerUploadService = {
   async upload(input) {
@@ -60,7 +60,7 @@ function isHttps(value: unknown) {
 }
 
 function uploadError(status: number) {
-  if (status === 400 || status === 413 || status === 415 || status === 422) return 'Choose a GIF, PNG, JPEG, or WebP banner that meets the upload requirements.'
+  if (status === 400 || status === 413 || status === 415 || status === 422) return 'Choose a GIF, PNG, or JPEG banner that meets the upload requirements.'
   if (status === 401 || status === 403) return 'Only a verified owner of this approved server can upload its banner.'
   if (status === 429) return 'Banner uploads are temporarily limited. Please wait and try again.'
   return 'Your banner could not be uploaded. Please try again.'
