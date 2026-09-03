@@ -8,12 +8,16 @@ const env = {
   HYPERDRIVE: { connectionString: '' } as Hyperdrive,
   RANKINGS_RATE_LIMITER: { limit: rateLimit } as RateLimit,
   VOTE_RATE_LIMITER: { limit: rateLimit } as RateLimit,
+  SUBMISSION_RATE_LIMITER: { limit: rateLimit } as RateLimit,
   VOTING_ENABLED: 'false',
+  SUBMISSIONS_ENABLED: 'false',
   FIREBASE_PROJECT_ID: 'project',
   TURNSTILE_SECRET: 'secret',
   TURNSTILE_HOSTNAME: 'mmorpgtop100.com',
   TURNSTILE_ACTION: 'vote',
+  SUBMISSION_TURNSTILE_ACTION: 'submit-server',
   VOTER_HMAC_SECRET: 'secret',
+  OWNER_HMAC_SECRET: 'secret',
 }
 
 function repository(result: Awaited<ReturnType<RankingRepository['findByGameSlug']>>): RankingRepository {
@@ -142,5 +146,33 @@ describe('rankings endpoint', () => {
       method: 'OPTIONS', headers: { origin: 'https://mmorpgtop100.com' },
     }), env)
     expect(response.headers.get('access-control-allow-methods')).toBe('POST, OPTIONS')
+  })
+
+  it('keeps submissions disabled before invoking the protected handler', async () => {
+    const submissionHandler = vi.fn()
+    const worker = createWorker(() => repository(null), undefined, () => submissionHandler)
+    const response = await worker.fetch(new Request('https://api.example/api/server-submissions', {
+      method: 'POST', headers: { origin: 'https://mmorpgtop100.com' },
+    }), env)
+    expect(response.status).toBe(503)
+    expect(submissionHandler).not.toHaveBeenCalled()
+  })
+
+  it('rejects a disallowed submission origin before invoking protected work', async () => {
+    const submissionHandler = vi.fn()
+    const worker = createWorker(() => repository(null), undefined, () => submissionHandler)
+    const response = await worker.fetch(new Request('https://api.example/api/server-submissions', {
+      method: 'POST', headers: { origin: 'https://evil.test' },
+    }), { ...env, SUBMISSIONS_ENABLED: 'true' })
+    expect(response.status).toBe(403)
+    expect(submissionHandler).not.toHaveBeenCalled()
+  })
+
+  it('advertises only required headers for submission preflight', async () => {
+    const response = await createWorker(() => repository(null)).fetch(new Request('https://api.example/api/server-submissions', {
+      method: 'OPTIONS', headers: { origin: 'https://mmorpgtop100.com' },
+    }), env)
+    expect(response.headers.get('access-control-allow-methods')).toBe('POST, OPTIONS')
+    expect(response.headers.get('access-control-allow-headers')).toBe('authorization, content-type')
   })
 })

@@ -38,10 +38,12 @@ function loadTurnstile(): Promise<void> {
 
 export type TurnstileWidgetHandle = { reset: () => void }
 
-export function TurnstileWidget({ onToken, resetRef, siteKey: configuredSiteKey }: {
+export function TurnstileWidget({ onToken, resetRef, siteKey: configuredSiteKey, action = 'vote', idPrefix = 'vote' }: {
   onToken: (token: string) => void
   resetRef?: React.RefObject<TurnstileWidgetHandle | null>
   siteKey?: string
+  action?: string
+  idPrefix?: string
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const widgetIdRef = useRef<string | null>(null)
@@ -64,7 +66,7 @@ export function TurnstileWidget({ onToken, resetRef, siteKey: configuredSiteKey 
         sitekey: siteKey,
         theme: 'dark',
         size: 'flexible',
-        action: 'vote',
+        action,
         callback: (token: string) => { setError(''); onToken(token) },
         'expired-callback': () => onToken(''),
         'timeout-callback': () => onToken(''),
@@ -77,11 +79,11 @@ export function TurnstileWidget({ onToken, resetRef, siteKey: configuredSiteKey 
       widgetIdRef.current = null
       if (resetRef) resetRef.current = null
     }
-  }, [onToken, resetRef, siteKey])
+  }, [action, onToken, resetRef, siteKey])
 
-  return <div role="group" aria-labelledby="vote-security-label" aria-describedby={error ? 'vote-security-error' : undefined}>
-    <p id="vote-security-label">Security check</p>
+  return <div role="group" aria-labelledby={`${idPrefix}-security-label`} aria-describedby={error ? `${idPrefix}-security-error` : undefined}>
+    <p id={`${idPrefix}-security-label`}>Security check</p>
     <div ref={containerRef} />
-    {error && <p id="vote-security-error" role="alert">{error}</p>}
+    {error && <p id={`${idPrefix}-security-error`} role="alert">{error}</p>}
   </div>
 }

@@ -5,6 +5,9 @@ import { createHyperdriveVoteRepository } from './db/voteRepository'
 import { createTurnstileVerifier } from './turnstile'
 import { createVoteEndpoint } from './voteEndpoint'
 import { deriveVoterKey } from './voterKey'
+import { createHyperdriveSubmissionRepository } from './db/submissionRepository'
+import { deriveOwnerKey } from './ownerKey'
+import { createSubmissionEndpoint } from './submissionEndpoint'
 
 type WorkerEnv = {
   ALLOWED_ORIGIN: string
@@ -12,23 +15,30 @@ type WorkerEnv = {
   RANKINGS_RATE_LIMITER: RateLimit
   VOTE_RATE_LIMITER: RateLimit
   VOTING_ENABLED: string
+  SUBMISSIONS_ENABLED: string
   FIREBASE_PROJECT_ID: string
   TURNSTILE_SECRET: string
   TURNSTILE_HOSTNAME: string
   TURNSTILE_ACTION: string
+  SUBMISSION_TURNSTILE_ACTION: string
   VOTER_HMAC_SECRET: string
+  OWNER_HMAC_SECRET: string
+  SUBMISSION_RATE_LIMITER: RateLimit
 }
 type RepositoryFactory = (env: WorkerEnv) => RankingRepository
 type VoteHandler = (request: Request, serverId: string) => Promise<Response>
 type VoteHandlerFactory = (env: WorkerEnv) => VoteHandler
+type SubmissionHandler = (request: Request) => Promise<Response>
+type SubmissionHandlerFactory = (env: WorkerEnv) => SubmissionHandler
 
-export function createWorker(repositoryFactory: RepositoryFactory, voteHandlerFactory?: VoteHandlerFactory) {
+export function createWorker(repositoryFactory: RepositoryFactory, voteHandlerFactory?: VoteHandlerFactory, submissionHandlerFactory?: SubmissionHandlerFactory) {
   return {
     async fetch(request, env): Promise<Response> {
       try {
         const url = new URL(request.url)
         const voteMatch = url.pathname.match(/^\/api\/servers\/([^/]+)\/votes$/)
-        if (request.method === 'OPTIONS') return corsResponse(request, env, new Response(null, { status: 204 }), voteMatch ? 'POST, OPTIONS' : 'GET, OPTIONS', voteMatch ? 'authorization, content-type' : undefined)
+        const isSubmission = url.pathname === '/api/server-submissions'
+        if (request.method === 'OPTIONS') return corsResponse(request, env, new Response(null, { status: 204 }), voteMatch || isSubmission ? 'POST, OPTIONS' : 'GET, OPTIONS', voteMatch || isSubmission ? 'authorization, content-type' : undefined)
         if (url.pathname === '/api/health' && request.method === 'GET') return corsResponse(request, env, Response.json({ ok: true }, { headers: noStoreHeaders() }))
         if (url.pathname === '/api/servers') {
           if (request.method !== 'GET') return corsResponse(request, env, methodNotAllowed())
@@ -44,6 +54,12 @@ export function createWorker(repositoryFactory: RepositoryFactory, voteHandlerFa
           if (env.VOTING_ENABLED !== 'true' || !voteHandlerFactory) return corsResponse(request, env, jsonError('Voting is not available yet.', 503), 'POST, OPTIONS', 'authorization, content-type')
           const response = await voteHandlerFactory(env)(request, safeDecode(voteMatch[1]))
           return corsResponse(request, env, response, 'POST, OPTIONS', 'authorization, content-type')
+        }
+        if (isSubmission) {
+          if (request.method !== 'POST') return corsResponse(request, env, methodNotAllowed('POST'), 'POST, OPTIONS', 'authorization, content-type')
+          if (!isAllowedOrigin(request, env)) return jsonError('This request is not allowed.', 403)
+          if (env.SUBMISSIONS_ENABLED !== 'true' || !submissionHandlerFactory) return corsResponse(request, env, jsonError('Submissions are not available yet.', 503), 'POST, OPTIONS', 'authorization, content-type')
+          return corsResponse(request, env, await submissionHandlerFactory(env)(request), 'POST, OPTIONS', 'authorization, content-type')
         }
         const rankingMatch = url.pathname.match(/^\/api\/games\/([^/]+)\/rankings$/)
         if (rankingMatch) {
@@ -77,6 +93,16 @@ export default createWorker(
       deriveVoterKey: (uid) => deriveVoterKey(env.VOTER_HMAC_SECRET, uid),
       repository: createHyperdriveVoteRepository(env.HYPERDRIVE.connectionString),
       rateLimit: (key) => env.VOTE_RATE_LIMITER.limit({ key }),
+    })
+  },
+  (env) => {
+    const firebase = createFirebaseVerifier({ projectId: env.FIREBASE_PROJECT_ID })
+    return createSubmissionEndpoint({
+      verifyFirebase: (request) => firebase.verify(request),
+      verifyTurnstile: createTurnstileVerifier(env.TURNSTILE_SECRET, env.TURNSTILE_HOSTNAME, env.SUBMISSION_TURNSTILE_ACTION),
+      deriveOwnerKey: (uid) => deriveOwnerKey(env.OWNER_HMAC_SECRET, uid),
+      repository: createHyperdriveSubmissionRepository(env.HYPERDRIVE.connectionString),
+      rateLimit: (key) => env.SUBMISSION_RATE_LIMITER.limit({ key }),
     })
   },
 )

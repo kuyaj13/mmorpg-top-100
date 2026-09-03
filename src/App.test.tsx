@@ -55,7 +55,7 @@ describe('App', () => {
 
   it('keeps voting and submissions fail-closed', () => {
     render(<App approvedServersService={approvedServersService} />)
-    expect(screen.getByText(/voting until phase 5/i)).toBeInTheDocument()
+    expect(screen.getByText(/verified daily voting/i)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /vote for/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /submit for review/i })).not.toBeInTheDocument()
   })

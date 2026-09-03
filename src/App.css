@@ -4,6 +4,32 @@
   padding: 20px 0 48px;
 }
 
+.submission-page {
+  width: min(100% - 2rem, 46rem);
+  margin-inline: auto;
+  padding-block: 2rem 4rem;
+}
+
+.submission-page form,
+.submission-field {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.submission-page form { gap: 1rem; }
+.submission-page input,
+.submission-page select,
+.submission-page textarea,
+.submission-page button {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+}
+
+.submission-page [aria-invalid="true"] { border-color: #b42318; }
+.submission-page [role="alert"] { color: #b42318; }
+.submission-page :focus-visible { outline: 3px solid #f0b429; outline-offset: 2px; }
+
 .topbar {
   display: flex;
   align-items: center;

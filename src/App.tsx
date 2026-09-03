@@ -295,7 +295,7 @@ function App({
         <section className="stats-bar" aria-label="Directory status">
           <div><strong>82</strong><span>Supported games</span></div>
           <div><strong>Live</strong><span>Approved listings</span></div>
-          <div><strong>Locked</strong><span>Voting until Phase 5</span></div>
+          <div><strong>Protected</strong><span>Verified daily voting</span></div>
         </section>
 
         <GameDirectory />
@@ -472,7 +472,7 @@ function App({
             </p>
           </div>
 
-          {siteConfig.submissionsEnabled ? (
+          {siteConfig.submissionsEnabled && samplePreview ? (
           <form className="submission-form" noValidate onSubmit={(event) => void handleSubmission(event)}>
             <label htmlFor="server-name">Server name</label>
             <input
@@ -561,8 +561,8 @@ function App({
           </form>
           ) : (
             <div className="submission-form" role="status">
-              <h3>Submissions are coming soon</h3>
-              <p>The form will open after secure review storage and abuse protection are ready.</p>
+              <h3>{siteConfig.submissionsEnabled ? 'Server submissions are open' : 'Submissions are coming soon'}</h3>
+              {siteConfig.submissionsEnabled ? <a className="primary-action" href="/submit">Submit your server</a> : <p>The form will open after secure review storage and abuse protection are ready.</p>}
             </div>
           )}
         </section>

@@ -16,3 +16,12 @@ export type SubmissionResult =
 export type SubmissionService = {
   submitServer: (submission: ServerSubmission) => Promise<SubmissionResult>
 }
+
+export type ProtectedServerSubmission = ServerSubmission & {
+  gameSlug: string
+  turnstileToken: string
+}
+
+export type ProtectedSubmissionService = {
+  submit: (submission: ProtectedServerSubmission) => Promise<SubmissionResult>
+}

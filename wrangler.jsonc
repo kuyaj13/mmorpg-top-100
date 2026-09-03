@@ -16,9 +16,11 @@
     "ALLOWED_ORIGIN": "https://mmorpgtop100.com,https://mmorpg-top-100.pages.dev",
     "PREVIEW_MODE": "true",
     "VOTING_ENABLED": "true",
+    "SUBMISSIONS_ENABLED": "true",
     "FIREBASE_PROJECT_ID": "mmorpg-top-100",
     "TURNSTILE_HOSTNAME": "mmorpgtop100.com",
-    "TURNSTILE_ACTION": "vote"
+    "TURNSTILE_ACTION": "vote",
+    "SUBMISSION_TURNSTILE_ACTION": "submit-server"
   },
   "observability": {
     "enabled": true,
@@ -45,6 +47,14 @@
       "namespace_id": "73333252",
       "simple": {
         "limit": 6,
+        "period": 60
+      }
+    },
+    {
+      "name": "SUBMISSION_RATE_LIMITER",
+      "namespace_id": "73333253",
+      "simple": {
+        "limit": 3,
         "period": 60
       }
     }
