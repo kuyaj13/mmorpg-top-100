@@ -3,9 +3,9 @@ import type { FormEvent } from 'react'
 import {
   adminAccessService as defaultAccessService,
   adminAuthService as defaultAuthService,
-  moderationService as defaultModerationService,
   donationClaimReviewService as defaultDonationClaimReviewService,
 } from './adminServices'
+import { adminModerationApiService as defaultModerationService } from './adminModerationApiService'
 import type { AdminAccessService, AdminAuthService, DonationClaimReviewItem, DonationClaimReviewService, ModerationItem, ModerationService } from './types'
 import './AdminPage.css'
 
@@ -32,6 +32,8 @@ export default function AdminPage({
   const [needsVerification, setNeedsVerification] = useState(false)
   const [accessCheck, setAccessCheck] = useState(0)
   const [focusAfterDecision, setFocusAfterDecision] = useState(0)
+  const [confirmation, setConfirmation] = useState<{ id: string; name: string; decision: 'approve' | 'reject' } | null>(null)
+  const decisionTriggerRef = useRef<HTMLButtonElement | null>(null)
   const workspaceHeadingRef = useRef<HTMLHeadingElement>(null)
 
   useEffect(() => {
@@ -150,6 +152,23 @@ export default function AdminPage({
     }
   }
 
+  const requestDecision = (trigger: HTMLButtonElement, item: ModerationItem, decision: 'approve' | 'reject') => {
+    decisionTriggerRef.current = trigger
+    setConfirmation({ id: item.id, name: item.name, decision })
+  }
+
+  const cancelDecision = () => {
+    setConfirmation(null)
+    requestAnimationFrame(() => decisionTriggerRef.current?.focus())
+  }
+
+  const confirmDecision = async () => {
+    if (!confirmation) return
+    const { id, decision } = confirmation
+    setConfirmation(null)
+    await decide(id, decision)
+  }
+
   const decideDonationClaim = async (claim: DonationClaimReviewItem, decision: 'verify' | 'reject') => {
     setPendingId(claim.id)
     setFeedback('')
@@ -225,8 +244,8 @@ export default function AdminPage({
                 <a href={item.website} target="_blank" rel="noopener noreferrer">Review website <span className="visually-hidden">(opens in a new tab)</span></a>
               </div>
               <div className="moderation-actions">
-                <button aria-label={`Approve ${item.name}`} disabled={pendingId === item.id} onClick={() => void decide(item.id, 'approve')}>Approve</button>
-                <button aria-label={`Reject ${item.name}`} disabled={pendingId === item.id} onClick={() => void decide(item.id, 'reject')}>Reject</button>
+                <button aria-label={`Approve ${item.name}`} disabled={pendingId === item.id} onClick={(event) => requestDecision(event.currentTarget, item, 'approve')}>Approve</button>
+                <button aria-label={`Reject ${item.name}`} disabled={pendingId === item.id} onClick={(event) => requestDecision(event.currentTarget, item, 'reject')}>Reject</button>
               </div>
             </article>
           ))}
@@ -256,6 +275,14 @@ export default function AdminPage({
         </section>
       )}
       {feedback && <p className="admin-feedback" role="status">{feedback}</p>}
+      {confirmation && <div className="moderation-confirmation" role="alertdialog" aria-modal="true" aria-labelledby="moderation-confirmation-heading" aria-describedby="moderation-confirmation-description" onKeyDown={(event) => { if (event.key === 'Escape') cancelDecision() }}>
+        <h2 id="moderation-confirmation-heading">Confirm {confirmation.decision}</h2>
+        <p id="moderation-confirmation-description">Are you sure you want to {confirmation.decision} {confirmation.name}?</p>
+        <div className="moderation-actions">
+          <button type="button" onClick={cancelDecision}>Cancel</button>
+          <button type="button" autoFocus onClick={() => void confirmDecision()}>{confirmation.decision === 'approve' ? 'Confirm approval' : 'Confirm rejection'}</button>
+        </div>
+      </div>}
     </main>
   )
 }

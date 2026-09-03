@@ -18,6 +18,9 @@ const env = {
   SUBMISSION_TURNSTILE_ACTION: 'submit-server',
   VOTER_HMAC_SECRET: 'secret',
   OWNER_HMAC_SECRET: 'secret',
+  ADMIN_ENABLED: 'false',
+  ADMIN_RATE_LIMITER: { limit: rateLimit } as RateLimit,
+  MODERATOR_HMAC_SECRET: 'secret',
 }
 
 function repository(result: Awaited<ReturnType<RankingRepository['findByGameSlug']>>): RankingRepository {

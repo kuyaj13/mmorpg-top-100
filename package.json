@@ -15,6 +15,7 @@
     "db:import-servers": "node scripts/import-approved-servers.mjs",
     "db:verify-voting": "node scripts/verify-voting-migration.mjs",
     "db:verify-submissions": "node scripts/verify-submission-migration.mjs",
+    "db:verify-moderation": "node scripts/verify-moderation-migration.mjs",
     "worker:types": "wrangler types worker/worker-configuration.d.ts",
     "worker:check": "tsc -p worker/tsconfig.json && wrangler deploy --dry-run",
     "worker:dev": "wrangler dev --local"

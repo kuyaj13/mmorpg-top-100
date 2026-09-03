@@ -17,6 +17,7 @@
     "PREVIEW_MODE": "true",
     "VOTING_ENABLED": "true",
     "SUBMISSIONS_ENABLED": "true",
+    "ADMIN_ENABLED": "true",
     "FIREBASE_PROJECT_ID": "mmorpg-top-100",
     "TURNSTILE_HOSTNAME": "mmorpgtop100.com",
     "TURNSTILE_ACTION": "vote",
@@ -55,6 +56,14 @@
       "namespace_id": "73333253",
       "simple": {
         "limit": 3,
+        "period": 60
+      }
+    },
+    {
+      "name": "ADMIN_RATE_LIMITER",
+      "namespace_id": "73333254",
+      "simple": {
+        "limit": 20,
         "period": 60
       }
     }

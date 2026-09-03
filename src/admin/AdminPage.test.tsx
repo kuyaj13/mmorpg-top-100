@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import AdminPage from './AdminPage'
 import type { AdminAccessService, AdminAuthService, DonationClaimReviewService, ModerationItem, ModerationService } from './types'
@@ -85,9 +85,23 @@ describe('AdminPage', () => {
 
     expect(await screen.findByText('Moonlight Realms')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Approve Moonlight Realms' }))
+    expect(screen.getByRole('alertdialog', { name: 'Confirm approve' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Confirm approval' }))
 
     expect(await screen.findByText('The listing was approved.')).toBeInTheDocument()
     expect(screen.queryByText('Moonlight Realms')).not.toBeInTheDocument()
+  })
+
+  it('returns focus to the decision button when confirmation is cancelled', async () => {
+    const user = userEvent.setup()
+    const moderationService: ModerationService = { listPending: () => Promise.resolve([pendingItem]), decide: vi.fn() }
+    render(<AdminPage accessService={{ canModerate: () => Promise.resolve(true) }} moderationService={moderationService} donationClaimReviewService={emptyDonationService} />)
+    const reject = await screen.findByRole('button', { name: 'Reject Moonlight Realms' })
+    await user.click(reject)
+    expect(screen.getByRole('button', { name: 'Confirm rejection' })).toHaveFocus()
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    await waitFor(() => expect(reject).toHaveFocus())
+    expect(moderationService.decide).not.toHaveBeenCalled()
   })
 
   it('allows an authorized administrator to verify a matched donation claim', async () => {
