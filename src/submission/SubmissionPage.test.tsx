@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { SubmissionPage } from './SubmissionPage'
 
@@ -17,7 +17,7 @@ describe('SubmissionPage', () => {
     const service = { submit: vi.fn().mockResolvedValue({ ok: true as const, reference: 'SUB-123' }) }
     render(<SubmissionPage service={service} authService={authService} turnstileSiteKey="test-key" />)
     const game = await screen.findByLabelText('Game')
-    expect(window.turnstile!.render).toHaveBeenCalledWith(expect.any(HTMLElement), expect.objectContaining({ action: 'submit-server' }))
+    await waitFor(() => expect(window.turnstile!.render).toHaveBeenCalledWith(expect.any(HTMLElement), expect.objectContaining({ action: 'submit-server' })))
     expect(within(game).getByRole('option', { name: 'Flyff' })).toHaveValue('flyff')
     await user.type(screen.getByLabelText('Server name'), 'Flyff One')
     await user.type(screen.getByLabelText('Server website'), 'https://flyff.example/')

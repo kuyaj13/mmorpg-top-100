@@ -4,9 +4,11 @@ import type { RankingQueryClient } from './rankingRepository'
 
 export type PublicAd = { id: string; serverId: string; serverName: string; bannerId: string; mediaType: string; altText: string; destinationUrl: string; startsAt: string; expiresAt: string }
 export type PendingBanner = { id: string; serverId: string; serverName: string; gameSlug: string; mediaType: string; byteSize: number; frameCount: number; animationDurationMs: number; altText: string; createdAt: string }
+export type OwnedServer = { id: string; name: string; gameSlug: string; gameName: string }
 export type BannerModerationOutcome = 'approved' | 'rejected' | 'suspended' | 'unavailable'
 export type AdvertisingRepository = {
   putBanner(serverId: string, ownerKey: Uint8Array, banner: SanitizedBanner, altText: string): Promise<'stored' | 'unavailable'>
+  listOwnedServers(ownerKey: Uint8Array): Promise<OwnedServer[]>
   listPublic(gameSlug: string): Promise<PublicAd[]>
   getPublicBanner(id: string, staticFallback: boolean): Promise<{ bytes: Uint8Array; mediaType: string } | null>
   getBannerReviewPreview(id: string): Promise<{ bytes: Uint8Array; mediaType: 'image/png' } | null>
@@ -15,6 +17,7 @@ export type AdvertisingRepository = {
 }
 
 type PendingRow = { id: string; server_id: string; server_name: string; game_slug: string; media_type: string; byte_size: number; frame_count: number; animation_duration_ms: number; alt_text: string; created_at: Date | string }
+type OwnedServerRow = { id: string; name: string; game_slug: string; game_name: string }
 
 export function createAdvertisingRepository(createClient: () => RankingQueryClient): AdvertisingRepository {
   const run = async <T>(operation: (client: RankingQueryClient) => Promise<T>) => {
@@ -22,6 +25,10 @@ export function createAdvertisingRepository(createClient: () => RankingQueryClie
     try { await client.connect(); return await operation(client) } finally { await client.end() }
   }
   return {
+    listOwnedServers: (ownerKey) => run(async (client) => {
+      const result = await client.query<OwnedServerRow>('SELECT id::text,name,game_slug,game_name FROM api.list_owned_servers($1::bytea)', [ownerKey])
+      return result.rows.map((row) => ({ id: row.id, name: row.name, gameSlug: row.game_slug, gameName: row.game_name }))
+    }),
     putBanner: (id, owner, banner, altText) => run(async (client) => {
       const result = await client.query<{ put_server_banner: string }>('SELECT api.put_server_banner($1::uuid,$2::bytea,$3::bytea,$4::bytea,$5::bytea,$6::bytea,$7::varchar,$8,$9,$10,$11,$12::varchar) AS put_server_banner', [id, owner, banner.bytes, banner.staticFallbackBytes, banner.originalSha256, banner.sanitizedSha256, banner.mediaType, banner.width, banner.height, banner.frameCount, banner.animationDurationMs, altText])
       const value = result.rows[0]?.put_server_banner

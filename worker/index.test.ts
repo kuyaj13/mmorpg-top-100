@@ -192,4 +192,26 @@ describe('rankings endpoint', () => {
     expect(response.headers.get('access-control-allow-headers')).toBe('authorization, content-type, x-banner-alt-text, x-turnstile-token')
     expect(response.headers.get('access-control-allow-headers')).not.toContain('x-firebase-appcheck')
   })
+
+  it('keeps the owner banner workspace unavailable while its feature flag is off', async () => {
+    const response = await createWorker(() => repository(null)).fetch(new Request('https://api.example/api/advertising/owner-workspace', {
+      headers: { origin: 'https://mmorpgtop100.com' },
+    }), env)
+    expect(response.status).toBe(503)
+    expect(response.headers.get('access-control-allow-origin')).toBe('https://mmorpgtop100.com')
+  })
+
+  it('routes the enabled owner workspace through the protected advertising boundary', async () => {
+    const ownerWorkspace = vi.fn().mockResolvedValue(Response.json({ ok: true, servers: [] }))
+    const advertising = {
+      ownerWorkspace,
+      upload: vi.fn(), listPublic: vi.fn(), banner: vi.fn(), listPending: vi.fn(), previewPending: vi.fn(), moderate: vi.fn(),
+    }
+    const worker = createWorker(() => repository(null), undefined, undefined, undefined, () => advertising)
+    const response = await worker.fetch(new Request('https://api.example/api/advertising/owner-workspace', {
+      headers: { origin: 'https://mmorpgtop100.com' },
+    }), { ...env, BANNER_UPLOADS_ENABLED: 'true' })
+    expect(response.status).toBe(200)
+    expect(ownerWorkspace).toHaveBeenCalledOnce()
+  })
 })

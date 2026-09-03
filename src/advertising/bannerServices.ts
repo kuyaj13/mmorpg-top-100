@@ -1,5 +1,5 @@
 import { getFirebaseAuth } from '../firebase'
-import type { BannerUploadService, ExclusiveServerAd, ExclusiveServersService } from './bannerTypes'
+import type { BannerUploadService, ExclusiveServerAd, ExclusiveServersService, OwnerBannerWorkspaceService } from './bannerTypes'
 
 const imageTypes = new Set(['image/gif', 'image/png', 'image/jpeg'])
 
@@ -20,6 +20,30 @@ export const bannerUploadService: BannerUploadService = {
       return { ok: false, message: 'Your banner could not be uploaded. Please try again.' }
     }
   },
+}
+
+export const ownerBannerWorkspaceService: OwnerBannerWorkspaceService = {
+  async listServers() {
+    try {
+      const user = getFirebaseAuth()?.currentUser
+      if (!user || !user.emailVerified) throw new Error('Unavailable')
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL
+      if (!apiBaseUrl) throw new Error('Unavailable')
+      const response = await requestOwnerBannerWorkspace(apiBaseUrl, await user.getIdToken())
+      if (!response.ok) throw new Error('Unavailable')
+      const body = await response.json() as { servers?: unknown }
+      if (!Array.isArray(body.servers) || !body.servers.every(isEligibleServer)) throw new Error('Unavailable')
+      return body.servers
+    } catch {
+      throw new Error('Your approved servers are unavailable right now.')
+    }
+  },
+}
+
+export function requestOwnerBannerWorkspace(apiBaseUrl: string, idToken: string, fetcher: typeof fetch = fetch) {
+  return fetcher(new URL('/api/advertising/owner-workspace', apiBaseUrl), {
+    headers: { authorization: `Bearer ${idToken}` },
+  })
 }
 
 export function uploadProtectedBanner(apiBaseUrl: string, input: { serverId: string; altText: string; file: File; turnstileToken:string }, credentials: { idToken: string }, fetcher: typeof fetch = fetch) {
@@ -54,6 +78,16 @@ function isExclusiveAd(value: unknown, gameSlug: string): value is ExclusiveServ
 function isHttps(value: unknown) {
   try { return typeof value === 'string' && new URL(value).protocol === 'https:' } catch { return false }
 }
+
+function isEligibleServer(value: unknown) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const item = value as Record<string, unknown>
+  const keys = Object.keys(item)
+  return keys.length === 4 && keys.every((key) => ['id', 'name', 'gameSlug', 'gameName'].includes(key)) &&
+    isText(item.id, 100) && isText(item.name, 80) && isText(item.gameSlug, 80) && isText(item.gameName, 80)
+}
+
+function isText(value: unknown, maximum: number) { return typeof value === 'string' && value.length > 0 && value.length <= maximum }
 
 function uploadError(status: number) {
   if (status === 400 || status === 413 || status === 415 || status === 422) return 'Choose a GIF, PNG, or JPEG banner that meets the upload requirements.'

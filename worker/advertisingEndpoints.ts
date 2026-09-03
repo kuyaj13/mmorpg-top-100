@@ -70,6 +70,14 @@ async function readDecision(request: Request): Promise<{ decision: 'approve' | '
 
 export function createAdvertisingEndpoints(dependencies: Dependencies) {
   return {
+    async ownerWorkspace(request: Request): Promise<Response> {
+      if (request.method !== 'GET') return error('Method not allowed.', 405, { allow: 'GET' })
+      const owner = await authorize(request, dependencies, 'owner', 'owner-banner-workspace')
+      if (owner instanceof Response) return owner
+      const servers = await dependencies.repository.listOwnedServers(await dependencies.deriveOwnerKey(owner.uid))
+      return Response.json({ ok: true, servers }, { headers: safe })
+    },
+
     async upload(request: Request, serverId: string): Promise<Response> {
       if (request.method !== 'PUT') return error('Method not allowed.', 405, { allow: 'PUT' })
       const owner = await authorize(request, dependencies, 'owner', 'banner-upload')

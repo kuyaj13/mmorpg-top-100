@@ -13,6 +13,10 @@ export type BannerUploadService = {
   upload(input: BannerUploadInput): Promise<BannerUploadResult>
 }
 
+export type OwnerBannerWorkspaceService = {
+  listServers: () => Promise<EligibleServer[]>
+}
+
 export type ExclusiveServerAd = {
   id: string
   serverId: string

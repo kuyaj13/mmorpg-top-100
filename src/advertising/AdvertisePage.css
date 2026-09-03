@@ -8,6 +8,9 @@
 .advertiser-auth form, .claim-panel form, .banner-upload form { display: grid; gap: 10px; margin-top: 20px; }
 .advertiser-auth input, .claim-panel input, .claim-panel select, .banner-upload input, .banner-upload select { width: 100%; min-height: 48px; padding: 10px 12px; color: #f8fafc; border: 1px solid #475569; border-radius: 10px; background: #0f172a; }
 .advertiser-auth-actions, .claim-history-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.owner-workspace-error { margin-top: 24px; }
+.owner-workspace-signout, .owner-workspace-error button { min-height: 44px; margin-top: 16px; padding: 10px 16px; border: 1px solid #38bdf8; border-radius: 10px; background: #0369a1; color: white; font-weight: 800; cursor: pointer; }
+.owner-workspace-signout:focus-visible, .owner-workspace-error button:focus-visible { outline: 3px solid #f5c451; outline-offset: 3px; }
 .advertiser-auth button, .claim-panel button, .claim-history button, .banner-upload button, .paypal-link { min-height: 44px; padding: 10px 16px; border: 1px solid #38bdf8; border-radius: 10px; background: #0369a1; color: white; font-weight: 800; cursor: pointer; }
 .paypal-link { display: inline-flex; align-items: center; margin-top: 12px; text-decoration: none; }
 .claim-panel { display: grid; grid-template-columns: .85fr 1.15fr; gap: 28px; }
