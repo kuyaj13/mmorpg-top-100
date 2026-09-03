@@ -43,6 +43,15 @@
 - Every banner requires meaningful alternative text and moderation approval.
 - Validation records the decoded pixel/frame/duration limits, original content hash, and a static fallback object for reduced-motion presentation.
 
+### No-cost Worker MVP limits
+
+- One free banner record per approved server. Upload and replacement require only verified ownership of that server; they never require a donation.
+- Exact dimensions: 468 by 60 pixels. Maximum encoded size: 512 KiB. Allowed signatures: PNG, JPEG, WebP, and GIF.
+- GIF limit: 30 frames and 15 seconds total declared frame delay. Static formats are recorded as one frame with zero animation duration.
+- Alternative text is required and limited to 180 characters. Replacements return to pending moderation.
+- Banner bytes stay in PostgreSQL `bytea` for the no-cost MVP. Public responses use the stored fixed media type, `nosniff`, a restrictive content policy, and only the approved server website as destination.
+- Feature flags remain off. Animated GIF production enablement additionally requires a trusted decoded static-fallback generation step; header/structure inspection alone is not a substitute for full media decoding or malware scanning.
+
 ## Rotation and game isolation
 
 - Public eligibility is calculated from the placement's server relationship, which references one canonical game.
