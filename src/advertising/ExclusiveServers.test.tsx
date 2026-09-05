@@ -53,6 +53,8 @@ describe('ExclusiveServers', () => {
     render(<ExclusiveServers gameSlug="flyff" gameName="Flyff" service={{ list: vi.fn().mockResolvedValue(ads) }} />)
     await act(async () => {})
     expect(screen.getByRole('img')).toHaveAttribute('src', ads[0].staticBannerUrl)
+    expect(screen.queryByRole('button', { name: 'Pause rotation' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Show next sponsored server' })).toBeInTheDocument()
     act(() => vi.advanceTimersByTime(30_000))
     expect(screen.getByText(/Flyff One$/)).toBeInTheDocument()
   })

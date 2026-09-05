@@ -59,6 +59,7 @@ export function createAdvertisingRepository(createClient: () => RankingQueryClie
       return value
     }),
     listPublic: (slug) => run(async (client) => {
+      await client.query('SELECT api.reconcile_exclusive_game($1::varchar)',[slug])
       const result = await client.query<Record<string, string>>('SELECT id::text,server_id::text,server_name,banner_id::text,media_type,alt_text,destination_url,starts_at::text,expires_at::text FROM api.public_exclusive_ads WHERE game_slug=$1 ORDER BY starts_at,id', [slug])
       return result.rows.map((row) => ({ id: row.id, serverId: row.server_id, serverName: row.server_name, bannerId: row.banner_id, mediaType: row.media_type, altText: row.alt_text, destinationUrl: row.destination_url, startsAt: row.starts_at, expiresAt: row.expires_at }))
     }),

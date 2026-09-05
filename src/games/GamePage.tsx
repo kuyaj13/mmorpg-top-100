@@ -7,6 +7,7 @@ import { rankingsService as defaultRankingsService } from './rankingsService'
 import type { PublicRankingServer, RankingsService } from './rankingsService'
 import { VotePanel } from '../voting/VotePanel'
 import type { VotingService } from '../voting/types'
+import { ExclusiveServers } from '../advertising/ExclusiveServers'
 
 type GamePageProps = { slug: string; rankingsService?: RankingsService; votingEnabled?: boolean; votingService?: VotingService; turnstileSiteKey?: string }
 
@@ -62,10 +63,10 @@ export default function GamePage({ slug, rankingsService = defaultRankingsServic
           <p className="eyebrow">{game.type}</p><h1>{game.name} private server rankings</h1>
           <p>Explore community-ranked {game.name} servers. Rankings on this page are independent from every other game.</p>
         </section>
-        <section className="exclusive-servers" aria-labelledby="exclusive-heading">
+        {siteConfig.exclusiveAdsEnabled ? <ExclusiveServers gameSlug={game.slug} gameName={game.name} /> : <section className="exclusive-servers" aria-labelledby="exclusive-heading">
           <div><p className="eyebrow">Advertisement</p><h2 id="exclusive-heading">Exclusive {game.name} servers</h2></div>
           <p role="status">There are no active sponsored servers for this game.</p>
-        </section>
+        </section>}
         <section className="game-rankings" aria-labelledby="rankings-heading">
           <div className="game-ranking-heading"><div><p className="eyebrow">Organic ranking</p><h2 id="rankings-heading">{game.name} Top 100</h2></div></div>
           {status === 'loading' && <p role="status">Loading {game.name} rankings...</p>}
