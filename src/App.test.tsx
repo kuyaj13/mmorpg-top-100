@@ -15,6 +15,7 @@ describe('App', () => {
     expect(screen.getByRole('heading', { name: /find the best mmorpg private servers/i })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /view rankings/i })).toBeInTheDocument()
     expect(screen.getByText(/live approved server directory/i)).toBeInTheDocument()
+    expect(screen.getByText(/looking for an xtremetop100 alternative/i)).toBeInTheDocument()
     expect(await screen.findByRole('heading', { name: 'Prologic Flyff' })).toBeInTheDocument()
   })
 

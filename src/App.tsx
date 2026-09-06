@@ -231,7 +231,8 @@ function App({
             <h1>Find the best MMORPG private servers.</h1>
             <p className="hero-text">
               Discover the most active worlds, compare player counts, and vote for the
-              servers your community trusts most.
+              servers your community trusts most. Looking for an XtremeTop100 alternative?
+              Browse transparent, game-scoped rankings and submit your server for free.
             </p>
 
             <div className="hero-actions">
