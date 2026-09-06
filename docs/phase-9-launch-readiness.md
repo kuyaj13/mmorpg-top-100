@@ -29,5 +29,5 @@
 - Custom-domain routing, response security headers, CORS allowlisting, and hostile-origin rejection passed on 2026-09-06.
 - Voting and submission use Firebase identity, server-verified Turnstile, Worker rate limits, validated inputs, and constrained database functions.
 - Submission banners are optional and free. Actual request bytes are bounded; media is decoded and sanitized; quarantined storage is globally capped; moderation promotion/deletion is atomic.
-- Remaining: complete a browser-based performance and accessibility trace when Chrome DevTools MCP is available.
+- Mobile browser audit passed on 2026-09-06 at a 390 by 844 viewport with Fast 4G and 4x CPU throttling. The homepage recorded 660 ms LCP and 0.00 CLS; the homepage and submission page each scored 100 for accessibility, best practices, SEO, and agentic browsing with no failed Lighthouse audits.
 - Remaining: keep donation claims, donation moderation, and exclusive placements disabled until a final manual financial-flow regression pass is approved.
