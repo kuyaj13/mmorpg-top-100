@@ -31,14 +31,23 @@ export function submitProtectedServer(
   credentials: { idToken: string },
   fetcher: typeof fetch = fetch,
 ) {
-  const { turnstileToken, ...server } = submission
+  const { banner, bannerAltText, ...server } = submission
+  if (banner) {
+    const body = new FormData()
+    for (const [key, value] of Object.entries(server)) body.append(key, value)
+    body.append('banner', banner)
+    body.append('bannerAltText', bannerAltText ?? '')
+    return fetcher(new URL('/api/server-submissions', apiBaseUrl), {
+      method: 'POST', headers: { authorization: `Bearer ${credentials.idToken}` }, body,
+    })
+  }
   return fetcher(new URL('/api/server-submissions', apiBaseUrl), {
     method: 'POST',
     headers: {
       authorization: `Bearer ${credentials.idToken}`,
       'content-type': 'application/json',
     },
-    body: JSON.stringify({ ...server, turnstileToken }),
+    body: JSON.stringify(server),
   })
 }
 

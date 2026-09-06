@@ -1,5 +1,6 @@
 import type { VerifiedFirebaseUser } from './auth'
 import type { NewServerSubmission, SubmissionRepository } from './db/submissionRepository'
+import { bannerLimits, validateBanner } from './bannerValidation'
 
 type Dependencies = {
   verifyFirebase(request: Request): Promise<VerifiedFirebaseUser | null>
@@ -10,7 +11,9 @@ type Dependencies = {
 }
 
 const gameSlugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
-const allowedKeys = new Set(['gameSlug', 'name', 'website', 'gameVersion', 'region', 'mode', 'description', 'turnstileToken'])
+const requiredKeys = ['gameSlug', 'name', 'website', 'gameVersion', 'region', 'mode', 'description', 'turnstileToken'] as const
+const allowedKeys = new Set<string>(requiredKeys)
+const multipartKeys = new Set<string>([...requiredKeys, 'banner', 'bannerAltText'])
 const modes = new Set(['PvE', 'PvP', 'RPG'])
 const headers = { 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' }
 
@@ -66,15 +69,49 @@ function parseBody(value: unknown): (Omit<NewServerSubmission, 'ownerKey'> & { t
   return { gameSlug, name, website: website.href, websiteHost, gameVersion, region, mode: record.mode as 'PvE' | 'PvP' | 'RPG', description, turnstileToken }
 }
 
+async function readMultipart(request: Request): Promise<{ input: ReturnType<typeof parseBody>; banner: File; altText: string } | null> {
+  const declaredHeader = request.headers.get('content-length')
+  const declared = declaredHeader === null ? null : Number(declaredHeader)
+  if (declared !== null && (!Number.isFinite(declared) || declared < 1 || declared > 550_000)) return null
+  const reader = request.body?.getReader()
+  if (!reader) return null
+  const chunks: Uint8Array[] = []
+  let actualSize = 0
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    actualSize += value.byteLength
+    if (actualSize > 550_000) { await reader.cancel(); return null }
+    chunks.push(value)
+  }
+  if (actualSize < 1) return null
+  const bytes = new Uint8Array(actualSize)
+  let offset = 0
+  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength }
+  const form = await new Response(bytes, { headers: { 'content-type': request.headers.get('content-type') ?? '' } }).formData()
+  if ([...form.keys()].some((key) => !multipartKeys.has(key)) || [...multipartKeys].some((key) => form.getAll(key).length !== 1)) return null
+  const banner = form.get('banner')
+  if (!banner || typeof banner === 'string' || typeof banner.arrayBuffer !== 'function' || banner.size < 1 || banner.size > bannerLimits.maxBytes) return null
+  const record: Record<string, unknown> = {}
+  for (const key of requiredKeys) record[key] = form.get(key)
+  const input = parseBody(record)
+  const altText = cleanText(form.get('bannerAltText'), 160)
+  return input && altText && altText.length >= 10 ? { input, banner, altText } : null
+}
+
 export function createSubmissionEndpoint(dependencies: Dependencies) {
   return async (request: Request): Promise<Response> => {
     if (request.method !== 'POST') return Response.json({ ok: false, message: 'Method not allowed.' }, { status: 405, headers: { ...headers, allow: 'POST' } })
     const clientKey = request.headers.get('cf-connecting-ip') ?? 'unknown-client'
     if (!(await dependencies.rateLimit(`${clientKey}:submit-server`)).success) return Response.json({ ok: false, message: 'Too many requests. Please try again later.' }, { status: 429, headers: { ...headers, 'retry-after': '60' } })
-    if (!request.headers.get('content-type')?.toLowerCase().startsWith('application/json')) return error('Please check the server details and try again.', 400)
-
+    const contentType = request.headers.get('content-type')?.toLowerCase() ?? ''
     let input: ReturnType<typeof parseBody>
-    try { input = parseBody(await readJson(request)) } catch { input = null }
+    let pendingBanner: Awaited<ReturnType<typeof readMultipart>> = null
+    try {
+      if (contentType.startsWith('application/json')) input = parseBody(await readJson(request))
+      else if (contentType.startsWith('multipart/form-data')) { pendingBanner = await readMultipart(request); input = pendingBanner?.input ?? null }
+      else input = null
+    } catch { input = null }
     if (!input) return error('Please check the server details and try again.', 400)
 
     const user = await dependencies.verifyFirebase(request)
@@ -83,10 +120,16 @@ export function createSubmissionEndpoint(dependencies: Dependencies) {
       return error('Your submission could not be verified. Please try again.', 401)
     }
 
+    const banner = pendingBanner ? await validateBanner(new Uint8Array(await pendingBanner.banner.arrayBuffer())) : null
+    if (pendingBanner && !banner) return error('Choose a valid 468 by 60 pixel GIF, PNG, or JPEG banner.', 400)
+
     const ownerKey = await dependencies.deriveOwnerKey(user.uid)
     const { turnstileToken: _turnstileToken, ...submission } = input
     void _turnstileToken
-    const result = await dependencies.repository.submit({ ...submission, ownerKey })
+    const result = await dependencies.repository.submit({
+      ...submission, ownerKey,
+      ...(banner && pendingBanner ? { banner: { image: banner, altText: pendingBanner.altText } } : {}),
+    })
     if (result.outcome === 'duplicate') return error('This server is already listed or pending review.', 409)
     if (result.outcome === 'game_unavailable') return error('Please choose an available game.', 400)
     if (result.outcome === 'limit_reached') return error('You already have several submissions pending review.', 409)

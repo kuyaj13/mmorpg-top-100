@@ -7,7 +7,7 @@ const input: NewServerSubmission = {
   gameVersion: 'v22', region: 'Global', mode: 'PvE', description: 'Community',
 }
 function client(rows: Record<string, unknown>[]): RankingQueryClient {
-  return { connect: vi.fn(), query: vi.fn().mockResolvedValue({ rows }), end: vi.fn() }
+  return { connect: vi.fn(), query: vi.fn().mockImplementation((query: string) => Promise.resolve({ rows: query.includes('api.submit_server') ? rows : [] })), end: vi.fn() }
 }
 
 describe('submission repository', () => {
@@ -18,6 +18,16 @@ describe('submission repository', () => {
       input.ownerKey, input.gameSlug, input.name, input.website, input.websiteHost, input.gameVersion, input.region, input.mode, input.description,
     ])
     expect(database.end).toHaveBeenCalled()
+    expect(database.query).toHaveBeenCalledWith('COMMIT')
+  })
+
+  it('stores a sanitized banner in the same transaction as its submission', async () => {
+    const database = client([{ outcome: 'accepted', submission_id: 'id-one' }])
+    vi.mocked(database.query).mockImplementation((query: string) => Promise.resolve({ rows: query.includes('api.submit_server') ? [{ outcome: 'accepted', submission_id: 'id-one' }] : query.includes('api.put_submission_banner') ? [{ put_submission_banner: 'stored' }] : [] }))
+    const image = { bytes: new Uint8Array([1]), staticFallbackBytes: new Uint8Array([2]), originalSha256: new Uint8Array(32), sanitizedSha256: new Uint8Array(32), mediaType: 'image/gif' as const, width: 468 as const, height: 60 as const, frameCount: 1, animationDurationMs: 100 }
+    await createSubmissionRepository(() => database).submit({ ...input, banner: { image, altText: 'Accessible banner description' } })
+    expect(database.query).toHaveBeenCalledWith(expect.stringContaining('api.put_submission_banner'), expect.arrayContaining(['id-one', input.ownerKey, image.bytes, 'Accessible banner description']))
+    expect(database.query).toHaveBeenCalledWith('COMMIT')
   })
 
   it.each(['duplicate', 'game_unavailable', 'limit_reached'] as const)('maps the %s outcome', async (outcome) => {

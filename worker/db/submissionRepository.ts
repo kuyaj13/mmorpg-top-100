@@ -1,5 +1,6 @@
 import { Client } from 'pg'
 import type { RankingQueryClient } from './rankingRepository'
+import type { SanitizedBanner } from '../bannerValidation'
 
 export type NewServerSubmission = {
   ownerKey: Uint8Array
@@ -11,6 +12,7 @@ export type NewServerSubmission = {
   region: string
   mode: 'PvE' | 'PvP' | 'RPG'
   description: string
+  banner?: { image: SanitizedBanner; altText: string }
 }
 export type SubmissionOutcome = { outcome: 'accepted'; submissionId: string } | { outcome: 'duplicate' | 'game_unavailable' | 'limit_reached' }
 export type SubmissionRepository = { submit(input: NewServerSubmission): Promise<SubmissionOutcome> }
@@ -22,6 +24,7 @@ export function createSubmissionRepository(createClient: () => RankingQueryClien
       const client = createClient()
       try {
         await client.connect()
+        await client.query('BEGIN')
         const result = await client.query<SubmissionRow>(
           `SELECT outcome, submission_id::text AS submission_id
              FROM api.submit_server($1::bytea, $2::varchar, $3::varchar, $4::text,
@@ -29,9 +32,31 @@ export function createSubmissionRepository(createClient: () => RankingQueryClien
           [input.ownerKey, input.gameSlug, input.name, input.website, input.websiteHost, input.gameVersion, input.region, input.mode, input.description],
         )
         const row = result.rows[0]
-        if (row?.outcome === 'accepted' && row.submission_id) return { outcome: 'accepted', submissionId: row.submission_id }
-        if (row?.outcome === 'duplicate' || row?.outcome === 'game_unavailable' || row?.outcome === 'limit_reached') return { outcome: row.outcome }
+        if (row?.outcome === 'accepted' && row.submission_id) {
+          if (input.banner) {
+            const banner = input.banner.image
+            const stored = await client.query<{ put_submission_banner: string }>(
+              `SELECT api.put_submission_banner($1::uuid, $2::bytea, $3::bytea, $4::bytea,
+                                                    $5::bytea, $6::bytea, $7::varchar, $8::integer,
+                                                    $9::integer, $10::integer, $11::integer, $12::varchar)
+                        AS put_submission_banner`,
+              [row.submission_id, input.ownerKey, banner.bytes, banner.staticFallbackBytes, banner.originalSha256,
+                banner.sanitizedSha256, banner.mediaType, banner.width, banner.height, banner.frameCount,
+                banner.animationDurationMs, input.banner.altText],
+            )
+            if (stored.rows[0]?.put_submission_banner !== 'stored') throw new Error('Banner was not stored')
+          }
+          await client.query('COMMIT')
+          return { outcome: 'accepted', submissionId: row.submission_id }
+        }
+        if (row?.outcome === 'duplicate' || row?.outcome === 'game_unavailable' || row?.outcome === 'limit_reached') {
+          await client.query('ROLLBACK')
+          return { outcome: row.outcome }
+        }
         throw new Error('Invalid submission outcome')
+      } catch (error) {
+        try { await client.query('ROLLBACK') } catch { /* connection may already be unavailable */ }
+        throw error
       } finally {
         await client.end()
       }

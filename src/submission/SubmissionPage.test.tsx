@@ -42,6 +42,13 @@ describe('SubmissionPage', () => {
     expect(screen.getByText('Complete the security check.')).toHaveAttribute('role', 'alert')
   })
 
+  it('offers a clearly labelled optional free banner in the same form', async () => {
+    render(<SubmissionPage service={{ submit: vi.fn() }} authService={authService} turnstileSiteKey="test-key" />)
+    expect(await screen.findByRole('group', { name: 'Banner (optional and free)' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Banner image')).toHaveAttribute('accept', 'image/gif,image/png,image/jpeg')
+    expect(screen.getByLabelText('Banner image')).toHaveAccessibleDescription(/468 by 60 pixel/i)
+  })
+
   it('does not expose the form or security challenge before verified authentication', async () => {
     const signedOut = { ...authService, currentStatus: vi.fn().mockResolvedValue('signed-out' as const) }
     render(<SubmissionPage service={{ submit: vi.fn() }} authService={signedOut} turnstileSiteKey="test-key" />)

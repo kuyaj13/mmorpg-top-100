@@ -1,10 +1,27 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { SubmissionRepository } from './db/submissionRepository'
 import { createSubmissionEndpoint } from './submissionEndpoint'
+import UPNG from 'upng-js'
 
 const validBody = {
   gameSlug: 'flyff', name: 'Moonlight Flyff', website: 'https://moonlight.example', gameVersion: 'v22',
   region: 'Global', mode: 'PvE', description: 'A friendly private server community.', turnstileToken: 'proof',
+}
+
+function multipartRequest(banner: Uint8Array, declaredLength?: number) {
+  const boundary = 'submission-test-boundary'
+  const encoder = new TextEncoder()
+  const chunks: Uint8Array[] = []
+  for (const [key, value] of Object.entries(validBody)) chunks.push(encoder.encode(`--${boundary}\r\nContent-Disposition: form-data; name="${key}"\r\n\r\n${value}\r\n`))
+  chunks.push(encoder.encode(`--${boundary}\r\nContent-Disposition: form-data; name="banner"; filename="untrusted.bin"\r\nContent-Type: application/octet-stream\r\n\r\n`), banner,
+    encoder.encode(`\r\n--${boundary}\r\nContent-Disposition: form-data; name="bannerAltText"\r\n\r\nMoonlight Flyff colorful server banner\r\n--${boundary}--\r\n`))
+  const size = chunks.reduce((total, chunk) => total + chunk.byteLength, 0)
+  const bytes = new Uint8Array(size)
+  let offset = 0
+  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength }
+  return new Request('https://api.example/api/server-submissions', { method: 'POST', headers: {
+    'content-type': `multipart/form-data; boundary=${boundary}`, 'content-length': String(declaredLength ?? size), 'cf-connecting-ip': '192.0.2.2',
+  }, body: bytes })
 }
 
 function setup(overrides: Partial<Parameters<typeof createSubmissionEndpoint>[0]> = {}, body: unknown = validBody) {
@@ -24,6 +41,7 @@ function setup(overrides: Partial<Parameters<typeof createSubmissionEndpoint>[0]
 }
 
 describe('submission endpoint', () => {
+  afterEach(() => vi.restoreAllMocks())
   it('rate limits before authentication and database access', async () => {
     const context = setup({ rateLimit: vi.fn().mockResolvedValue({ success: false }) })
     expect((await context.endpoint(context.request)).status).toBe(429)
@@ -52,6 +70,44 @@ describe('submission endpoint', () => {
     expect(context.dependencies.repository.submit).toHaveBeenCalledWith(expect.objectContaining({
       website: 'https://moonlight.example/', websiteHost: 'moonlight.example', ownerKey: new Uint8Array(32), gameSlug: 'flyff',
     }))
+  })
+
+  it('decodes and sanitizes an optional banner after identity and abuse checks', async () => {
+    const context = setup()
+    const pixels = new Uint8Array(468 * 60 * 4).fill(255)
+    const png = new Uint8Array(UPNG.encode([pixels.buffer], 468, 60, 0))
+    const parsed = new FormData()
+    for (const [key, value] of Object.entries(validBody)) parsed.append(key, value)
+    parsed.append('banner', new File([png], 'untrusted.bin', { type: 'application/octet-stream' }))
+    parsed.append('bannerAltText', 'Moonlight Flyff colorful server banner')
+    vi.spyOn(Response.prototype, 'formData').mockResolvedValue(parsed)
+    const request = multipartRequest(png)
+    const response = await context.endpoint(request)
+    expect(response.status).toBe(201)
+    expect(context.dependencies.repository.submit).toHaveBeenCalledWith(expect.objectContaining({
+      banner: expect.objectContaining({ altText: 'Moonlight Flyff colorful server banner', image: expect.objectContaining({ mediaType: 'image/png' }) }),
+    }))
+    expect(context.dependencies.verifyFirebase).toHaveBeenCalledBefore(context.dependencies.repository.submit as ReturnType<typeof vi.fn>)
+  })
+
+  it('rejects malformed banner bytes without storing a partial submission', async () => {
+    const context = setup()
+    const parsed = new FormData()
+    for (const [key, value] of Object.entries(validBody)) parsed.append(key, value)
+    parsed.append('banner', new File([new Uint8Array([1, 2, 3])], 'banner.gif', { type: 'image/gif' }))
+    parsed.append('bannerAltText', 'Moonlight Flyff colorful server banner')
+    vi.spyOn(Response.prototype, 'formData').mockResolvedValue(parsed)
+    const request = multipartRequest(new Uint8Array([1, 2, 3]))
+    expect((await context.endpoint(request)).status).toBe(400)
+    expect(context.dependencies.repository.submit).not.toHaveBeenCalled()
+  })
+
+  it('rejects actual multipart bytes above the limit even when Content-Length is forged', async () => {
+    const context = setup()
+    const request = multipartRequest(new Uint8Array(550_001), 100)
+    expect((await context.endpoint(request)).status).toBe(400)
+    expect(context.dependencies.verifyFirebase).not.toHaveBeenCalled()
+    expect(context.dependencies.repository.submit).not.toHaveBeenCalled()
   })
 
   it('maps duplicate and unavailable-game results to user-safe errors', async () => {

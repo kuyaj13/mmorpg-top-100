@@ -20,6 +20,8 @@ export type SubmissionService = {
 export type ProtectedServerSubmission = ServerSubmission & {
   gameSlug: string
   turnstileToken: string
+  banner?: File
+  bannerAltText?: string
 }
 
 export type ProtectedSubmissionService = {

@@ -17,6 +17,8 @@
 }
 
 .submission-page form { gap: 1rem; }
+.submission-page fieldset { display: grid; gap: 0.75rem; min-width: 0; margin: 0; padding: 1rem; }
+.submission-page fieldset p { margin: 0; }
 .submission-page input,
 .submission-page select,
 .submission-page textarea,

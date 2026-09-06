@@ -13,6 +13,10 @@ export function validateSubmission(value: ProtectedServerSubmission): Submission
   if (!value.region || value.region.length > 60) errors.region = 'Enter the server region.'
   if (!['PvE', 'PvP', 'RPG'].includes(value.mode)) errors.mode = 'Select a server mode.'
   if (value.description.length < 20 || value.description.length > 1000) errors.description = 'Enter a description between 20 and 1,000 characters.'
+  if (value.banner) {
+    if (value.banner.size < 1 || value.banner.size > 524_288 || !['image/gif', 'image/png', 'image/jpeg'].includes(value.banner.type)) errors.banner = 'Choose a GIF, PNG, or JPEG banner no larger than 512 KB.'
+    if (!value.bannerAltText || value.bannerAltText.trim().length < 10 || value.bannerAltText.trim().length > 160) errors.bannerAltText = 'Describe the banner in 10 to 160 characters.'
+  } else if (value.bannerAltText) errors.bannerAltText = 'Choose a banner image or clear its description.'
   if (!value.turnstileToken) errors.turnstileToken = 'Complete the security check.'
   return errors
 }

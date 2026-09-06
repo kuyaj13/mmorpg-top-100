@@ -30,6 +30,8 @@ export function SubmissionPage({ service = protectedSubmissionService, turnstile
     if (pending) return
     const form = event.currentTarget
     const data = new FormData(form)
+    const bannerEntry = data.get('banner')
+    const banner = bannerEntry && typeof bannerEntry !== 'string' && bannerEntry.size > 0 ? bannerEntry as File : undefined
     const submission: ProtectedServerSubmission = {
       name: String(data.get('name') ?? '').trim(),
       website: String(data.get('website') ?? '').trim(),
@@ -39,6 +41,8 @@ export function SubmissionPage({ service = protectedSubmissionService, turnstile
       mode: String(data.get('mode') ?? '') as ProtectedServerSubmission['mode'],
       description: String(data.get('description') ?? '').trim(),
       turnstileToken: token,
+      banner,
+      bannerAltText: String(data.get('bannerAltText') ?? '').trim() || undefined,
     }
     const nextErrors = validateSubmission(submission)
     setErrors(nextErrors)
@@ -76,6 +80,12 @@ export function SubmissionPage({ service = protectedSubmissionService, turnstile
         <SubmissionField id="server-region" name="region" label="Primary region" error={errors.region}><input id="server-region" name="region" type="text" required maxLength={60} autoComplete="country-name" placeholder="For example: Southeast Asia" /></SubmissionField>
         <SubmissionField id="server-mode" name="mode" label="Server mode" error={errors.mode}><select id="server-mode" name="mode" required defaultValue=""><option value="" disabled>Select a mode</option><option value="PvE">PvE</option><option value="PvP">PvP</option><option value="RPG">RPG</option></select></SubmissionField>
         <SubmissionField id="server-description" name="description" label="Description" error={errors.description}><textarea id="server-description" name="description" required minLength={20} maxLength={1000} rows={6} /></SubmissionField>
+        <fieldset>
+          <legend>Banner (optional and free)</legend>
+          <p id="banner-help">Upload a 468 by 60 pixel GIF, PNG, or JPEG up to 512 KB. If you choose one, its description is required. It will be reviewed separately and will not affect your rank.</p>
+          <SubmissionField id="server-banner" name="banner" label="Banner image" error={errors.banner}><input id="server-banner" name="banner" type="file" accept="image/gif,image/png,image/jpeg" aria-describedby={errors.banner ? 'banner-error' : 'banner-help'} /></SubmissionField>
+          <SubmissionField id="banner-alt-text" name="bannerAltText" label="Banner description" error={errors.bannerAltText}><input id="banner-alt-text" name="bannerAltText" type="text" minLength={10} maxLength={160} aria-describedby="banner-help" placeholder="Describe the banner for visitors who cannot see it" /></SubmissionField>
+        </fieldset>
         <div tabIndex={-1} aria-labelledby="submission-security-label"><TurnstileWidget onToken={receiveToken} resetRef={widgetRef} siteKey={turnstileSiteKey} action="submit-server" idPrefix="submission" /></div>
         {errors.turnstileToken && <p id="turnstileToken-error" role="alert">{errors.turnstileToken}</p>}
         <button type="submit" disabled={pending}>{pending ? 'Submitting…' : 'Submit for review'}</button>
@@ -86,6 +96,9 @@ export function SubmissionPage({ service = protectedSubmissionService, turnstile
 }
 
 function SubmissionField({ id, name, label, error, children }: { id: string; name: FieldName; label: string; error?: string; children: React.ReactElement<{ 'aria-invalid'?: boolean; 'aria-describedby'?: string }> }) {
-  const child = cloneElement(children, { 'aria-invalid': Boolean(error), 'aria-describedby': error ? `${name}-error` : undefined })
+  const child = cloneElement(children, {
+    'aria-invalid': Boolean(error),
+    'aria-describedby': [children.props['aria-describedby'], error ? `${name}-error` : ''].filter(Boolean).join(' ') || undefined,
+  })
   return <div className="submission-field"><label htmlFor={id}>{label}</label>{child}{error && <p id={`${name}-error`}>{error}</p>}</div>
 }
