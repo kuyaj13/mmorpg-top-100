@@ -2,10 +2,11 @@
 
 ## Cost and compatibility gate
 
-- The initial launch is a read-only public preview using the existing React build, sample catalog, Firebase Authentication configuration, SQL Connect schema, and Cloudflare Worker free-tier configuration.
-- Voting, server submission, administrator moderation, donation claims, banner uploads, and paid placements are disabled in public routing until each has a compatible trusted backend and a separate regression gate.
+- The public application uses the existing React build, Firebase Authentication, Neon Free PostgreSQL, and Cloudflare Workers/Pages Free configuration.
+- Voting, server submission, administrator moderation, and free banner upload/moderation are enabled after separate compatibility, security, and regression gates.
+- Donation claims, donation moderation, and paid placements remain disabled until their complete release gate passes.
 - Do not add Firebase Functions, Secret Manager, another database, or another paid service without a new compatibility and cost review plus explicit product-owner approval.
-- The approved replacement is Neon Free PostgreSQL 17 through a project-specific Cloudflare Hyperdrive configuration. The binding is configured, but application reads and writes remain disabled until the schema and authorization layers are implemented and tested.
+- The approved replacement is Neon Free PostgreSQL 17 through a project-specific Cloudflare Hyperdrive configuration. Public rankings and approved authenticated mutations now use narrowly scoped database functions through the trusted Worker.
 - Cloudflare Free does not accept a custom Worker CPU limit, so the preview Worker uses the plan's fixed platform limit without a `limits.cpu_ms` override.
 
 ## PostgreSQL trial exit
@@ -14,18 +15,19 @@
 - Keep Firebase Authentication, but replace SQL Connect operations incrementally with authenticated Cloudflare Worker endpoints backed by Hyperdrive.
 - Neon Auth is provisioned on the replacement database as requested, but it is not wired into the application; Firebase Authentication remains authoritative unless a separately reviewed authentication migration is approved.
 - Never commit the Neon connection string. Supply it only to Hyperdrive through Wrangler or the Cloudflare dashboard.
-- Do not remove the SQL Connect service until schema import, row-count checks, authorization tests, and rollback verification pass.
+- Neon is the active production database. Keep any former SQL Connect resources untouched unless removal receives a separate, verified approval.
 
 ## Launch boundary
 
-- Public ranking content is explicitly sample data and must not be described as live or authoritative.
+- Public rankings contain approved production records and remain independently scoped by game.
 - Disabled actions must remain non-interactive and explain when they will become available.
-- The `/admin` and `/advertise` workspaces remain fail-closed.
+- `/admin` is enabled only for verified administrator claims. `/advertise` exposes free banner management; donation and exclusive-placement controls remain fail-closed.
 - The donation link is a public PayPal link only and grants no entitlement automatically.
 
 ## Remaining production gates
 
-- Verify Cloudflare Pages/custom-domain routing, WAF, and origin restrictions before calling the preview production-ready.
-- Verify Firebase App Check enforcement server-side before enabling any SQL Connect client operation.
-- Add durable, abuse-protected voting and submission slices before enabling those controls.
-- Correct the moderation transaction so approval creates a canonical game-scoped server before enabling `/admin`.
+- Custom-domain routing, response security headers, CORS allowlisting, and hostile-origin rejection passed on 2026-09-06.
+- Voting and submission use Firebase identity, server-verified Turnstile, Worker rate limits, validated inputs, and constrained database functions.
+- Submission banners are optional and free. Actual request bytes are bounded; media is decoded and sanitized; quarantined storage is globally capped; moderation promotion/deletion is atomic.
+- Remaining: complete a browser-based performance and accessibility trace when Chrome DevTools MCP is available.
+- Remaining: keep donation claims, donation moderation, and exclusive placements disabled until a final manual financial-flow regression pass is approved.

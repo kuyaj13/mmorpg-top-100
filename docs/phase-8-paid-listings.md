@@ -38,7 +38,7 @@
 
 ## Banner rules
 
-- Initial allowed formats are GIF, PNG, JPEG, and WebP. SVG and arbitrary documents are rejected.
+- Initial allowed formats are GIF, PNG, and JPEG. SVG, WebP, and arbitrary documents are rejected.
 - Trusted upload processing must verify file signatures and decode the image before storage.
 - Dimensions, pixel count, byte size, animation duration, frame count, metadata handling, and upload rate limits must be finalized before enabling production uploads.
 - Storage uses generated object names and fixed response content types with `nosniff`.
@@ -49,7 +49,7 @@
 ### No-cost Worker MVP limits
 
 - One free banner record per approved server. Upload and replacement require only verified ownership of that server; they never require a donation.
-- Exact dimensions: 468 by 60 pixels. Maximum encoded size: 512 KiB. Allowed signatures: PNG, JPEG, WebP, and GIF.
+- Exact dimensions: 468 by 60 pixels. Maximum encoded size: 512 KiB. Allowed signatures: PNG, JPEG, and GIF.
 - GIF limit: 30 frames and 15 seconds total declared frame delay. Static formats are recorded as one frame with zero animation duration.
 - Alternative text is required and limited to 180 characters. Replacements return to pending moderation.
 - Banner bytes stay in PostgreSQL `bytea` for the no-cost MVP. Public responses use the stored fixed media type, `nosniff`, a restrictive content policy, and only the approved server website as destination.
