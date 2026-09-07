@@ -49,14 +49,15 @@ describe('submission endpoint', () => {
     expect(context.dependencies.repository.submit).not.toHaveBeenCalled()
   })
 
-  it('requires Firebase and Turnstile with an indistinguishable public failure', async () => {
+  it('distinguishes account verification from the completed security challenge', async () => {
     const auth = setup({ verifyFirebase: vi.fn().mockResolvedValue(null) })
     const captcha = setup({ verifyTurnstile: vi.fn().mockResolvedValue(false) })
     const authResponse = await auth.endpoint(auth.request)
     const captchaResponse = await captcha.endpoint(captcha.request)
     expect(authResponse.status).toBe(401)
-    expect(captchaResponse.status).toBe(401)
-    expect(await authResponse.json()).toEqual(await captchaResponse.json())
+    expect(captchaResponse.status).toBe(403)
+    await expect(authResponse.json()).resolves.toMatchObject({ message: 'Sign in with a verified account and try again.' })
+    await expect(captchaResponse.json()).resolves.toMatchObject({ message: 'Complete the security check again.' })
     expect(auth.dependencies.repository.submit).not.toHaveBeenCalled()
     expect(captcha.dependencies.repository.submit).not.toHaveBeenCalled()
   })

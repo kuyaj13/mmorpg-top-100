@@ -43,7 +43,11 @@ describe('public submission failures', () => {
     })
   })
 
-  it('maps verification failures to the security-check field without exposing internals', () => {
-    expect(publicSubmissionFailure(401)).toMatchObject({ fieldErrors: { turnstileToken: 'Complete the security check again.' } })
+  it('does not blame the security-check field for an account-token failure', () => {
+    expect(publicSubmissionFailure(401)).toEqual({ ok: false, message: 'Your account could not be verified. Sign out, then sign in with your verified account and try again.' })
+  })
+
+  it('maps an actual security-check failure to its field', () => {
+    expect(publicSubmissionFailure(403)).toMatchObject({ fieldErrors: { turnstileToken: 'Complete the security check again.' } })
   })
 })

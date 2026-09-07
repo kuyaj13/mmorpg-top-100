@@ -114,9 +114,9 @@ export function createSubmissionEndpoint(dependencies: Dependencies) {
     if (!input) return error('Please check the server details and try again.', 400)
 
     const user = await dependencies.verifyFirebase(request)
-    if (!user) return error('Your submission could not be verified. Please try again.', 401)
+    if (!user) return error('Sign in with a verified account and try again.', 401)
     if (!await dependencies.verifyTurnstile(input.turnstileToken, request.headers.get('cf-connecting-ip') ?? undefined)) {
-      return error('Your submission could not be verified. Please try again.', 401)
+      return error('Complete the security check again.', 403)
     }
 
     const banner = pendingBanner ? await validateBanner(new Uint8Array(await pendingBanner.banner.arrayBuffer())) : null
