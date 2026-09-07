@@ -9,6 +9,7 @@ describe('SubmissionPage', () => {
   }
   beforeEach(() => {
     window.turnstile = { render: vi.fn((_element, options) => { (options.callback as (token: string) => void)('challenge-token'); return 'submission-widget' }), remove: vi.fn(), reset: vi.fn() }
+    globalThis.createImageBitmap = vi.fn().mockResolvedValue({ width: 468, height: 60, close: vi.fn() })
   })
   afterEach(() => { delete window.turnstile })
 
@@ -84,6 +85,27 @@ describe('SubmissionPage', () => {
     expect(await screen.findByRole('group', { name: 'Banner (optional and free)' })).toBeInTheDocument()
     expect(screen.getByLabelText('Banner image')).toHaveAttribute('accept', 'image/gif,image/png,image/jpeg')
     expect(screen.getByLabelText('Banner image')).toHaveAccessibleDescription(/468 by 60 pixel/i)
+  })
+
+  it('shows the exact dimension error beside a square banner without submitting it', async () => {
+    const user = userEvent.setup()
+    const service = { submit: vi.fn() }
+    vi.mocked(globalThis.createImageBitmap).mockResolvedValue({ width: 1024, height: 1024, close: vi.fn() } as unknown as ImageBitmap)
+    render(<SubmissionPage service={service} authService={authService} turnstileSiteKey="test-key" />)
+    await user.type(await screen.findByLabelText('Server name'), 'Liberty Troupe')
+    await waitFor(() => expect(window.turnstile!.render).toHaveBeenCalled())
+    await user.type(screen.getByLabelText('Server website'), 'https://liberty.example/')
+    await user.selectOptions(screen.getByLabelText('Game'), 'flyff')
+    await user.type(screen.getByLabelText('Game version'), 'v22')
+    await user.type(screen.getByLabelText('Primary region'), 'Asia')
+    await user.selectOptions(screen.getByLabelText('Server mode'), 'PvE')
+    await user.type(screen.getByLabelText('Description'), 'A community-focused private Flyff server.')
+    await user.upload(screen.getByLabelText('Banner image'), new File(['image'], 'libertytroupe.png', { type: 'image/png' }))
+    await user.type(screen.getByLabelText('Banner description'), 'Liberty Troupe blue and red emblem')
+    await user.click(screen.getByRole('button', { name: 'Submit for review' }))
+    await waitFor(() => expect([...document.querySelectorAll('.field-error')].map((item) => item.textContent)).toEqual(['Choose a banner that is exactly 468 by 60 pixels.']))
+    expect(screen.getByLabelText('Banner image')).toHaveFocus()
+    expect(service.submit).not.toHaveBeenCalled()
   })
 
   it('resets an expired security check and tells the user to complete it again', async () => {

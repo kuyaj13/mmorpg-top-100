@@ -20,6 +20,7 @@ export function SubmissionPage({ service = protectedSubmissionService, turnstile
   const [feedback, setFeedback] = useState<{ message: string; kind: 'success' | 'error' } | null>(null)
   const [authStatus, setAuthStatus] = useState<PlayerAuthStatus>('signed-out')
   const formRef = useRef<HTMLFormElement>(null)
+  const bannerRef = useRef<HTMLInputElement>(null)
   const resultRef = useRef<HTMLParagraphElement>(null)
   const widgetRef = useRef<TurnstileWidgetHandle>(null)
   const receiveToken = useCallback((value: string) => setToken(value), [])
@@ -30,8 +31,8 @@ export function SubmissionPage({ service = protectedSubmissionService, turnstile
     if (pending) return
     const form = event.currentTarget
     const data = new FormData(form)
-    const bannerEntry = data.get('banner')
-    const banner = bannerEntry && typeof bannerEntry !== 'string' && bannerEntry.size > 0 ? bannerEntry as File : undefined
+    const bannerEntry = bannerRef.current?.files?.[0]
+    const banner = bannerEntry && bannerEntry.size > 0 ? bannerEntry : undefined
     const submission: ProtectedServerSubmission = {
       name: String(data.get('name') ?? '').trim(),
       website: String(data.get('website') ?? '').trim(),
@@ -54,6 +55,12 @@ export function SubmissionPage({ service = protectedSubmissionService, turnstile
         const field = formRef.current?.elements.namedItem(firstError)
         if (field instanceof HTMLElement) field.focus()
       }
+      return
+    }
+    if (banner && !await hasRequiredBannerDimensions(banner)) {
+      setErrors({ banner: 'Choose a banner that is exactly 468 by 60 pixels.' })
+      const field = formRef.current?.elements.namedItem('banner')
+      if (field instanceof HTMLElement) field.focus()
       return
     }
     setPending(true)
@@ -110,7 +117,7 @@ export function SubmissionPage({ service = protectedSubmissionService, turnstile
         <fieldset>
           <legend>Banner (optional and free)</legend>
           <p id="banner-help">Upload a 468 by 60 pixel GIF, PNG, or JPEG up to 512 KB. If you choose one, its description is required. It will be reviewed separately and will not affect your rank.</p>
-          <SubmissionField id="server-banner" name="banner" label="Banner image" error={errors.banner}><input id="server-banner" name="banner" type="file" accept="image/gif,image/png,image/jpeg" aria-describedby={errors.banner ? 'banner-error' : 'banner-help'} /></SubmissionField>
+          <SubmissionField id="server-banner" name="banner" label="Banner image" error={errors.banner}><input ref={bannerRef} id="server-banner" name="banner" type="file" accept="image/gif,image/png,image/jpeg" aria-describedby={errors.banner ? 'banner-error' : 'banner-help'} /></SubmissionField>
           <SubmissionField id="banner-alt-text" name="bannerAltText" label="Banner description" error={errors.bannerAltText}><input id="banner-alt-text" name="bannerAltText" type="text" minLength={10} maxLength={160} aria-describedby="banner-help" placeholder="Describe the banner for visitors who cannot see it" /></SubmissionField>
         </fieldset>
         <div tabIndex={-1} aria-labelledby="submission-security-label"><TurnstileWidget onToken={receiveToken} resetRef={widgetRef} siteKey={turnstileSiteKey} action="submit-server" idPrefix="submission" /></div>
@@ -120,6 +127,17 @@ export function SubmissionPage({ service = protectedSubmissionService, turnstile
       </form>}
     </section>
   </main>
+}
+
+async function hasRequiredBannerDimensions(file: File) {
+  try {
+    const bitmap = await createImageBitmap(file)
+    const valid = bitmap.width === 468 && bitmap.height === 60
+    bitmap.close()
+    return valid
+  } catch {
+    return false
+  }
 }
 
 function SubmissionField({ id, name, label, error, children }: { id: string; name: FieldName; label: string; error?: string; children: React.ReactElement<{ 'aria-invalid'?: boolean; 'aria-describedby'?: string }> }) {
