@@ -45,7 +45,7 @@ describe('SubmissionPage', () => {
 
   it('shows a visible server failure and connects duplicate errors to relevant fields', async () => {
     const user = userEvent.setup()
-    const service = { submit: vi.fn().mockResolvedValue({ ok: false as const, message: 'This server is already listed or pending review.' }) }
+    const service = { submit: vi.fn().mockResolvedValue({ ok: false as const, message: 'This server is already listed or pending review.', fieldErrors: { name: 'This server is already listed or pending review.', website: 'This server is already listed or pending review.' } }) }
     render(<SubmissionPage service={service} authService={authService} turnstileSiteKey="test-key" />)
     await user.type(await screen.findByLabelText('Server name'), 'Flyff One')
     await user.type(screen.getByLabelText('Server website'), 'https://flyff.example/')
@@ -59,6 +59,24 @@ describe('SubmissionPage', () => {
     expect(visibleFailure).toHaveAttribute('role', 'alert')
     expect(screen.getByLabelText('Server name')).toHaveAttribute('aria-invalid', 'true')
     expect(screen.getByLabelText('Server website')).toHaveAccessibleDescription(/already listed or pending review/i)
+  })
+
+  it('shows an API banner rejection beside the banner field', async () => {
+    const message = 'Choose a valid 468 by 60 pixel GIF, PNG, or JPEG banner.'
+    const service = { submit: vi.fn().mockResolvedValue({ ok: false as const, message, fieldErrors: { banner: message } }) }
+    const user = userEvent.setup()
+    render(<SubmissionPage service={service} authService={authService} turnstileSiteKey="test-key" />)
+    await user.type(await screen.findByLabelText('Server name'), 'Flyff One')
+    await waitFor(() => expect(window.turnstile!.render).toHaveBeenCalled())
+    await user.type(screen.getByLabelText('Server website'), 'https://flyff.example/')
+    await user.selectOptions(screen.getByLabelText('Game'), 'flyff')
+    await user.type(screen.getByLabelText('Game version'), 'v22')
+    await user.type(screen.getByLabelText('Primary region'), 'Asia')
+    await user.selectOptions(screen.getByLabelText('Server mode'), 'PvE')
+    await user.type(screen.getByLabelText('Description'), 'A community-focused Flyff server.')
+    await user.click(screen.getByRole('button', { name: 'Submit for review' }))
+    expect(await screen.findByText(message, { selector: '.field-error' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Banner image')).toHaveAttribute('aria-invalid', 'true')
   })
 
   it('offers a clearly labelled optional free banner in the same form', async () => {

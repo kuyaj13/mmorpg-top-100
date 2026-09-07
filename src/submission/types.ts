@@ -11,7 +11,7 @@ export type ServerSubmission = {
 
 export type SubmissionResult =
   | { ok: true; reference: string }
-  | { ok: false; message: string }
+  | { ok: false; message: string; fieldErrors?: Partial<Record<keyof ProtectedServerSubmission, string>> }
 
 export type SubmissionService = {
   submitServer: (submission: ServerSubmission) => Promise<SubmissionResult>

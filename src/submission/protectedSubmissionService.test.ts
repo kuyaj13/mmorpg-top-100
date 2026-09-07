@@ -1,4 +1,4 @@
-import { submitProtectedServer } from './protectedSubmissionService'
+import { publicSubmissionFailure, submitProtectedServer } from './protectedSubmissionService'
 
 describe('submitProtectedServer', () => {
   it('sends identity, App Check, and Turnstile proof to the protected endpoint', async () => {
@@ -31,5 +31,19 @@ describe('submitProtectedServer', () => {
     expect(body).toBeInstanceOf(FormData)
     expect((body as FormData).get('banner')).toBe(banner)
     expect((body as FormData).get('turnstileToken')).toBe('challenge-token')
+  })
+})
+
+describe('public submission failures', () => {
+  it('maps a rejected banner to a visible banner-field error', () => {
+    expect(publicSubmissionFailure(400, 'Choose a valid 468 by 60 pixel GIF, PNG, or JPEG banner.')).toEqual({
+      ok: false,
+      message: 'Choose a valid 468 by 60 pixel GIF, PNG, or JPEG banner.',
+      fieldErrors: { banner: 'Choose a valid 468 by 60 pixel GIF, PNG, or JPEG banner.' },
+    })
+  })
+
+  it('maps verification failures to the security-check field without exposing internals', () => {
+    expect(publicSubmissionFailure(401)).toMatchObject({ fieldErrors: { turnstileToken: 'Complete the security check again.' } })
   })
 })

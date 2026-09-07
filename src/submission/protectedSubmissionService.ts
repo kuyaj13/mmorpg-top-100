@@ -14,7 +14,7 @@ export const protectedSubmissionService: ProtectedSubmissionService = {
       const idToken = await user.getIdToken()
       const response = await submitProtectedServer(apiBaseUrl, submission, { idToken })
       const body = await response.json().catch(() => null) as (SubmissionResponse & { message?: unknown }) | null
-      if (!response.ok) return { ok: false, message: publicSubmissionError(response.status, body?.message) }
+      if (!response.ok) return publicSubmissionFailure(response.status, body?.message)
       if (typeof body?.reference !== 'string' || body.reference.length < 1 || body.reference.length > 100) {
         return { ok: false, message: 'Your submission could not be confirmed. Please try again.' }
       }
@@ -51,11 +51,28 @@ export function submitProtectedServer(
   })
 }
 
-function publicSubmissionError(status: number, responseMessage?: unknown): string {
-  if (status === 401) return 'Your account or security check could not be verified. Sign in with a verified account and complete the security check again.'
-  if (status === 400 || status === 403) return 'Check the form and complete the security check again.'
-  if (status === 409 && responseMessage === 'You already have several submissions pending review.') return responseMessage
-  if (status === 409) return 'This server is already listed or pending review.'
-  if (status === 429) return 'Submissions are temporarily limited. Please wait and try again.'
-  return 'Your server could not be submitted. Please try again.'
+export function publicSubmissionFailure(status: number, responseMessage?: unknown): Extract<import('./types').SubmissionResult, { ok: false }> {
+  if (status === 401) return {
+    ok: false,
+    message: 'Your account or security check could not be verified. Sign in with a verified account and complete the security check again.',
+    fieldErrors: { turnstileToken: 'Complete the security check again.' },
+  }
+  if (status === 400 && responseMessage === 'Choose a valid 468 by 60 pixel GIF, PNG, or JPEG banner.') return {
+    ok: false,
+    message: responseMessage,
+    fieldErrors: { banner: responseMessage },
+  }
+  if (status === 400 && responseMessage === 'Please choose an available game.') return {
+    ok: false,
+    message: responseMessage,
+    fieldErrors: { gameSlug: responseMessage },
+  }
+  if (status === 400 || status === 403) return { ok: false, message: 'Check the highlighted fields and complete the security check again.', fieldErrors: { turnstileToken: 'Complete the security check again.' } }
+  if (status === 409 && responseMessage === 'You already have several submissions pending review.') return { ok: false, message: responseMessage }
+  if (status === 409) {
+    const message = 'This server is already listed or pending review.'
+    return { ok: false, message, fieldErrors: { name: message, website: message } }
+  }
+  if (status === 429) return { ok: false, message: 'Submissions are temporarily limited. Please wait and try again.' }
+  return { ok: false, message: 'Your server could not be submitted. Please try again.' }
 }

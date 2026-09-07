@@ -65,11 +65,19 @@ export function SubmissionPage({ service = protectedSubmissionService, turnstile
       setErrors({})
       setFeedback({ message: `Your server was submitted for review. Reference: ${result.reference}`, kind: 'success' })
     } else {
-      const duplicate = result.message === 'This server is already listed or pending review.'
-      if (duplicate) setErrors((current) => ({ ...current, name: result.message, website: result.message }))
+      if (result.fieldErrors) setErrors((current) => ({ ...current, ...result.fieldErrors }))
       setFeedback({ message: result.message, kind: 'error' })
     }
-    requestAnimationFrame(() => resultRef.current?.focus())
+    requestAnimationFrame(() => {
+      if (!result.ok && result.fieldErrors) {
+        const firstField = Object.keys(result.fieldErrors)[0] as FieldName | undefined
+        if (firstField === 'turnstileToken') formRef.current?.querySelector<HTMLElement>('[aria-labelledby="submission-security-label"]')?.focus()
+        else if (firstField) {
+          const field = formRef.current?.elements.namedItem(firstField)
+          if (field instanceof HTMLElement) field.focus()
+        }
+      } else resultRef.current?.focus()
+    })
   }
 
   function clearFieldError(event: FormEvent<HTMLFormElement>) {
