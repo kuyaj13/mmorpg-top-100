@@ -73,6 +73,14 @@ describe('submission endpoint', () => {
     }))
   })
 
+  it('accepts normal paragraph breaks in a server description', async () => {
+    const context = setup({}, { ...validBody, description: 'Welcome to Liberty Troupe.\r\n\r\nJoin our friendly Flyff community.' })
+    expect((await context.endpoint(context.request)).status).toBe(201)
+    expect(context.dependencies.repository.submit).toHaveBeenCalledWith(expect.objectContaining({
+      description: 'Welcome to Liberty Troupe.\n\nJoin our friendly Flyff community.',
+    }))
+  })
+
   it('decodes and sanitizes an optional banner after identity and abuse checks', async () => {
     const context = setup()
     const pixels = new Uint8Array(468 * 60 * 4).fill(255)
@@ -127,6 +135,7 @@ describe('submission endpoint', () => {
     [{ ...validBody, mode: 'unsafe' }],
     [{ ...validBody, extra: 'unexpected' }],
     [{ ...validBody, description: '' }],
+    [{ ...validBody, description: 'Friendly server\u0000hidden data' }],
   ])('rejects malformed input before authentication', async (body) => {
     const context = setup({}, body)
     expect((await context.endpoint(context.request)).status).toBe(400)

@@ -47,6 +47,16 @@ function cleanText(value: unknown, maximum: number): string | null {
   return clean.length > 0 && clean.length <= maximum && ![...clean].some((character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127) ? clean : null
 }
 
+function cleanDescription(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const clean = value.replace(/\r\n?/g, '\n').trim()
+  const hasDisallowedControlCharacter = [...clean].some((character) => {
+    const code = character.charCodeAt(0)
+    return (code < 32 && character !== '\n' && character !== '\t') || code === 127
+  })
+  return clean.length > 0 && clean.length <= 1000 && !hasDisallowedControlCharacter ? clean : null
+}
+
 function parseBody(value: unknown): (Omit<NewServerSubmission, 'ownerKey'> & { turnstileToken: string }) | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null
   const record = value as Record<string, unknown>
@@ -55,7 +65,7 @@ function parseBody(value: unknown): (Omit<NewServerSubmission, 'ownerKey'> & { t
   const name = cleanText(record.name, 80)
   const gameVersion = cleanText(record.gameVersion, 60)
   const region = cleanText(record.region, 60)
-  const description = cleanText(record.description, 1000)
+  const description = cleanDescription(record.description)
   const turnstileToken = cleanText(record.turnstileToken, 2048)
   if (!gameSlug || !gameSlugPattern.test(gameSlug) || !name || !gameVersion || !region || !description || !turnstileToken || !modes.has(record.mode as string)) return null
 
