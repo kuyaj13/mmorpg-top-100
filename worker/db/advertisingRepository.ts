@@ -9,6 +9,8 @@ export type PendingDonationClaim = { id: string; serverName: string; gameName: s
 export type BannerModerationOutcome = 'approved' | 'rejected' | 'suspended' | 'unavailable'
 export type DonationModerationOutcome = 'verified' | 'rejected' | 'invalid' | 'unavailable'
 export type DonationClaimOutcome = { outcome: 'accepted'; claimId: string } | { outcome: 'invalid'|'unavailable'|'limit_reached'|'duplicate' }
+export type AdminPlacement = { id:string;serverName:string;website:string;gameSlug:string;gameName:string;durationDays:number;status:'active'|'waiting'|'suspended'|'expired';startsAt:string|null;expiresAt:string|null;queuedAt:string;bannerStatus:string;claimStatus:string }
+export type PlacementModerationOutcome='suspend'|'reactivate'|'expired'|'ineligible'|'inventory_full'|'invalid'|'unavailable'
 export type AdvertisingRepository = {
   putBanner(serverId: string, ownerKey: Uint8Array, banner: SanitizedBanner, altText: string): Promise<'stored' | 'unavailable'>
   listOwnedServers(ownerKey: Uint8Array): Promise<OwnedServer[]>
@@ -20,6 +22,8 @@ export type AdvertisingRepository = {
   getBannerReviewPreview(id: string): Promise<{ bytes: Uint8Array; mediaType: 'image/png' } | null>
   listPendingBanners(): Promise<PendingBanner[]>
   moderateBanner(id: string, moderatorKey: Uint8Array, decision: 'approve' | 'reject' | 'suspend', operationId: string): Promise<BannerModerationOutcome>
+  listAdminPlacements():Promise<AdminPlacement[]>
+  moderatePlacement(id:string,moderatorKey:Uint8Array,decision:'suspend'|'reactivate',operationId:string):Promise<PlacementModerationOutcome>
 }
 
 type PendingRow = { id: string; server_id: string; server_name: string; game_slug: string; media_type: string; byte_size: number; frame_count: number; animation_duration_ms: number; alt_text: string; created_at: Date | string }
@@ -31,6 +35,8 @@ export function createAdvertisingRepository(createClient: () => RankingQueryClie
     try { await client.connect(); return await operation(client) } finally { await client.end() }
   }
   return {
+    listAdminPlacements:()=>run(async(client)=>{const result=await client.query<Record<string,string|number|null>>('SELECT id::text,server_name,website,game_slug,game_name,duration_days,status,starts_at::text,expires_at::text,queued_at::text,banner_status,claim_status FROM api.list_admin_exclusive_placements()');return result.rows.map(row=>({id:String(row.id),serverName:String(row.server_name),website:String(row.website),gameSlug:String(row.game_slug),gameName:String(row.game_name),durationDays:Number(row.duration_days),status:row.status as AdminPlacement['status'],startsAt:row.starts_at?String(row.starts_at):null,expiresAt:row.expires_at?String(row.expires_at):null,queuedAt:String(row.queued_at),bannerStatus:String(row.banner_status),claimStatus:String(row.claim_status)}))}),
+    moderatePlacement:(id,key,decision,operationId)=>run(async(client)=>{const result=await client.query<{moderate_exclusive_placement:string}>('SELECT api.moderate_exclusive_placement($1::uuid,$2::bytea,$3::varchar,$4::uuid) AS moderate_exclusive_placement',[id,key,decision,operationId]);const value=result.rows[0]?.moderate_exclusive_placement;if(['suspend','reactivate','expired','ineligible','inventory_full','invalid','unavailable'].includes(value))return value as PlacementModerationOutcome;throw new Error('Invalid placement moderation outcome')}),
     listPendingDonationClaims: () => run(async (client) => {
       const result = await client.query<Record<string, string|number|Date>>('SELECT id::text,server_name,game_name,website,donor_reference,duration_days,expected_amount_minor::text,currency,created_at FROM api.list_pending_donation_claims()')
       return result.rows.map((row) => ({ id:String(row.id),serverName:String(row.server_name),gameName:String(row.game_name),website:String(row.website),donorReference:String(row.donor_reference),durationDays:Number(row.duration_days),expectedAmountMinor:String(row.expected_amount_minor),currency:String(row.currency).trim(),createdAt:new Date(row.created_at).toISOString() }))

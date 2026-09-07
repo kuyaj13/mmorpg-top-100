@@ -129,6 +129,7 @@
   color: #bbf7d0;
   font-weight: 700;
 }
+.ad-inventory{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0}.ad-inventory p{margin:0;padding:8px 12px;border-radius:999px;background:#1e293b}.placement-status{text-transform:capitalize}.placement-status.active{color:#86efac}.placement-status.waiting{color:#fde68a}.placement-status.suspended{color:#fca5a5}.placement-status.expired{color:#cbd5e1}
 
 .banner-review-preview {
   display: block;

@@ -8,7 +8,8 @@ import {
 } from './adminServices'
 import { adminModerationApiService as defaultModerationService } from './adminModerationApiService'
 import { bannerReviewApiService as defaultBannerReviewService } from './bannerReviewApiService'
-import type { AdminAccessService, AdminAuthService, BannerReviewItem, BannerReviewService, DonationClaimReviewItem, DonationClaimReviewService, ModerationItem, ModerationService } from './types'
+import { adPlacementService as defaultAdPlacementService } from './adPlacementService'
+import type { AdPlacementItem,AdPlacementService,AdminAccessService, AdminAuthService, BannerReviewItem, BannerReviewService, DonationClaimReviewItem, DonationClaimReviewService, ModerationItem, ModerationService } from './types'
 import './AdminPage.css'
 
 type AdminPageProps = {
@@ -17,6 +18,7 @@ type AdminPageProps = {
   moderationService?: ModerationService
   donationClaimReviewService?: DonationClaimReviewService
   bannerReviewService?: BannerReviewService
+  adPlacementService?:AdPlacementService
 }
 
 export default function AdminPage({
@@ -25,6 +27,7 @@ export default function AdminPage({
   moderationService = defaultModerationService,
   donationClaimReviewService,
   bannerReviewService,
+  adPlacementService=defaultAdPlacementService,
 }: AdminPageProps) {
   const activeBannerReviewService = bannerReviewService ?? (siteConfig.bannerModerationEnabled ? defaultBannerReviewService : null)
   const activeDonationReviewService = donationClaimReviewService ?? (siteConfig.donationModerationEnabled ? defaultDonationClaimReviewService : null)
@@ -33,6 +36,8 @@ export default function AdminPage({
   const [donationClaims, setDonationClaims] = useState<DonationClaimReviewItem[]>([])
   const [donationReviewUnavailable, setDonationReviewUnavailable] = useState(false)
   const [banners, setBanners] = useState<BannerReviewItem[]>([])
+  const [placements,setPlacements]=useState<AdPlacementItem[]>([])
+  const [placementsUnavailable,setPlacementsUnavailable]=useState(false)
   const [feedback, setFeedback] = useState('')
   const [pendingId, setPendingId] = useState('')
   const [authPending, setAuthPending] = useState(false)
@@ -64,16 +69,18 @@ export default function AdminPage({
         return
       }
       try {
-        const [pendingItems, donationResult, pendingBanners] = await Promise.all([
+        const [pendingItems, donationResult, pendingBanners,placementResult] = await Promise.all([
           moderationService.listPending(),
           activeDonationReviewService?.listPending().then((claims)=>({claims,failed:false}),()=>({claims:[],failed:true})) ?? Promise.resolve({claims:[],failed:false}),
           activeBannerReviewService?.listPending() ?? Promise.resolve([]),
+          adPlacementService.list().then((placements)=>({placements,failed:false}),()=>({placements:[],failed:true})),
         ])
         if (active) {
           setItems(pendingItems)
           setDonationClaims(donationResult.claims)
           setDonationReviewUnavailable(donationResult.failed)
           setBanners(pendingBanners)
+          setPlacements(placementResult.placements);setPlacementsUnavailable(placementResult.failed)
           setState('ready')
         }
       } catch {
@@ -85,7 +92,7 @@ export default function AdminPage({
     return () => {
       active = false
     }
-  }, [accessCheck, accessService, activeBannerReviewService, activeDonationReviewService, moderationService])
+  }, [accessCheck, accessService, activeBannerReviewService, activeDonationReviewService, moderationService,adPlacementService])
 
   const handleSignIn = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -252,6 +259,8 @@ export default function AdminPage({
     }
   }
 
+  const decidePlacement=async(item:AdPlacementItem,decision:'suspend'|'reactivate')=>{setPendingId(item.id);setFeedback('');const result=await adPlacementService.decide(item.id,decision);setFeedback(result.message);if(result.ok){try{setPlacements(await adPlacementService.list())}catch{setPlacementsUnavailable(true)}}setPendingId('')}
+
   return (
     <main className="admin-shell">
       <a href="/" className="admin-back">Back to rankings</a>
@@ -362,6 +371,7 @@ export default function AdminPage({
           </div>
         </section>
       )}
+      {state==='ready'&&<section aria-labelledby="ad-management-heading"><h2 id="ad-management-heading">Ads Management</h2><p>Public paid advertising remains disabled until its release review is complete.</p>{placementsUnavailable&&<p role="status">Advertisement records are unavailable right now.</p>}{!placementsUnavailable&&placements.length===0&&<p role="status">There are no advertisement placements.</p>}<div className="ad-inventory" aria-label="Advertising inventory">{[...new Set(placements.map(item=>item.gameName))].map(game=><p key={game}><strong>{game}:</strong> {placements.filter(item=>item.gameName===game&&item.status==='active').length} of 3 active</p>)}</div><div className="moderation-list" role="list" aria-label="Advertisement placements">{placements.map(item=><article key={item.id} className="moderation-card ad-placement-card" role="listitem"><div><p className="moderation-meta">{item.gameName} | {item.durationDays} days | <span className={`placement-status ${item.status}`}>{item.status}</span></p><h3>{item.serverName}</h3><p>{item.status==='active'&&item.expiresAt?`Ends ${formatDate(item.expiresAt)}`:item.status==='waiting'?`Queued ${formatDate(item.queuedAt)}`:item.status==='expired'?'Placement ended':'Not publicly eligible'}</p><a href={item.website} target="_blank" rel="noopener noreferrer">Review website <span className="visually-hidden">(opens in a new tab)</span></a></div><div className="moderation-actions">{(item.status==='active'||item.status==='waiting')&&<button disabled={pendingId===item.id} onClick={()=>void decidePlacement(item,'suspend')}>Suspend</button>}{item.status==='suspended'&&<button disabled={pendingId===item.id} onClick={()=>void decidePlacement(item,'reactivate')}>Reactivate</button>}</div></article>)}</div></section>}
       {feedback && <p className="admin-feedback" role="status">{feedback}</p>}
       {confirmation && <div ref={confirmationRef} className="moderation-confirmation" role="alertdialog" aria-modal="true" aria-labelledby="moderation-confirmation-heading" aria-describedby="moderation-confirmation-description" onKeyDown={handleConfirmationKeyDown}>
         <h2 id="moderation-confirmation-heading">Confirm {confirmation.decision}</h2>

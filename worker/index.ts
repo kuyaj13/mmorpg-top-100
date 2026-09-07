@@ -64,9 +64,11 @@ export function createWorker(repositoryFactory: RepositoryFactory, voteHandlerFa
         const donationClaim = url.pathname === '/api/advertising/claims'
         const adminDonationClaims = url.pathname === '/api/admin/donation-claims'
         const adminDonationDecision = url.pathname.match(/^\/api\/admin\/donation-claims\/([^/]+)\/decision$/)
+        const adminPlacements=url.pathname==='/api/admin/ad-placements'
+        const adminPlacementDecision=url.pathname.match(/^\/api\/admin\/ad-placements\/([^/]+)\/decision$/)
         if (request.method === 'OPTIONS') {
-          const writeRoute = voteMatch || isSubmission || adminDecision || bannerUpload || adminBannerDecision || donationClaim || adminDonationDecision
-          const protectedRoute = voteMatch || isSubmission || adminList || adminDecision || bannerUpload || ownerBannerWorkspace || adminBannerList || adminBannerPreview || adminBannerDecision || donationClaim || adminDonationClaims || adminDonationDecision
+          const writeRoute = voteMatch || isSubmission || adminDecision || bannerUpload || adminBannerDecision || donationClaim || adminDonationDecision || adminPlacementDecision
+          const protectedRoute = voteMatch || isSubmission || adminList || adminDecision || bannerUpload || ownerBannerWorkspace || adminBannerList || adminBannerPreview || adminBannerDecision || donationClaim || adminDonationClaims || adminDonationDecision || adminPlacements || adminPlacementDecision
           return corsResponse(request, env, new Response(null, { status: 204 }), writeRoute ? `${bannerUpload ? 'PUT' : 'POST'}, OPTIONS` : 'GET, OPTIONS', protectedRoute ? `authorization, content-type${bannerUpload ? ', x-banner-alt-text, x-turnstile-token' : ''}` : undefined)
         }
         if (url.pathname === '/api/health' && request.method === 'GET') return corsResponse(request, env, Response.json({ ok: true }, { headers: noStoreHeaders() }))
@@ -122,6 +124,7 @@ export function createWorker(repositoryFactory: RepositoryFactory, voteHandlerFa
           const response=adminDonationDecision?await advertising.moderateClaim(request,safeDecode(adminDonationDecision[1])):await advertising.listPendingClaims(request)
           return corsResponse(request,env,response,methods,'authorization, content-type')
         }
+        if(adminPlacements||adminPlacementDecision){const methods=adminPlacementDecision?'POST, OPTIONS':'GET, OPTIONS';if(env.ADMIN_ENABLED!=='true'||!advertisingFactory)return corsResponse(request,env,jsonError('Advertisement management is not available yet.',503),methods,'authorization, content-type');const advertising=advertisingFactory(env);const response=adminPlacementDecision?await advertising.moderatePlacement(request,safeDecode(adminPlacementDecision[1])):await advertising.listPlacements(request);return corsResponse(request,env,response,methods,'authorization, content-type')}
         if (publicAds) {
           if (request.method !== 'GET') return corsResponse(request, env, methodNotAllowed())
           if (env.EXCLUSIVE_ADS_ENABLED !== 'true' || !advertisingFactory) return corsResponse(request, env, jsonError('Exclusive servers are not available yet.', 503))

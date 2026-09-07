@@ -17,7 +17,7 @@ type Dependencies = {
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const safe = { 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' }
-const decisions = new Set(['approve', 'reject', 'suspend'])
+const decisions = new Set(['approve', 'reject', 'suspend', 'reactivate'])
 const claimRejectionReasons = new Set(['not_matched', 'wrong_amount', 'wrong_currency', 'refunded'])
 const error = (message: string, status: number, extra?: HeadersInit) => Response.json({ ok: false, message }, { status, headers: { ...safe, ...extra } })
 
@@ -71,7 +71,7 @@ async function readBoundedBytes(request: Request, maximum: number): Promise<Uint
   return bytes
 }
 
-async function readDecision(request: Request): Promise<{ decision: 'approve' | 'reject' | 'suspend'; operationId: string } | null> {
+async function readDecision(request: Request): Promise<{ decision: 'approve' | 'reject' | 'suspend' | 'reactivate'; operationId: string } | null> {
   if (!request.headers.get('content-type')?.toLowerCase().startsWith('application/json')) return null
   const rawLength = request.headers.get('content-length')
   if (rawLength && (!/^\d+$/.test(rawLength) || Number(rawLength) > 512)) return null
@@ -83,12 +83,14 @@ async function readDecision(request: Request): Promise<{ decision: 'approve' | '
     const record = value as Record<string, unknown>
     if (Object.keys(record).some((key) => key !== 'decision' && key !== 'operationId')) return null
     if (typeof record.decision !== 'string' || !decisions.has(record.decision) || typeof record.operationId !== 'string' || !uuid.test(record.operationId)) return null
-    return { decision: record.decision as 'approve' | 'reject' | 'suspend', operationId: record.operationId }
+    return { decision: record.decision as 'approve' | 'reject' | 'suspend' | 'reactivate', operationId: record.operationId }
   } catch { return null }
 }
 
 export function createAdvertisingEndpoints(dependencies: Dependencies) {
   return {
+    async listPlacements(request:Request):Promise<Response>{if(request.method!=='GET')return error('Method not allowed.',405,{allow:'GET'});const admin=await authorize(request,dependencies,'admin','list-ad-placements');if(admin instanceof Response)return admin;return Response.json({ok:true,placements:await dependencies.repository.listAdminPlacements()},{headers:safe})},
+    async moderatePlacement(request:Request,placementId:string):Promise<Response>{if(request.method!=='POST')return error('Method not allowed.',405,{allow:'POST'});const admin=await authorize(request,dependencies,'admin','moderate-ad-placement');if(admin instanceof Response)return admin;if(!uuid.test(placementId))return error('Please submit a valid advertisement decision.',400);const input=await readDecision(request);if(!input||!['suspend','reactivate'].includes(input.decision))return error('Please submit a valid advertisement decision.',400);const outcome=await dependencies.repository.moderatePlacement(placementId,await dependencies.deriveModeratorKey(admin.uid),input.decision as 'suspend'|'reactivate',input.operationId);if(outcome==='suspend')return Response.json({ok:true,message:'The advertisement was suspended.'},{headers:safe});if(outcome==='reactivate')return Response.json({ok:true,message:'The advertisement was reactivated.'},{headers:safe});if(outcome==='inventory_full')return error('This game currently has no available advertising position.',409);if(outcome==='ineligible')return error('This advertisement is not eligible to run.',409);if(outcome==='expired')return error('This advertisement has expired.',409);return error('This advertisement is no longer available.',409)},
     async listPendingClaims(request: Request): Promise<Response> {
       if (request.method !== 'GET') return error('Method not allowed.', 405, { allow: 'GET' })
       const admin = await authorize(request, dependencies, 'admin', 'list-donation-claims')
@@ -201,8 +203,8 @@ export function createAdvertisingEndpoints(dependencies: Dependencies) {
       if (admin instanceof Response) return admin
       if (!uuid.test(bannerId)) return error('Please submit a valid banner decision.', 400)
       const input = await readDecision(request)
-      if (!input) return error('Please submit a valid banner decision.', 400)
-      const outcome = await dependencies.repository.moderateBanner(bannerId, await dependencies.deriveModeratorKey(admin.uid), input.decision, input.operationId)
+      if (!input || !['approve','reject','suspend'].includes(input.decision)) return error('Please submit a valid banner decision.', 400)
+      const outcome = await dependencies.repository.moderateBanner(bannerId, await dependencies.deriveModeratorKey(admin.uid), input.decision as 'approve'|'reject'|'suspend', input.operationId)
       if (outcome === 'approved') return Response.json({ ok: true, message: 'The banner was approved.' }, { headers: safe })
       if (outcome === 'rejected') return Response.json({ ok: true, message: 'The banner was rejected.' }, { headers: safe })
       if (outcome === 'suspended') return Response.json({ ok: true, message: 'The banner was suspended.' }, { headers: safe })
