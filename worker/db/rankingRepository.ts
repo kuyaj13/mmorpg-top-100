@@ -15,15 +15,27 @@ export type RankingRepository = {
 }
 
 type GameRow = { slug: string; name: string }
-type ServerRow = { id: string; name: string; website: string; votes: string }
+type ServerRow = {
+  id: string
+  name: string
+  website: string
+  votes: string
+  game_version: string | null
+  region: string | null
+  mode: 'PvE' | 'PvP' | 'RPG' | null
+  description: string | null
+  banner_id: string | null
+  banner_alt_text: string | null
+}
 type ApprovedServerRow = ServerRow & { game_slug: string; game_name: string }
 
-function mapServer({ id, name, website, votes }: ServerRow): RankingServer {
+function mapServer({ id, name, website, votes, game_version, region, mode, description, banner_id, banner_alt_text }: ServerRow): RankingServer {
   const numericVotes = Number(votes)
   if (!Number.isSafeInteger(numericVotes) || numericVotes < 0) throw new Error('Invalid public vote count')
   const parsedWebsite = new URL(website)
   if (parsedWebsite.protocol !== 'https:' || parsedWebsite.username || parsedWebsite.password) throw new Error('Invalid public website')
-  return { id, name, website: parsedWebsite.href, votes: numericVotes }
+  const banner = banner_id && banner_alt_text ? { id: banner_id, altText: banner_alt_text } : null
+  return { id, name, website: parsedWebsite.href, votes: numericVotes, gameVersion: game_version ?? null, region: region ?? null, mode: mode ?? null, description: description ?? null, banner }
 }
 
 export function createRankingRepository(createClient: () => RankingQueryClient): RankingRepository {
@@ -40,7 +52,9 @@ export function createRankingRepository(createClient: () => RankingQueryClient):
         if (!game) return null
 
         const serverResult = await client.query<ServerRow>(
-          `SELECT id::text AS id, name, website, vote_count::text AS votes
+          `SELECT id::text AS id, name, website, vote_count::text AS votes,
+                  game_version, region, mode, description,
+                  banner_id::text AS banner_id, banner_alt_text
              FROM api.public_rankings
             WHERE game_slug = $1
             ORDER BY vote_count DESC, created_at ASC, id ASC
@@ -59,6 +73,8 @@ export function createRankingRepository(createClient: () => RankingQueryClient):
         await client.connect()
         const result = await client.query<ApprovedServerRow>(
           `SELECT r.id::text AS id, r.name, r.website, r.vote_count::text AS votes,
+                  r.game_version, r.region, r.mode, r.description,
+                  r.banner_id::text AS banner_id, r.banner_alt_text,
                   g.slug AS game_slug, g.name AS game_name
              FROM api.public_rankings r
              JOIN api.public_games g ON g.slug = r.game_slug

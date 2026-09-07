@@ -2,7 +2,11 @@ import { render, screen, within } from '@testing-library/react'
 import type { RankingsService } from './rankingsService'
 import GamePage from './GamePage'
 
-const flyffServer = { id: 'prologic-flyff', name: 'Prologic Flyff', website: 'https://www.prologicflyff.com/', votes: 20 }
+const flyffServer = {
+  id: 'prologic-flyff', name: 'Prologic Flyff', website: 'https://www.prologicflyff.com/', votes: 20,
+  gameVersion: 'v22', region: 'Global', mode: 'PvP' as const, description: 'A community-focused Flyff server.',
+  banner: { url: 'https://api.mmorpgtop100.com/api/advertising/banners/62719124-cb58-41e6-8086-3bc241394f5d', staticUrl: 'https://api.mmorpgtop100.com/api/advertising/banners/62719124-cb58-41e6-8086-3bc241394f5d?static=1', altText: 'Prologic Flyff server banner' },
+}
 
 function service(servers = [flyffServer]): RankingsService {
   return { getGameRankings: (gameSlug) => Promise.resolve({ game: { slug: gameSlug, name: 'Flyff' }, servers }) }
@@ -28,12 +32,13 @@ describe('GamePage', () => {
     expect(within(rankings).getByText('Prologic Flyff')).toBeInTheDocument()
     expect(within(rankings).getByText('20 votes')).toBeInTheDocument()
     expect(screen.queryByLabelText('Sort by')).not.toBeInTheDocument()
-    const banner = document.querySelector<HTMLImageElement>('img[src="/banners/prologic-flyff-preview.gif"]')
+    const banner = document.querySelector<HTMLImageElement>('img[src*="62719124-cb58-41e6-8086-3bc241394f5d"]')
     expect(banner).not.toBeNull()
-    expect(banner).toHaveAttribute('src', '/banners/prologic-flyff-preview.gif')
-    const rankingButton = screen.getByRole('button', { name: 'Prologic Flyff20 votes' })
+    expect(banner).toHaveAttribute('alt', 'Prologic Flyff server banner')
+    const rankingButton = screen.getByRole('button', { name: /prologic flyff server banner.*prologic flyff.*20 votes/i })
     expect(rankingButton).toContainElement(banner)
     expect(banner!.compareDocumentPosition(within(rankingButton).getByText('Prologic Flyff')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(screen.getByText('A community-focused Flyff server.')).toBeInTheDocument()
     const websiteLink = screen.getByRole('link', { name: /visit website\s*for prologic flyff.*opens in a new tab/i })
     expect(websiteLink).toHaveAttribute('href', 'https://www.prologicflyff.com/')
     expect(websiteLink).toHaveAttribute('rel', 'noopener noreferrer')

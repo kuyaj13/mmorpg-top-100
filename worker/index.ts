@@ -133,7 +133,7 @@ export function createWorker(repositoryFactory: RepositoryFactory, voteHandlerFa
         }
         if (publicBanner) {
           if (request.method !== 'GET') return corsResponse(request, env, methodNotAllowed())
-          if (env.EXCLUSIVE_ADS_ENABLED !== 'true' || !advertisingFactory) return corsResponse(request, env, jsonError('Banner not found.', 404))
+          if (!advertisingFactory) return corsResponse(request, env, jsonError('Banner not found.', 404))
           const clientKey = request.headers.get('cf-connecting-ip') ?? 'unknown-client'
           if (!(await env.ADVERTISING_RATE_LIMITER.limit({ key: `${clientKey}:banner` })).success) return corsResponse(request, env, rateLimited())
           return corsResponse(request, env, await advertisingFactory(env).banner(request, safeDecode(publicBanner[1])))

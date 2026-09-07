@@ -17,7 +17,7 @@ describe('ranking repository', () => {
     ])
     await expect(createRankingRepository(() => client).findByGameSlug('flyff')).resolves.toEqual({
       game: { slug: 'flyff', name: 'Flyff' },
-      servers: [{ id: 'server-id', name: 'Server', website: 'https://server.example/', votes: 20 }],
+      servers: [{ id: 'server-id', name: 'Server', website: 'https://server.example/', votes: 20, gameVersion: null, region: null, mode: null, description: null, banner: null }],
     })
     expect(client.query).toHaveBeenNthCalledWith(1, expect.any(String), ['flyff'])
     expect(client.query).toHaveBeenNthCalledWith(2, expect.stringContaining('LIMIT 100'), ['flyff'])
@@ -31,6 +31,15 @@ describe('ranking repository', () => {
     ])
     await expect(createRankingRepository(() => client).findByGameSlug('flyff')).rejects.toThrow('Invalid public vote count')
     expect(client.end).toHaveBeenCalledOnce()
+  })
+
+  it('maps submitted details and approved banner metadata', async () => {
+    const client = fakeClient([
+      { rows: [{ slug: 'flyff', name: 'Flyff' }] },
+      { rows: [{ id: 'server-id', name: 'Server', website: 'https://server.example/', votes: '20', game_version: 'v22', region: 'Asia', mode: 'PvP', description: 'A community-focused Flyff server.', banner_id: '62719124-cb58-41e6-8086-3bc241394f5d', banner_alt_text: 'Flyff server banner' }] },
+    ])
+    const result = await createRankingRepository(() => client).findByGameSlug('flyff')
+    expect(result?.servers[0]).toMatchObject({ gameVersion: 'v22', region: 'Asia', mode: 'PvP', description: 'A community-focused Flyff server.', banner: { id: '62719124-cb58-41e6-8086-3bc241394f5d', altText: 'Flyff server banner' } })
   })
 
   it('rejects a non-HTTPS public website', async () => {
@@ -51,7 +60,7 @@ describe('ranking repository', () => {
   it('lists approved servers with their game for homepage discovery', async () => {
     const client = fakeClient([{ rows: [{ id: 'server-id', name: 'Server', website: 'https://server.example/', votes: '4', game_slug: 'flyff', game_name: 'Flyff' }] }])
     await expect(createRankingRepository(() => client).listApprovedServers()).resolves.toEqual([
-      { id: 'server-id', name: 'Server', website: 'https://server.example/', votes: 4, game: { slug: 'flyff', name: 'Flyff' } },
+      { id: 'server-id', name: 'Server', website: 'https://server.example/', votes: 4, gameVersion: null, region: null, mode: null, description: null, banner: null, game: { slug: 'flyff', name: 'Flyff' } },
     ])
     expect(client.query).toHaveBeenCalledWith(expect.stringContaining('LIMIT 100'))
     expect(client.end).toHaveBeenCalledOnce()

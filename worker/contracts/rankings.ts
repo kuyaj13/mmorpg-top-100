@@ -5,6 +5,11 @@ export type RankingServer = {
   name: string
   website: string
   votes: number
+  gameVersion: string | null
+  region: string | null
+  mode: 'PvE' | 'PvP' | 'RPG' | null
+  description: string | null
+  banner: { id: string; altText: string } | null
 }
 
 export type GameRankings = {

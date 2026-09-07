@@ -37,16 +37,17 @@ function repository(result: Awaited<ReturnType<RankingRepository['findByGameSlug
 
 describe('rankings endpoint', () => {
   it('returns a game-scoped public response', async () => {
-    const repo = repository({ game: { slug: 'flyff', name: 'Flyff' }, servers: [{ id: 'one', name: 'One', website: 'https://one.example/', votes: 2 }] })
+    const server = { id: 'one', name: 'One', website: 'https://one.example/', votes: 2, gameVersion: null, region: null, mode: null, description: null, banner: null }
+    const repo = repository({ game: { slug: 'flyff', name: 'Flyff' }, servers: [server] })
     const response = await createWorker(() => repo).fetch(new Request('https://api.example/api/games/flyff/rankings'), env)
     expect(response.status).toBe(200)
-    await expect(response.json()).resolves.toEqual({ ok: true, game: { slug: 'flyff', name: 'Flyff' }, servers: [{ id: 'one', name: 'One', website: 'https://one.example/', votes: 2 }] })
+    await expect(response.json()).resolves.toEqual({ ok: true, game: { slug: 'flyff', name: 'Flyff' }, servers: [server] })
     expect(repo.findByGameSlug).toHaveBeenCalledWith('flyff')
   })
 
   it('returns approved servers for cross-game discovery', async () => {
     const repo = repository(null)
-    vi.mocked(repo.listApprovedServers).mockResolvedValue([{ id: 'one', name: 'One', website: 'https://one.example/', votes: 2, game: { slug: 'flyff', name: 'Flyff' } }])
+    vi.mocked(repo.listApprovedServers).mockResolvedValue([{ id: 'one', name: 'One', website: 'https://one.example/', votes: 2, gameVersion: null, region: null, mode: null, description: null, banner: null, game: { slug: 'flyff', name: 'Flyff' } }])
     const response = await createWorker(() => repo).fetch(new Request('https://api.example/api/servers'), env)
     expect(response.status).toBe(200)
     await expect(response.json()).resolves.toMatchObject({ ok: true, servers: [{ name: 'One', game: { slug: 'flyff' } }] })
@@ -214,6 +215,18 @@ describe('rankings endpoint', () => {
     expect(response.headers.get('access-control-allow-methods')).toBe('PUT, OPTIONS')
     expect(response.headers.get('access-control-allow-headers')).toBe('authorization, content-type, x-banner-alt-text, x-turnstile-token')
     expect(response.headers.get('access-control-allow-headers')).not.toContain('x-firebase-appcheck')
+  })
+
+  it('serves an approved public banner independently from paid advertising', async () => {
+    const banner = vi.fn().mockResolvedValue(new Response(new Uint8Array([137, 80, 78, 71]), { headers: { 'content-type': 'image/png' } }))
+    const advertising = {
+      ownerWorkspace: vi.fn(), submitClaim: vi.fn(), listPendingClaims: vi.fn(), moderateClaim: vi.fn(),
+      upload: vi.fn(), listPublic: vi.fn(), banner, listPending: vi.fn(), previewPending: vi.fn(), moderate: vi.fn(),
+    }
+    const worker = createWorker(() => repository(null), undefined, undefined, undefined, () => advertising)
+    const response = await worker.fetch(new Request('https://api.example/api/advertising/banners/62719124-cb58-41e6-8086-3bc241394f5d'), env)
+    expect(response.status).toBe(200)
+    expect(banner).toHaveBeenCalledOnce()
   })
 
   it('keeps the owner banner workspace unavailable while its feature flag is off', async () => {

@@ -11,14 +11,6 @@ import { ExclusiveServers } from '../advertising/ExclusiveServers'
 
 type GamePageProps = { slug: string; rankingsService?: RankingsService; votingEnabled?: boolean; votingService?: VotingService; turnstileSiteKey?: string }
 
-const bannerPreviews: Record<string, { animated: string; static: string; alt: string }> = {
-  'flyff:Prologic Flyff': {
-    animated: '/banners/prologic-flyff-preview.gif',
-    static: '/banners/prologic-flyff-preview-static.png',
-    alt: 'Prologic Flyff banner with its gold logo over a blue and pink cloudscape',
-  },
-}
-
 export default function GamePage({ slug, rankingsService = defaultRankingsService, votingEnabled = siteConfig.votingEnabled, votingService, turnstileSiteKey }: GamePageProps) {
   const game = findGameBySlug(slug)
   const [servers, setServers] = useState<PublicRankingServer[]>([])
@@ -76,11 +68,11 @@ export default function GamePage({ slug, rankingsService = defaultRankingsServic
             <div className="game-ranking-layout">
               <ol className="game-server-list" aria-label={`${game.name} server rankings`}>
                 {servers.map((server) => {
-                  const banner = bannerPreviews[`${game.slug}:${server.name}`]
+                  const banner = server.banner
                   return <li key={server.id}><button className={banner ? 'server-ranking-button with-banner' : 'server-ranking-button'} type="button" aria-pressed={selectedServer?.id === server.id} onClick={() => setSelectedId(server.id)}>
-                    {banner && <picture className="ranking-banner-preview" aria-hidden="true">
-                      <source media="(prefers-reduced-motion: reduce)" srcSet={banner.static} />
-                      <img src={banner.animated} alt="" width="468" height="60" />
+                    {banner && <picture className="ranking-banner-preview">
+                      <source media="(prefers-reduced-motion: reduce)" srcSet={banner.staticUrl} />
+                      <img src={banner.url} alt={banner.altText} width="468" height="60" loading="lazy" decoding="async" />
                     </picture>}
                     <span className="server-ranking-summary"><span>{server.name}</span><span>{server.votes.toLocaleString()} votes</span></span>
                   </button></li>
@@ -88,7 +80,13 @@ export default function GamePage({ slug, rankingsService = defaultRankingsServic
               </ol>
               {selectedServer && <aside className="game-server-detail" aria-label="Selected server details">
                 <h3>{selectedServer.name}</h3>
-                <dl><div><dt>Votes</dt><dd>{selectedServer.votes.toLocaleString()}</dd></div></dl>
+                {selectedServer.description && <p>{selectedServer.description}</p>}
+                <dl>
+                  <div><dt>Votes</dt><dd>{selectedServer.votes.toLocaleString()}</dd></div>
+                  {selectedServer.region && <div><dt>Region</dt><dd>{selectedServer.region}</dd></div>}
+                  {selectedServer.mode && <div><dt>Mode</dt><dd>{selectedServer.mode}</dd></div>}
+                  {selectedServer.gameVersion && <div><dt>Version</dt><dd>{selectedServer.gameVersion}</dd></div>}
+                </dl>
                 <a className="server-website" href={selectedServer.website} target="_blank" rel="noopener noreferrer">
                   Visit website
                   <span className="visually-hidden"> for {selectedServer.name} (opens in a new tab)</span>
