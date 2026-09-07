@@ -4,7 +4,7 @@ import { createWorker } from './index'
 
 const rateLimit = vi.fn().mockResolvedValue({ success: true })
 const env = {
-  ALLOWED_ORIGIN: 'https://mmorpgtop100.com,https://mmorpg-top-100.pages.dev' as const,
+  ALLOWED_ORIGIN: 'https://mmorpgtop100.com,https://www.mmorpgtop100.com,https://mmorpg-top-100.pages.dev' as const,
   HYPERDRIVE: { connectionString: '' } as Hyperdrive,
   RANKINGS_RATE_LIMITER: { limit: rateLimit } as RateLimit,
   VOTE_RATE_LIMITER: { limit: rateLimit } as RateLimit,
@@ -200,8 +200,9 @@ describe('rankings endpoint', () => {
 
   it('advertises only required headers for submission preflight', async () => {
     const response = await createWorker(() => repository(null)).fetch(new Request('https://api.example/api/server-submissions', {
-      method: 'OPTIONS', headers: { origin: 'https://mmorpgtop100.com' },
+      method: 'OPTIONS', headers: { origin: 'https://www.mmorpgtop100.com' },
     }), env)
+    expect(response.headers.get('access-control-allow-origin')).toBe('https://www.mmorpgtop100.com')
     expect(response.headers.get('access-control-allow-methods')).toBe('POST, OPTIONS')
     expect(response.headers.get('access-control-allow-headers')).toBe('authorization, content-type')
   })
