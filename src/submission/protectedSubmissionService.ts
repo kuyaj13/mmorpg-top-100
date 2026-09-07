@@ -13,8 +13,8 @@ export const protectedSubmissionService: ProtectedSubmissionService = {
       if (!apiBaseUrl) return { ok: false, message: 'Server submissions are temporarily unavailable.' }
       const idToken = await user.getIdToken()
       const response = await submitProtectedServer(apiBaseUrl, submission, { idToken })
-      const body = await response.json().catch(() => null) as SubmissionResponse | null
-      if (!response.ok) return { ok: false, message: publicSubmissionError(response.status) }
+      const body = await response.json().catch(() => null) as (SubmissionResponse & { message?: unknown }) | null
+      if (!response.ok) return { ok: false, message: publicSubmissionError(response.status, body?.message) }
       if (typeof body?.reference !== 'string' || body.reference.length < 1 || body.reference.length > 100) {
         return { ok: false, message: 'Your submission could not be confirmed. Please try again.' }
       }
@@ -51,10 +51,11 @@ export function submitProtectedServer(
   })
 }
 
-function publicSubmissionError(status: number): string {
-  if (status === 401) return 'Sign in with a verified account to submit a server.'
+function publicSubmissionError(status: number, responseMessage?: unknown): string {
+  if (status === 401) return 'Your account or security check could not be verified. Sign in with a verified account and complete the security check again.'
   if (status === 400 || status === 403) return 'Check the form and complete the security check again.'
-  if (status === 409) return 'This server is already pending review.'
+  if (status === 409 && responseMessage === 'You already have several submissions pending review.') return responseMessage
+  if (status === 409) return 'This server is already listed or pending review.'
   if (status === 429) return 'Submissions are temporarily limited. Please wait and try again.'
   return 'Your server could not be submitted. Please try again.'
 }

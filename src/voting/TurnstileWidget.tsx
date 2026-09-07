@@ -69,8 +69,8 @@ export function TurnstileWidget({ onToken, resetRef, siteKey: configuredSiteKey,
         size: 'flexible',
         action,
         callback: (token: string) => { setError(''); onToken(token) },
-        'expired-callback': () => onToken(''),
-        'timeout-callback': () => onToken(''),
+        'expired-callback': () => { onToken(''); setError('The security check expired. Complete it again.'); if (widgetIdRef.current) window.turnstile?.reset(widgetIdRef.current) },
+        'timeout-callback': () => { onToken(''); setError('The security check timed out. Complete it again.'); if (widgetIdRef.current) window.turnstile?.reset(widgetIdRef.current) },
         'error-callback': () => { onToken(''); setError('The security check could not be completed. Please try again.'); return true },
       })
     }).catch(() => { if (!cancelled) setError('The security check is temporarily unavailable.') })

@@ -24,7 +24,7 @@
     "DONATION_CLAIMS_ENABLED": "false",
     "DONATION_MODERATION_ENABLED": "false",
     "FIREBASE_PROJECT_ID": "mmorpg-top-100",
-    "TURNSTILE_HOSTNAME": "mmorpgtop100.com",
+    "TURNSTILE_HOSTNAME": "mmorpgtop100.com,www.mmorpgtop100.com",
     "TURNSTILE_ACTION": "vote",
     "SUBMISSION_TURNSTILE_ACTION": "submit-server",
     "BANNER_TURNSTILE_ACTION": "banner-upload",

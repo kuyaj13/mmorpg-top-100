@@ -123,8 +123,6 @@ describe('submission endpoint', () => {
     [{ ...validBody, website: 'https://user:secret@moonlight.example' }],
     [{ ...validBody, website: 'https://localhost/' }],
     [{ ...validBody, website: 'https://192.0.2.1/' }],
-    [{ ...validBody, website: 'https://moonlight.example:8443/' }],
-    [{ ...validBody, website: 'https://moonlight.example/news' }],
     [{ ...validBody, mode: 'unsafe' }],
     [{ ...validBody, extra: 'unexpected' }],
     [{ ...validBody, description: '' }],
@@ -132,6 +130,12 @@ describe('submission endpoint', () => {
     const context = setup({}, body)
     expect((await context.endpoint(context.request)).status).toBe(400)
     expect(context.dependencies.verifyFirebase).not.toHaveBeenCalled()
+  })
+
+  it.each(['https://moonlight.example/news', 'https://moonlight.example:8443/play?source=directory'])('accepts a valid HTTPS website with a path or custom port', async (website) => {
+    const context = setup({}, { ...validBody, website })
+    expect((await context.endpoint(context.request)).status).toBe(201)
+    expect(context.dependencies.repository.submit).toHaveBeenCalledWith(expect.objectContaining({ website: new URL(website).href, websiteHost: 'moonlight.example' }))
   })
 
   it('sets Retry-After when rate limited', async () => {

@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { SubmissionPage } from './SubmissionPage'
 
@@ -47,6 +47,16 @@ describe('SubmissionPage', () => {
     expect(await screen.findByRole('group', { name: 'Banner (optional and free)' })).toBeInTheDocument()
     expect(screen.getByLabelText('Banner image')).toHaveAttribute('accept', 'image/gif,image/png,image/jpeg')
     expect(screen.getByLabelText('Banner image')).toHaveAccessibleDescription(/468 by 60 pixel/i)
+  })
+
+  it('resets an expired security check and tells the user to complete it again', async () => {
+    render(<SubmissionPage service={{ submit: vi.fn() }} authService={authService} turnstileSiteKey="test-key" />)
+    await screen.findByLabelText('Game')
+    await waitFor(() => expect(window.turnstile!.render).toHaveBeenCalled())
+    const options = vi.mocked(window.turnstile!.render).mock.calls[0][1]
+    act(() => (options['expired-callback'] as () => void)())
+    expect(window.turnstile!.reset).toHaveBeenCalledWith('submission-widget')
+    expect(screen.getByRole('alert')).toHaveTextContent('The security check expired. Complete it again.')
   })
 
   it('does not expose the form or security challenge before verified authentication', async () => {

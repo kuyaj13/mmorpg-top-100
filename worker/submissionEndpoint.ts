@@ -61,11 +61,10 @@ function parseBody(value: unknown): (Omit<NewServerSubmission, 'ownerKey'> & { t
 
   let website: URL
   try { website = new URL(String(record.website)) } catch { return null }
-  if (website.protocol !== 'https:' || website.username || website.password || website.hash || website.search || website.pathname !== '/' || (website.port && website.port !== '443')) return null
+  if (website.protocol !== 'https:' || website.username || website.password || website.hash) return null
   website.hostname = website.hostname.toLowerCase()
   const websiteHost = website.hostname
   if (websiteHost === 'localhost' || websiteHost.endsWith('.local') || !websiteHost.includes('.') || websiteHost.startsWith('[') || /^(?:\d{1,3}\.){3}\d{1,3}$/.test(websiteHost)) return null
-  website.port = ''
   return { gameSlug, name, website: website.href, websiteHost, gameVersion, region, mode: record.mode as 'PvE' | 'PvP' | 'RPG', description, turnstileToken }
 }
 
