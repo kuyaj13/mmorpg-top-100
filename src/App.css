@@ -29,8 +29,34 @@
 }
 
 .submission-page [aria-invalid="true"] { border-color: #b42318; }
-.submission-page [role="alert"] { color: #b42318; }
+.submission-page [role="alert"] { color: #fecaca; }
 .submission-page :focus-visible { outline: 3px solid #f0b429; outline-offset: 2px; }
+
+.submission-error-summary,
+.submission-result.error {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid #f87171;
+  border-radius: 10px;
+  background: #450a0a;
+  color: #fecaca;
+}
+
+.submission-result.success {
+  padding: 12px 14px;
+  border: 1px solid #4ade80;
+  border-radius: 10px;
+  background: #052e16;
+  color: #bbf7d0;
+  font-weight: 700;
+}
+
+.submission-field .field-error {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
 
 .topbar {
   display: flex;

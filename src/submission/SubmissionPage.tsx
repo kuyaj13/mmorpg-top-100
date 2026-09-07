@@ -17,7 +17,7 @@ export function SubmissionPage({ service = protectedSubmissionService, turnstile
   const [errors, setErrors] = useState<SubmissionErrors>({})
   const [token, setToken] = useState('')
   const [pending, setPending] = useState(false)
-  const [feedback, setFeedback] = useState('')
+  const [feedback, setFeedback] = useState<{ message: string; kind: 'success' | 'error' } | null>(null)
   const [authStatus, setAuthStatus] = useState<PlayerAuthStatus>('signed-out')
   const formRef = useRef<HTMLFormElement>(null)
   const resultRef = useRef<HTMLParagraphElement>(null)
@@ -46,7 +46,7 @@ export function SubmissionPage({ service = protectedSubmissionService, turnstile
     }
     const nextErrors = validateSubmission(submission)
     setErrors(nextErrors)
-    setFeedback('')
+    setFeedback(null)
     const firstError = Object.keys(nextErrors)[0] as FieldName | undefined
     if (firstError) {
       if (firstError === 'turnstileToken') formRef.current?.querySelector<HTMLElement>('[aria-labelledby="submission-security-label"]')?.focus()
@@ -62,17 +62,36 @@ export function SubmissionPage({ service = protectedSubmissionService, turnstile
     widgetRef.current?.reset()
     if (result.ok) {
       form.reset()
-      setFeedback(`Your server was submitted for review. Reference: ${result.reference}`)
-    } else setFeedback(result.message)
+      setErrors({})
+      setFeedback({ message: `Your server was submitted for review. Reference: ${result.reference}`, kind: 'success' })
+    } else {
+      const duplicate = result.message === 'This server is already listed or pending review.'
+      if (duplicate) setErrors((current) => ({ ...current, name: result.message, website: result.message }))
+      setFeedback({ message: result.message, kind: 'error' })
+    }
     requestAnimationFrame(() => resultRef.current?.focus())
   }
+
+  function clearFieldError(event: FormEvent<HTMLFormElement>) {
+    const field = event.target
+    if (!(field instanceof HTMLInputElement || field instanceof HTMLSelectElement || field instanceof HTMLTextAreaElement)) return
+    const name = field.name as FieldName
+    if (errors[name]) setErrors((current) => { const next = { ...current }; delete next[name]; return next })
+    if (feedback?.kind === 'error') setFeedback(null)
+  }
+
+  const errorCount = Object.keys(errors).length
 
   return <main className="submission-page">
     <section aria-labelledby="submission-heading">
       <h1 id="submission-heading">Submit your server</h1>
       <p>Send an active private server for manual review. Submission does not guarantee approval or affect ranking.</p>
       <PlayerAuthPanel service={authService} onStatusChange={receiveAuthStatus} purpose="submit" />
-      {authStatus === 'ready' && <form ref={formRef} onSubmit={(event) => void submit(event)} noValidate>
+      {authStatus === 'ready' && <form ref={formRef} onSubmit={(event) => void submit(event)} onInput={clearFieldError} noValidate>
+        {errorCount > 0 && <div className="submission-error-summary" role="alert" aria-live="assertive">
+          <strong>Please correct {errorCount === 1 ? 'the highlighted field' : `${errorCount} highlighted fields`}.</strong>
+          <span>Each error is explained beside its field.</span>
+        </div>}
         <SubmissionField id="server-name" name="name" label="Server name" error={errors.name}><input id="server-name" name="name" type="text" required minLength={2} maxLength={80} autoComplete="organization" /></SubmissionField>
         <SubmissionField id="server-website" name="website" label="Server website" error={errors.website}><input id="server-website" name="website" type="url" required inputMode="url" maxLength={2048} autoComplete="url" placeholder="https://example.com" /></SubmissionField>
         <SubmissionField id="server-game" name="gameSlug" label="Game" error={errors.gameSlug}><select id="server-game" name="gameSlug" required defaultValue=""><option value="" disabled>Select a game</option>{games.map((game) => <option key={game.slug} value={game.slug}>{game.name}</option>)}</select></SubmissionField>
@@ -87,9 +106,9 @@ export function SubmissionPage({ service = protectedSubmissionService, turnstile
           <SubmissionField id="banner-alt-text" name="bannerAltText" label="Banner description" error={errors.bannerAltText}><input id="banner-alt-text" name="bannerAltText" type="text" minLength={10} maxLength={160} aria-describedby="banner-help" placeholder="Describe the banner for visitors who cannot see it" /></SubmissionField>
         </fieldset>
         <div tabIndex={-1} aria-labelledby="submission-security-label"><TurnstileWidget onToken={receiveToken} resetRef={widgetRef} siteKey={turnstileSiteKey} action="submit-server" idPrefix="submission" /></div>
-        {errors.turnstileToken && <p id="turnstileToken-error" role="alert">{errors.turnstileToken}</p>}
+        {errors.turnstileToken && <p id="turnstileToken-error" className="field-error" role="alert">{errors.turnstileToken}</p>}
         <button type="submit" disabled={pending}>{pending ? 'Submitting…' : 'Submit for review'}</button>
-        {feedback && <p ref={resultRef} tabIndex={-1} role="status">{feedback}</p>}
+        {feedback && <p ref={resultRef} tabIndex={-1} className={`submission-result ${feedback.kind}`} role={feedback.kind === 'error' ? 'alert' : 'status'}>{feedback.message}</p>}
       </form>}
     </section>
   </main>
@@ -100,5 +119,5 @@ function SubmissionField({ id, name, label, error, children }: { id: string; nam
     'aria-invalid': Boolean(error),
     'aria-describedby': [children.props['aria-describedby'], error ? `${name}-error` : ''].filter(Boolean).join(' ') || undefined,
   })
-  return <div className="submission-field"><label htmlFor={id}>{label}</label>{child}{error && <p id={`${name}-error`}>{error}</p>}</div>
+  return <div className="submission-field"><label htmlFor={id}>{label}</label>{child}{error && <p id={`${name}-error`} className="field-error" role="alert">{error}</p>}</div>
 }

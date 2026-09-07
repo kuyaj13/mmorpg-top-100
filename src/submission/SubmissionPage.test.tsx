@@ -39,7 +39,26 @@ describe('SubmissionPage', () => {
     await user.click(screen.getByRole('button', { name: 'Submit for review' }))
     expect(screen.getByLabelText('Server name')).toHaveFocus()
     expect(screen.getByLabelText('Server name')).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getByText(/highlighted fields/i)).toBeInTheDocument()
     expect(screen.getByText('Complete the security check.')).toHaveAttribute('role', 'alert')
+  })
+
+  it('shows a visible server failure and connects duplicate errors to relevant fields', async () => {
+    const user = userEvent.setup()
+    const service = { submit: vi.fn().mockResolvedValue({ ok: false as const, message: 'This server is already listed or pending review.' }) }
+    render(<SubmissionPage service={service} authService={authService} turnstileSiteKey="test-key" />)
+    await user.type(await screen.findByLabelText('Server name'), 'Flyff One')
+    await user.type(screen.getByLabelText('Server website'), 'https://flyff.example/')
+    await user.selectOptions(screen.getByLabelText('Game'), 'flyff')
+    await user.type(screen.getByLabelText('Game version'), 'v22')
+    await user.type(screen.getByLabelText('Primary region'), 'Asia')
+    await user.selectOptions(screen.getByLabelText('Server mode'), 'PvE')
+    await user.type(screen.getByLabelText('Description'), 'A community-focused Flyff server.')
+    await user.click(screen.getByRole('button', { name: 'Submit for review' }))
+    const visibleFailure = (await screen.findAllByText('This server is already listed or pending review.')).find((element) => element.classList.contains('submission-result'))
+    expect(visibleFailure).toHaveAttribute('role', 'alert')
+    expect(screen.getByLabelText('Server name')).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getByLabelText('Server website')).toHaveAccessibleDescription(/already listed or pending review/i)
   })
 
   it('offers a clearly labelled optional free banner in the same form', async () => {
