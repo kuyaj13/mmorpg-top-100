@@ -173,7 +173,7 @@ export function createAdvertisingEndpoints(dependencies: Dependencies) {
           if (destination.protocol !== 'https:') return []
           const bannerUrl = new URL(`/api/advertising/banners/${ad.bannerId}`, origin)
           const staticBannerUrl = new URL(bannerUrl); staticBannerUrl.searchParams.set('static', '1')
-          return [{ id: ad.id, serverId: ad.serverId, gameSlug, serverName: ad.serverName, website: destination.href, bannerUrl: bannerUrl.href, staticBannerUrl: staticBannerUrl.href, altText: ad.altText }]
+          return [{ id: ad.id, serverId: ad.serverId, gameSlug, serverName: ad.serverName, website: destination.href, bannerUrl: bannerUrl.href, staticBannerUrl: staticBannerUrl.href, altText: ad.altText, expiresAt: ad.expiresAt }]
         } catch { return [] }
       })
       return Response.json({ ok: true, advertisements }, { headers: { ...safe, 'cache-control': 'public, max-age=60' } })

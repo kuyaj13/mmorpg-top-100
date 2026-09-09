@@ -39,9 +39,20 @@ export function ExclusiveServers({ gameSlug, gameName, service = productionServi
     const timer = window.setInterval(() => setIndex((current) => (current + 1) % ads.length), rotationMilliseconds)
     return () => window.clearInterval(timer)
   }, [ads.length, userPaused, interactionPaused, pageHidden, reducedMotion])
+  useEffect(() => {
+    if (!ads.length) return
+    const nearestExpiry = Math.min(...ads.map((item) => Date.parse(item.expiresAt)))
+    const delay = Math.min(Math.max(nearestExpiry - Date.now(), 0), 2_147_000_000)
+    const timer = window.setTimeout(() => {
+      const now = Date.now()
+      setAds((current) => current.filter((item) => Date.parse(item.expiresAt) > now))
+    }, delay)
+    return () => window.clearTimeout(timer)
+  }, [ads])
 
   const show = (offset: number) => {const next=(index+offset+ads.length)%ads.length;setIndex(next);setAnnouncement(`Sponsored server ${next+1} of ${ads.length}: ${ads[next].serverName}`)}
-  const ad = ads[index]
+  const safeIndex = ads.length ? index % ads.length : 0
+  const ad = ads[safeIndex]
   return <section ref={sectionRef} className="exclusive-servers" aria-labelledby={`exclusive-heading-${gameSlug}`} onPointerEnter={() => setInteractionPaused(true)} onPointerLeave={() => setInteractionPaused(false)} onFocus={() => setInteractionPaused(true)} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setInteractionPaused(false) }}>
     <p className="eyebrow">Advertisement</p><h2 id={`exclusive-heading-${gameSlug}`}>Exclusive {gameName} servers</h2>
     {status === 'loading' && <p role="status">Loading sponsored servers…</p>}
@@ -51,7 +62,7 @@ export function ExclusiveServers({ gameSlug, gameName, service = productionServi
       <a href={ad.website} target="_blank" rel="noopener noreferrer sponsored external" aria-label={`${ad.serverName}, Sponsored — opens in a new tab`}>
         <picture><source media="(prefers-reduced-motion: reduce)" srcSet={ad.staticBannerUrl} /><img src={reducedMotion ? ad.staticBannerUrl : ad.bannerUrl} alt={ad.altText} width="936" height="120" /></picture>
       </a>
-      {ads.length > 1 && <p>Sponsored server {index + 1} of {ads.length}: {ad.serverName}</p>}
+      {ads.length > 1 && <p>Sponsored server {safeIndex + 1} of {ads.length}: {ad.serverName}</p>}
       <span className="visually-hidden" role="status" aria-atomic="true">{announcement}</span>
       {ads.length > 1 && <div className="exclusive-controls"><button type="button" onClick={() => show(-1)} aria-label="Show previous sponsored server">Previous</button>{!reducedMotion && <button type="button" onClick={() => setUserPaused((current) => !current)} aria-pressed={userPaused}>{userPaused ? 'Resume rotation' : 'Pause rotation'}</button>}<button type="button" onClick={() => show(1)} aria-label="Show next sponsored server">Next</button></div>}
     </div>}

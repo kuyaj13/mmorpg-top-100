@@ -2,8 +2,8 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 import { ExclusiveServers } from './ExclusiveServers'
 
 const ads = [
-  { id: 'a', serverId: 'one', gameSlug: 'flyff', serverName: 'Flyff One', website: 'https://one.example/', bannerUrl: 'https://cdn.example/one.gif', staticBannerUrl: 'https://cdn.example/one.png', altText: 'Flyff One fantasy banner' },
-  { id: 'b', serverId: 'two', gameSlug: 'flyff', serverName: 'Flyff Two', website: 'https://two.example/', bannerUrl: 'https://cdn.example/two.gif', staticBannerUrl: 'https://cdn.example/two.png', altText: 'Flyff Two fantasy banner' },
+  { id: 'a', serverId: 'one', gameSlug: 'flyff', serverName: 'Flyff One', website: 'https://one.example/', bannerUrl: 'https://cdn.example/one.gif', staticBannerUrl: 'https://cdn.example/one.png', altText: 'Flyff One fantasy banner', expiresAt: '2026-10-01T00:00:00Z' },
+  { id: 'b', serverId: 'two', gameSlug: 'flyff', serverName: 'Flyff Two', website: 'https://two.example/', bannerUrl: 'https://cdn.example/two.gif', staticBannerUrl: 'https://cdn.example/two.png', altText: 'Flyff Two fantasy banner', expiresAt: '2026-10-01T00:00:00Z' },
 ]
 
 describe('ExclusiveServers', () => {
@@ -65,5 +65,15 @@ describe('ExclusiveServers', () => {
     expect(screen.getByRole('button', { name: 'Show next sponsored server' })).toBeInTheDocument()
     act(() => vi.advanceTimersByTime(30_000))
     expect(screen.getByText(/Flyff One$/)).toBeInTheDocument()
+  })
+
+  it('removes a sponsored server when its placement expires while the page remains open', async () => {
+    const expiring = [{ ...ads[0], expiresAt: new Date(1_000).toISOString() }]
+    render(<ExclusiveServers gameSlug="flyff" gameName="Flyff" service={{ list: vi.fn().mockResolvedValue(expiring) }} />)
+    await act(async () => {})
+    expect(screen.getByRole('link', { name: /Flyff One, Sponsored.*new tab/i })).toBeInTheDocument()
+    act(() => vi.advanceTimersByTime(1_000))
+    expect(screen.queryByRole('link', { name: /Flyff One, Sponsored.*new tab/i })).not.toBeInTheDocument()
+    expect(screen.getByText('There are no active sponsored servers for this game.')).toBeInTheDocument()
   })
 })

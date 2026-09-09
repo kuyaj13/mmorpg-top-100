@@ -73,7 +73,8 @@ function isExclusiveAd(value: unknown, gameSlug: string): value is ExclusiveServ
   return typeof ad.id === 'string' && typeof ad.serverId === 'string' && ad.gameSlug === gameSlug &&
     typeof ad.serverName === 'string' && ad.serverName.length > 0 && ad.serverName.length <= 80 &&
     isHttps(ad.website) && isHttps(ad.bannerUrl) && isHttps(ad.staticBannerUrl) &&
-    typeof ad.altText === 'string' && ad.altText.length >= 5 && ad.altText.length <= 180
+    typeof ad.altText === 'string' && ad.altText.length >= 5 && ad.altText.length <= 180 &&
+    typeof ad.expiresAt === 'string' && Number.isFinite(Date.parse(ad.expiresAt)) && Date.parse(ad.expiresAt) > Date.now()
 }
 
 function isHttps(value: unknown) {

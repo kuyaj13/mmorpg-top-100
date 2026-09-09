@@ -83,7 +83,7 @@ export function createAdvertisingRepository(createClient: () => RankingQueryClie
     listPublic: (slug) => run(async (client) => {
       await client.query('SELECT api.reconcile_exclusive_game($1::varchar)',[slug])
       const result = await client.query<Record<string, string>>('SELECT id::text,server_id::text,server_name,banner_id::text,media_type,alt_text,destination_url,starts_at::text,expires_at::text FROM api.public_exclusive_ads WHERE game_slug=$1 ORDER BY starts_at,id', [slug])
-      return result.rows.map((row) => ({ id: row.id, serverId: row.server_id, serverName: row.server_name, bannerId: row.banner_id, mediaType: row.media_type, altText: row.alt_text, destinationUrl: row.destination_url, startsAt: row.starts_at, expiresAt: row.expires_at }))
+      return result.rows.map((row) => ({ id: row.id, serverId: row.server_id, serverName: row.server_name, bannerId: row.banner_id, mediaType: row.media_type, altText: row.alt_text, destinationUrl: row.destination_url, startsAt: new Date(row.starts_at).toISOString(), expiresAt: new Date(row.expires_at).toISOString() }))
     }),
     getPublicBanner: (id, staticFallback) => run(async (client) => {
       const result = await client.query<{ content: Uint8Array; media_type: string }>('SELECT content,media_type FROM api.get_public_banner($1::uuid,$2::boolean)', [id, staticFallback])

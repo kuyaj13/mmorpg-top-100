@@ -27,6 +27,7 @@ export type ExclusiveServerAd = {
   bannerUrl: string
   staticBannerUrl: string
   altText: string
+  expiresAt: string
 }
 
 export type ExclusiveServersService = {

@@ -77,4 +77,5 @@
 - A game page queries only placements whose related server belongs to that game.
 - Equal-tier placements use deterministic round robin with a distributed initial offset and a default 15-second interval.
 - Browser-provided game IDs, eligibility flags, ranks, or time values are never authoritative.
+- Public responses include the backend-owned placement expiry so an open game page removes the banner at the entitlement boundary without requiring a refresh.
 - Automatic rotation pauses on keyboard focus, appropriate pointer hover, and hidden pages; manual controls are available when multiple banners are eligible.
