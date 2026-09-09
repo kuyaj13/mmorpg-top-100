@@ -52,7 +52,7 @@ CREATE OR REPLACE VIEW api.public_rankings AS
     FROM app.servers s
     JOIN app.games g ON g.slug = s.game_slug
     LEFT JOIN app.banner_assets banner
-      ON banner.server_id = s.id AND banner.banner_kind = 'free' AND banner.moderation_status = 'approved'
+      ON banner.server_id = s.id AND banner.moderation_status = 'approved'
    WHERE s.status = 'active' AND g.is_active;
 
 REVOKE ALL ON FUNCTION app.copy_approved_submission_details() FROM PUBLIC, hyperdrive_reader;
