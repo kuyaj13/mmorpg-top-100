@@ -13,7 +13,7 @@
 ### Current implementation status
 
 - The owner workspace and free, moderated banner workflow are live for approved server owners.
-- The trusted Worker donation-claim submission boundary, administrator donation review, and verified-claim-only Exclusive banner upload are enabled in production. Exclusive-banner moderation, placement management, and public sponsored-ad gates remain off.
+- The trusted Worker donation-claim submission boundary, administrator donation review, verified-claim-only Exclusive banner upload, and scoped Exclusive-banner moderation are enabled in production. Placement management and public sponsored-ad gates remain off.
 - The complete owner advertising workspace has independent frontend and Worker release flags. Claim submission is enabled, while every later paid-advertising stage remains separately fail-closed.
 - Every paid route also requires one master release gate in addition to its individual kill switch. The master gate is enabled for the staged rollout, while each later capability remains protected by its own disabled flag.
 - The authenticated advertising workspace now loads owned servers, server-defined packages, and owner-scoped claim history through Cloudflare and narrowly granted Neon functions. It no longer depends on the generated Firebase SQL Connect client.
@@ -27,9 +27,9 @@
 - Both free and Exclusive upload routes have explicit browser-preflight regression coverage for `PUT` and the required authorization, media, alternative-text, and Turnstile headers.
 - Administrators compare PayPal records manually. Verification records the package amount and currency from the database, uses a recent administrator login, and appends an immutable decision event; browser-supplied financial values are not accepted.
 - A Neon Free PostgreSQL 17 production database and a project-specific Cloudflare Hyperdrive configuration are provisioned and pass connection/configuration validation. The previous PostgreSQL 18 project remains untouched for rollback.
-- Claim submission, donation review, and verified-claim-only Exclusive banner uploads are enabled. Exclusive-banner moderation, placement activation controls, and public advertising remain disabled behind independent release gates.
+- Claim submission, donation review, verified-claim-only Exclusive banner uploads, and scoped Exclusive-banner moderation are enabled. Placement activation controls and public advertising remain disabled behind independent release gates.
 - Exclusive paid-banner uploads have a separate production kill switch and accept uploads only for an active owner server with a verified donation claim. Uploads remain pending and non-public until the separate moderation gate is enabled.
-- Exclusive banner listing, preview, and moderation are database-scoped behind a separate disabled flag, so live free-banner moderation cannot expose or approve paid banners.
+- Exclusive banner listing, static preview, and moderation are database-scoped behind a separate enabled flag. Only pending Exclusive banners enter this administrator review, and approval alone cannot make them public while placement and public-ad gates remain off.
 - Administrator placement management has a separate fail-closed production flag; general administrator access cannot expose or mutate placements before release approval.
 - Free banner uploads and moderation are enabled with the approved no-cost MVP limits below; a donation is never required to upload a banner.
 - Package prices are server-owned records and are never accepted from the browser.
