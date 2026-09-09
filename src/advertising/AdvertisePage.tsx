@@ -31,6 +31,7 @@ export default function AdvertisePage({
   >("checking");
   const [workspace, setWorkspace] = useState<AdvertisingWorkspace>({
     servers: [],
+    exclusiveServers: [],
     packages: [],
     claims: [],
   });
@@ -489,7 +490,7 @@ export default function AdvertisePage({
                 </ul>
               )}
             </section>
-            <BannerUploadForm servers={workspace.servers} kind="exclusive" turnstileSiteKey={turnstileSiteKey} />
+            <BannerUploadForm servers={workspace.exclusiveServers} kind="exclusive" turnstileSiteKey={turnstileSiteKey} />
           </>
         )}
       </main>

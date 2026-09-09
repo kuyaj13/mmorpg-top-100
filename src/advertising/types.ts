@@ -25,6 +25,7 @@ export type DonationClaimSummary = {
 
 export type AdvertisingWorkspace = {
   servers: EligibleServer[]
+  exclusiveServers: EligibleServer[]
   packages: AdPackageOption[]
   claims: DonationClaimSummary[]
 }

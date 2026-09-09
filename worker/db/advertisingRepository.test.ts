@@ -3,6 +3,12 @@ import {createAdvertisingRepository} from './advertisingRepository'
 import type {RankingQueryClient} from './rankingRepository'
 
 describe('advertising repository',()=>{
+  it('loads exclusive upload choices from the verified-claim eligibility function',async()=>{
+    const query=vi.fn().mockResolvedValue({rows:[{id:'server-1',name:'Flyff One',game_slug:'flyff',game_name:'Flyff'}]})
+    const client:RankingQueryClient={connect:vi.fn(),query,end:vi.fn()}
+    await expect(createAdvertisingRepository(()=>client).listExclusiveEligibleServers!(new Uint8Array(32))).resolves.toEqual([{id:'server-1',name:'Flyff One',gameSlug:'flyff',gameName:'Flyff'}])
+    expect(query).toHaveBeenCalledWith(expect.stringContaining('api.list_exclusive_banner_eligible_servers'),[expect.any(Uint8Array)])
+  })
   it('reconciles the selected game before returning eligible public ads',async()=>{
     const query=vi.fn().mockResolvedValueOnce({rows:[]}).mockResolvedValueOnce({rows:[]})
     const client:RankingQueryClient={connect:vi.fn(),query,end:vi.fn()}

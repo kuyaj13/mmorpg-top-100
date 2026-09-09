@@ -17,6 +17,7 @@ export type AdvertisingRepository = {
   putBanner(serverId: string, ownerKey: Uint8Array, banner: SanitizedBanner, altText: string): Promise<'stored' | 'unavailable'>
   putExclusiveBanner(serverId: string, ownerKey: Uint8Array, banner: SanitizedBanner, altText: string): Promise<'stored' | 'unavailable'>
   listOwnedServers(ownerKey: Uint8Array): Promise<OwnedServer[]>
+  listExclusiveEligibleServers?(ownerKey: Uint8Array): Promise<OwnedServer[]>
   listActivePackages():Promise<AdPackage[]>
   listOwnerDonationClaims(ownerKey:Uint8Array):Promise<OwnerDonationClaim[]>
   submitDonationClaim(ownerKey: Uint8Array, serverId: string, packageCode: string, donorReference: string): Promise<DonationClaimOutcome>
@@ -65,6 +66,10 @@ export function createAdvertisingRepository(createClient: () => RankingQueryClie
     }),
     listOwnedServers: (ownerKey) => run(async (client) => {
       const result = await client.query<OwnedServerRow>('SELECT id::text,name,game_slug,game_name FROM api.list_owned_servers($1::bytea)', [ownerKey])
+      return result.rows.map((row) => ({ id: row.id, name: row.name, gameSlug: row.game_slug, gameName: row.game_name }))
+    }),
+    listExclusiveEligibleServers: (ownerKey) => run(async (client) => {
+      const result = await client.query<OwnedServerRow>('SELECT id::text,name,game_slug,game_name FROM api.list_exclusive_banner_eligible_servers($1::bytea)', [ownerKey])
       return result.rows.map((row) => ({ id: row.id, name: row.name, gameSlug: row.game_slug, gameName: row.game_name }))
     }),
     listActivePackages:()=>run(async(client)=>{const result=await client.query<Record<string,string|number>>('SELECT code,duration_days,tier,price_minor::text,currency FROM api.list_active_ad_packages()');return result.rows.map(row=>({code:String(row.code),durationDays:Number(row.duration_days) as 7|30,tier:String(row.tier),priceMinor:String(row.price_minor),currency:String(row.currency).trim()}))}),

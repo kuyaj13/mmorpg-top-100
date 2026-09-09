@@ -136,8 +136,8 @@ export function createAdvertisingEndpoints(dependencies: Dependencies) {
       const owner=await authorize(request,dependencies,'owner','advertising-workspace')
       if(owner instanceof Response)return owner
       const ownerKey=await dependencies.deriveOwnerKey(owner.uid)
-      const [servers,packages,claims]=await Promise.all([dependencies.repository.listOwnedServers(ownerKey),dependencies.repository.listActivePackages(),dependencies.repository.listOwnerDonationClaims(ownerKey)])
-      return Response.json({ok:true,servers,packages,claims},{headers:safe})
+      const [servers,exclusiveServers,packages,claims]=await Promise.all([dependencies.repository.listOwnedServers(ownerKey),dependencies.repository.listExclusiveEligibleServers?.(ownerKey)??Promise.resolve([]),dependencies.repository.listActivePackages(),dependencies.repository.listOwnerDonationClaims(ownerKey)])
+      return Response.json({ok:true,servers,exclusiveServers,packages,claims},{headers:safe})
     },
 
     async upload(request: Request, serverId: string,kind:'free'|'exclusive'='free'): Promise<Response> {

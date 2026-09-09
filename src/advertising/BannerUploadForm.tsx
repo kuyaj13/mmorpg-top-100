@@ -62,7 +62,7 @@ export function BannerUploadForm({ servers, service = bannerUploadService, turns
   return <section className="banner-upload" aria-labelledby="banner-upload-heading">
     <h2 id="banner-upload-heading">{exclusive ? 'Upload an exclusive paid banner' : 'Upload a server banner'}</h2>
     <p>{exclusive?'This larger banner is used only for approved Exclusive Server advertising.':'Banner upload is free for every approved server owner.'} Images require moderation before display.</p>
-    {servers.length === 0 ? <p role="status">You need an approved server before uploading a banner.</p> : <form onSubmit={(event) => void submit(event)} noValidate>
+    {servers.length === 0 ? <p role="status">{exclusive ? 'You need a verified donation claim before uploading an exclusive banner.' : 'You need an approved server before uploading a banner.'}</p> : <form onSubmit={(event) => void submit(event)} noValidate>
       <label htmlFor="banner-server">Approved server</label>
       <select ref={serverRef} id="banner-server" name="serverId" defaultValue="" aria-invalid={Boolean(errors.serverId)} aria-describedby={errors.serverId ? 'banner-server-error' : undefined}><option value="" disabled>Select a server</option>{servers.map((server) => <option key={server.id} value={server.id}>{server.name} — {server.gameName}</option>)}</select>
       {errors.serverId && <p id="banner-server-error">{errors.serverId}</p>}

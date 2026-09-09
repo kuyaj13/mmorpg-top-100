@@ -131,7 +131,7 @@ function normalizeReference(value: string) {
   return value.trim().replace(/\s+/g, '').toUpperCase()
 }
 
-function isAdvertisingWorkspace(value:unknown):value is import('./types').AdvertisingWorkspace{if(!value||typeof value!=='object'||Array.isArray(value))return false;const data=value as Record<string,unknown>;return Array.isArray(data.servers)&&data.servers.every(isServer)&&Array.isArray(data.packages)&&data.packages.every(isPackage)&&Array.isArray(data.claims)&&data.claims.every(isClaim)}
+function isAdvertisingWorkspace(value:unknown):value is import('./types').AdvertisingWorkspace{if(!value||typeof value!=='object'||Array.isArray(value))return false;const data=value as Record<string,unknown>;return Array.isArray(data.servers)&&data.servers.every(isServer)&&Array.isArray(data.exclusiveServers)&&data.exclusiveServers.every(isServer)&&Array.isArray(data.packages)&&data.packages.every(isPackage)&&Array.isArray(data.claims)&&data.claims.every(isClaim)}
 const text=(value:unknown,max:number)=>typeof value==='string'&&value.length>0&&value.length<=max
 function isServer(value:unknown){if(!value||typeof value!=='object'||Array.isArray(value))return false;const item=value as Record<string,unknown>;return text(item.id,100)&&text(item.name,80)&&text(item.gameName,80)&&text(item.gameSlug,80)}
 function isPackage(value:unknown):value is AdPackageOption{if(!value||typeof value!=='object'||Array.isArray(value))return false;const item=value as Record<string,unknown>;return text(item.code,40)&&(item.durationDays===7||item.durationDays===30)&&text(item.tier,30)&&typeof item.priceMinor==='string'&&/^\d+$/.test(item.priceMinor)&&text(item.currency,3)}
