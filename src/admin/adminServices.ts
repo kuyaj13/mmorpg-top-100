@@ -5,13 +5,7 @@ import {
   signOut,
 } from 'firebase/auth'
 import { getFirebaseAuth } from '../firebase'
-import {
-  adminApproveSubmission,
-  adminListPendingSubmissions,
-  adminRejectSubmission,
-} from '../generated/sql-connect'
-import type { ModerationItem } from './types'
-import type { AdminAccessService, AdminAuthService, DonationClaimReviewService, ModerationService } from './types'
+import type { AdminAccessService, AdminAuthService, DonationClaimReviewService } from './types'
 
 function requireAuth() {
   const auth = getFirebaseAuth()
@@ -60,37 +54,6 @@ export const adminAccessService: AdminAccessService = {
   },
 }
 
-export const moderationService: ModerationService = {
-  async listPending() {
-    const result = await adminListPendingSubmissions({ fetchPolicy: 'SERVER_ONLY' })
-    return result.data.serverSubmissions.map(
-      (submission): ModerationItem => ({
-        id: submission.id,
-        name: submission.name,
-        website: submission.website,
-        gameVersion: submission.gameVersion,
-        region: submission.region,
-        mode: toServerMode(submission.mode),
-        description: submission.description,
-        submittedAt: submission.submittedAt,
-        status: 'pending',
-      }),
-    )
-  },
-  async decide(id, decision) {
-    try {
-      if (decision === 'approve') await adminApproveSubmission({ id })
-      else await adminRejectSubmission({ id })
-      return {
-        ok: true,
-        message: decision === 'approve' ? 'The listing was approved.' : 'The listing was rejected.',
-      }
-    } catch {
-      return { ok: false, message: 'This submission is no longer pending review.' }
-    }
-  },
-}
-
 export const donationClaimReviewService: DonationClaimReviewService = {
   async listPending() {
     const apiBaseUrl=import.meta.env.VITE_API_BASE_URL
@@ -126,9 +89,4 @@ function isDonationClaimReviewItem(value:unknown):value is Awaited<ReturnType<Do
   const item=value as Record<string,unknown>,keys=new Set(['id','serverName','gameName','website','donorReference','durationDays','expectedAmountMinor','currency','createdAt'])
   if(!Object.keys(item).every((key)=>keys.has(key))||typeof item.id!=='string'||typeof item.serverName!=='string'||typeof item.gameName!=='string'||typeof item.donorReference!=='string'||typeof item.durationDays!=='number'||!Number.isInteger(item.durationDays)||typeof item.expectedAmountMinor!=='string'||typeof item.currency!=='string'||typeof item.createdAt!=='string'||!Number.isFinite(Date.parse(item.createdAt))) return false
   try{return typeof item.website==='string'&&new URL(item.website).protocol==='https:'}catch{return false}
-}
-
-function toServerMode(mode: string): ModerationItem['mode'] {
-  if (mode === 'PvE' || mode === 'PvP' || mode === 'RPG') return mode
-  return 'RPG'
 }

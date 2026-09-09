@@ -14,6 +14,7 @@
 - The trial-exit target is the Neon Free PostgreSQL 17 project `ancient-haze-79240276` in `aws-ap-southeast-1`, linked to its `production` branch.
 - Keep Firebase Authentication, but replace SQL Connect operations incrementally with authenticated Cloudflare Worker endpoints backed by Hyperdrive.
 - Neon Auth is provisioned on the replacement database as requested, but it is not wired into the application; Firebase Authentication remains authoritative unless a separately reviewed authentication migration is approved.
+- The production React application no longer imports either generated Firebase SQL Connect client. Server moderation and the advertising workspace now use authenticated Cloudflare Worker boundaries backed by narrowly scoped Neon functions.
 - Never commit the Neon connection string. Supply it only to Hyperdrive through Wrangler or the Cloudflare dashboard.
 - Neon is the active production database. Keep any former SQL Connect resources untouched unless removal receives a separate, verified approval.
 
