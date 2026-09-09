@@ -6,11 +6,6 @@ import {
   signOut,
 } from 'firebase/auth'
 import { getFirebaseAuth } from '../firebase'
-import {
-  advertiserListActivePackages,
-  advertiserListMyClaims,
-  advertiserListMyEligibleServers,
-} from '../generated/advertiser'
 import type { AdvertiserAuthService, AdvertisingService, AdPackageOption } from './types'
 
 function requireAuth() {
@@ -69,31 +64,12 @@ export const advertisingService: AdvertisingService = {
   async loadWorkspace() {
     const user = await currentUser()
     if (!user.emailVerified) throw new Error('Email verification is required.')
-    const [serverResult, packageResult, claimResult] = await Promise.all([
-      advertiserListMyEligibleServers({ ownerUid: user.uid }, { fetchPolicy: 'SERVER_ONLY' }),
-      advertiserListActivePackages({ fetchPolicy: 'SERVER_ONLY' }),
-      advertiserListMyClaims({ advertiserUid: user.uid }, { fetchPolicy: 'SERVER_ONLY' }),
-    ])
-    return {
-      servers: serverResult.data.servers.map((server) => ({
-        id: server.id,
-        name: server.name,
-        gameName: server.game.name,
-        gameSlug: server.game.slug,
-      })),
-      packages: packageResult.data.adPackages
-        .filter((item): item is typeof item & { durationDays: 7 | 30 } => item.durationDays === 7 || item.durationDays === 30)
-        .map((item): AdPackageOption => ({ code: item.code, durationDays: item.durationDays, tier: item.tier, priceMinor: item.priceMinor, currency: item.currency })),
-      claims: claimResult.data.donationClaims.map((claim) => ({
-        id: claim.id,
-        serverName: claim.server.name,
-        gameName: claim.server.game.name,
-        durationDays: claim.package.durationDays,
-        status: toClaimStatus(claim.status),
-        createdAt: claim.createdAt,
-        rejectionReason: claim.rejectionReasonCode ?? undefined,
-      })),
-    }
+    const apiBaseUrl=import.meta.env.VITE_API_BASE_URL
+    if(!apiBaseUrl)throw new Error('The advertising API is unavailable.')
+    const response=await requestAdvertisingWorkspace(apiBaseUrl,await user.getIdToken())
+    const body=await response.json().catch(()=>null) as Record<string,unknown>|null
+    if(!response.ok||!isAdvertisingWorkspace(body))throw new Error('The advertising workspace is unavailable.')
+    return body
   },
   async createClaim(input) {
     const user = await currentUser()
@@ -123,6 +99,8 @@ export const advertisingService: AdvertisingService = {
   },
 }
 
+export function requestAdvertisingWorkspace(apiBaseUrl:string,idToken:string,fetcher:typeof fetch=fetch){return fetcher(new URL('/api/advertising/workspace',apiBaseUrl),{headers:{authorization:`Bearer ${idToken}`}})}
+
 export function submitProtectedClaim(
   apiBaseUrl: string,
   credentials: { idToken: string },
@@ -148,9 +126,8 @@ function normalizeReference(value: string) {
   return value.trim().replace(/\s+/g, '').toUpperCase()
 }
 
-function toClaimStatus(value: string): DonationClaimSummary['status'] {
-  if (value === 'verified' || value === 'rejected') return value
-  return 'pending'
-}
-
-import type { DonationClaimSummary } from './types'
+function isAdvertisingWorkspace(value:unknown):value is import('./types').AdvertisingWorkspace{if(!value||typeof value!=='object'||Array.isArray(value))return false;const data=value as Record<string,unknown>;return Array.isArray(data.servers)&&data.servers.every(isServer)&&Array.isArray(data.packages)&&data.packages.every(isPackage)&&Array.isArray(data.claims)&&data.claims.every(isClaim)}
+const text=(value:unknown,max:number)=>typeof value==='string'&&value.length>0&&value.length<=max
+function isServer(value:unknown){if(!value||typeof value!=='object'||Array.isArray(value))return false;const item=value as Record<string,unknown>;return text(item.id,100)&&text(item.name,80)&&text(item.gameName,80)&&text(item.gameSlug,80)}
+function isPackage(value:unknown):value is AdPackageOption{if(!value||typeof value!=='object'||Array.isArray(value))return false;const item=value as Record<string,unknown>;return text(item.code,40)&&(item.durationDays===7||item.durationDays===30)&&text(item.tier,30)&&typeof item.priceMinor==='string'&&/^\d+$/.test(item.priceMinor)&&text(item.currency,3)}
+function isClaim(value:unknown){if(!value||typeof value!=='object'||Array.isArray(value))return false;const item=value as Record<string,unknown>;return text(item.id,100)&&text(item.serverName,80)&&text(item.gameName,80)&&typeof item.durationDays==='number'&&['pending','verified','rejected'].includes(String(item.status))&&typeof item.createdAt==='string'&&Number.isFinite(Date.parse(item.createdAt))&&(!('rejectionReason'in item)||item.rejectionReason===undefined||text(item.rejectionReason,80))}

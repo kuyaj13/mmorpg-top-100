@@ -57,6 +57,7 @@ export function createWorker(repositoryFactory: RepositoryFactory, voteHandlerFa
         const bannerUpload = url.pathname.match(/^\/api\/advertising\/servers\/([^/]+)\/banner$/)
         const exclusiveBannerUpload=url.pathname.match(/^\/api\/advertising\/servers\/([^/]+)\/exclusive-banner$/)
         const ownerBannerWorkspace = url.pathname === '/api/advertising/owner-workspace'
+        const advertisingWorkspace=url.pathname==='/api/advertising/workspace'
         const publicAds = url.pathname.match(/^\/api\/games\/([^/]+)\/exclusive-servers$/)
         const publicBanner = url.pathname.match(/^\/api\/advertising\/banners\/([^/]+)$/)
         const adminBannerList = url.pathname === '/api/admin/banners'
@@ -69,7 +70,7 @@ export function createWorker(repositoryFactory: RepositoryFactory, voteHandlerFa
         const adminPlacementDecision=url.pathname.match(/^\/api\/admin\/ad-placements\/([^/]+)\/decision$/)
         if (request.method === 'OPTIONS') {
           const writeRoute = voteMatch || isSubmission || adminDecision || bannerUpload || exclusiveBannerUpload || adminBannerDecision || donationClaim || adminDonationDecision || adminPlacementDecision
-          const protectedRoute = voteMatch || isSubmission || adminList || adminDecision || bannerUpload || exclusiveBannerUpload || ownerBannerWorkspace || adminBannerList || adminBannerPreview || adminBannerDecision || donationClaim || adminDonationClaims || adminDonationDecision || adminPlacements || adminPlacementDecision
+          const protectedRoute = voteMatch || isSubmission || adminList || adminDecision || bannerUpload || exclusiveBannerUpload || ownerBannerWorkspace || advertisingWorkspace || adminBannerList || adminBannerPreview || adminBannerDecision || donationClaim || adminDonationClaims || adminDonationDecision || adminPlacements || adminPlacementDecision
           return corsResponse(request, env, new Response(null, { status: 204 }), writeRoute ? `${bannerUpload ? 'PUT' : 'POST'}, OPTIONS` : 'GET, OPTIONS', protectedRoute ? `authorization, content-type${bannerUpload ? ', x-banner-alt-text, x-turnstile-token' : ''}` : undefined)
         }
         if (url.pathname === '/api/health' && request.method === 'GET') return corsResponse(request, env, Response.json({ ok: true }, { headers: noStoreHeaders() }))
@@ -112,6 +113,7 @@ export function createWorker(repositoryFactory: RepositoryFactory, voteHandlerFa
           if (env.BANNER_UPLOADS_ENABLED !== 'true' || !advertisingFactory) return corsResponse(request, env, jsonError('Banner uploads are not available yet.', 503), 'GET, OPTIONS', 'authorization, content-type')
           return corsResponse(request, env, await advertisingFactory(env).ownerWorkspace(request), 'GET, OPTIONS', 'authorization, content-type')
         }
+        if(advertisingWorkspace){if(request.method!=='GET')return corsResponse(request,env,methodNotAllowed(),'GET, OPTIONS','authorization, content-type');if(env.DONATION_CLAIMS_ENABLED!=='true'||!advertisingFactory)return corsResponse(request,env,jsonError('Advertising workspace is not available yet.',503),'GET, OPTIONS','authorization, content-type');return corsResponse(request,env,await advertisingFactory(env).advertisingWorkspace(request),'GET, OPTIONS','authorization, content-type')}
         if (adminBannerList || adminBannerPreview || adminBannerDecision) {
           const methods = adminBannerDecision ? 'POST, OPTIONS' : 'GET, OPTIONS'
           if (env.BANNER_MODERATION_ENABLED !== 'true' || !advertisingFactory) return corsResponse(request, env, jsonError('Banner moderation is not available yet.', 503), methods, 'authorization, content-type')

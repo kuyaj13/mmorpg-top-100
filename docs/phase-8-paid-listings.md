@@ -14,6 +14,7 @@
 
 - The owner workspace and free, moderated banner workflow are live for approved server owners.
 - The trusted Worker donation-claim submission boundary is implemented and validated on an isolated database branch, but its production feature flag remains off.
+- The authenticated advertising workspace now loads owned servers, server-defined packages, and owner-scoped claim history through Cloudflare and narrowly granted Neon functions. It no longer depends on the generated Firebase SQL Connect client.
 - The administrator donation-review boundary is implemented through the trusted Worker, validated on an isolated branch, and installed in production. Its feature flag remains off while placement activation receives its own release gate.
 - Placement reconciliation is installed in production for the no-cost Worker/PostgreSQL stack. It expires elapsed placements, suspends ineligible records, queues eligible verified claims, and promotes waiting placements without requiring a paid scheduler. Full reconciliation is throttled to once per game every 15 seconds; public eligibility still hides expired or invalid advertisements immediately.
 - The complete placement lifecycle passed a rollback-only test on an expiring production-derived Neon branch on 2026-09-09: three-slot enforcement, deterministic waiting inventory, promotion, suspension, capacity-safe reactivation without extending paid time, and expiration all passed without persistent test data.

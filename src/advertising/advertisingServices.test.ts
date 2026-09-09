@@ -1,4 +1,6 @@
-import { submitProtectedClaim } from './advertisingServices'
+import { requestAdvertisingWorkspace,submitProtectedClaim } from './advertisingServices'
+
+it('loads advertising data only through the authenticated Worker API',async()=>{const fetcher=vi.fn<typeof fetch>().mockResolvedValue(Response.json({ok:true,servers:[],packages:[],claims:[]}));await requestAdvertisingWorkspace('https://api.mmorpgtop100.com','firebase-id-token',fetcher);expect(fetcher).toHaveBeenCalledWith(new URL('https://api.mmorpgtop100.com/api/advertising/workspace'),{headers:{authorization:'Bearer firebase-id-token'}})})
 
 describe('submitProtectedClaim', () => {
   it('sends claim mutations only to the protected API with identity and Turnstile proof', async () => {

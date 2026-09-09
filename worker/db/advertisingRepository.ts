@@ -5,6 +5,8 @@ import type { RankingQueryClient } from './rankingRepository'
 export type PublicAd = { id: string; serverId: string; serverName: string; bannerId: string; mediaType: string; altText: string; destinationUrl: string; startsAt: string; expiresAt: string }
 export type PendingBanner = { id: string; serverId: string; serverName: string; gameSlug: string; bannerKind: 'free'|'exclusive'; mediaType: string; byteSize: number; width: number; height: number; frameCount: number; animationDurationMs: number; altText: string; createdAt: string }
 export type OwnedServer = { id: string; name: string; gameSlug: string; gameName: string }
+export type AdPackage = { code:string;durationDays:7|30;tier:string;priceMinor:string;currency:string }
+export type OwnerDonationClaim = { id:string;serverName:string;gameName:string;durationDays:number;status:'pending'|'verified'|'rejected';createdAt:string;rejectionReason?:string }
 export type PendingDonationClaim = { id: string; serverName: string; gameName: string; website: string; donorReference: string; durationDays: number; expectedAmountMinor: string; currency: string; createdAt: string }
 export type BannerModerationOutcome = 'approved' | 'rejected' | 'suspended' | 'unavailable'
 export type DonationModerationOutcome = 'verified' | 'rejected' | 'invalid' | 'unavailable'
@@ -15,6 +17,8 @@ export type AdvertisingRepository = {
   putBanner(serverId: string, ownerKey: Uint8Array, banner: SanitizedBanner, altText: string): Promise<'stored' | 'unavailable'>
   putExclusiveBanner(serverId: string, ownerKey: Uint8Array, banner: SanitizedBanner, altText: string): Promise<'stored' | 'unavailable'>
   listOwnedServers(ownerKey: Uint8Array): Promise<OwnedServer[]>
+  listActivePackages():Promise<AdPackage[]>
+  listOwnerDonationClaims(ownerKey:Uint8Array):Promise<OwnerDonationClaim[]>
   submitDonationClaim(ownerKey: Uint8Array, serverId: string, packageCode: string, donorReference: string): Promise<DonationClaimOutcome>
   listPendingDonationClaims(): Promise<PendingDonationClaim[]>
   moderateDonationClaim(id: string, moderatorKey: Uint8Array, decision: 'verify'|'reject', reasonCode: string|null, operationId: string): Promise<DonationModerationOutcome>
@@ -63,6 +67,8 @@ export function createAdvertisingRepository(createClient: () => RankingQueryClie
       const result = await client.query<OwnedServerRow>('SELECT id::text,name,game_slug,game_name FROM api.list_owned_servers($1::bytea)', [ownerKey])
       return result.rows.map((row) => ({ id: row.id, name: row.name, gameSlug: row.game_slug, gameName: row.game_name }))
     }),
+    listActivePackages:()=>run(async(client)=>{const result=await client.query<Record<string,string|number>>('SELECT code,duration_days,tier,price_minor::text,currency FROM api.list_active_ad_packages()');return result.rows.map(row=>({code:String(row.code),durationDays:Number(row.duration_days) as 7|30,tier:String(row.tier),priceMinor:String(row.price_minor),currency:String(row.currency).trim()}))}),
+    listOwnerDonationClaims:(ownerKey)=>run(async(client)=>{const result=await client.query<Record<string,string|number|Date|null>>('SELECT id::text,server_name,game_name,duration_days,status,created_at,rejection_reason FROM api.list_owner_donation_claims($1::bytea)',[ownerKey]);return result.rows.map(row=>({id:String(row.id),serverName:String(row.server_name),gameName:String(row.game_name),durationDays:Number(row.duration_days),status:row.status as OwnerDonationClaim['status'],createdAt:new Date(row.created_at as string|Date).toISOString(),...(row.rejection_reason?{rejectionReason:String(row.rejection_reason)}:{})}))}),
     putBanner: (id, owner, banner, altText) => run(async (client) => {
       const result = await client.query<{ put_server_banner: string }>('SELECT api.put_server_banner($1::uuid,$2::bytea,$3::bytea,$4::bytea,$5::bytea,$6::bytea,$7::varchar,$8,$9,$10,$11,$12::varchar) AS put_server_banner', [id, owner, banner.bytes, banner.staticFallbackBytes, banner.originalSha256, banner.sanitizedSha256, banner.mediaType, banner.width, banner.height, banner.frameCount, banner.animationDurationMs, altText])
       const value = result.rows[0]?.put_server_banner

@@ -130,6 +130,14 @@ export function createAdvertisingEndpoints(dependencies: Dependencies) {
       const servers = await dependencies.repository.listOwnedServers(await dependencies.deriveOwnerKey(owner.uid))
       return Response.json({ ok: true, servers }, { headers: safe })
     },
+    async advertisingWorkspace(request:Request):Promise<Response>{
+      if(request.method!=='GET')return error('Method not allowed.',405,{allow:'GET'})
+      const owner=await authorize(request,dependencies,'owner','advertising-workspace')
+      if(owner instanceof Response)return owner
+      const ownerKey=await dependencies.deriveOwnerKey(owner.uid)
+      const [servers,packages,claims]=await Promise.all([dependencies.repository.listOwnedServers(ownerKey),dependencies.repository.listActivePackages(),dependencies.repository.listOwnerDonationClaims(ownerKey)])
+      return Response.json({ok:true,servers,packages,claims},{headers:safe})
+    },
 
     async upload(request: Request, serverId: string,kind:'free'|'exclusive'='free'): Promise<Response> {
       if (request.method !== 'PUT') return error('Method not allowed.', 405, { allow: 'PUT' })
