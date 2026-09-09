@@ -76,7 +76,8 @@ export function createWorker(repositoryFactory: RepositoryFactory, voteHandlerFa
         if (request.method === 'OPTIONS') {
           const writeRoute = voteMatch || isSubmission || adminDecision || bannerUpload || exclusiveBannerUpload || adminBannerDecision || donationClaim || adminDonationDecision || adminPlacementDecision
           const protectedRoute = voteMatch || isSubmission || adminList || adminDecision || bannerUpload || exclusiveBannerUpload || ownerBannerWorkspace || advertisingWorkspace || adminBannerList || adminBannerPreview || adminBannerDecision || donationClaim || adminDonationClaims || adminDonationDecision || adminPlacements || adminPlacementDecision
-          return corsResponse(request, env, new Response(null, { status: 204 }), writeRoute ? `${bannerUpload ? 'PUT' : 'POST'}, OPTIONS` : 'GET, OPTIONS', protectedRoute ? `authorization, content-type${bannerUpload ? ', x-banner-alt-text, x-turnstile-token' : ''}` : undefined)
+          const uploadRoute = bannerUpload || exclusiveBannerUpload
+          return corsResponse(request, env, new Response(null, { status: 204 }), writeRoute ? `${uploadRoute ? 'PUT' : 'POST'}, OPTIONS` : 'GET, OPTIONS', protectedRoute ? `authorization, content-type${uploadRoute ? ', x-banner-alt-text, x-turnstile-token' : ''}` : undefined)
         }
         if (url.pathname === '/api/health' && request.method === 'GET') return corsResponse(request, env, Response.json({ ok: true }, { headers: noStoreHeaders() }))
         if (url.pathname === '/api/servers') {

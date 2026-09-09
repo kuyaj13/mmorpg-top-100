@@ -314,6 +314,18 @@ describe('rankings endpoint', () => {
     expect(upload).toHaveBeenCalledWith(expect.any(Request), '123e4567-e89b-42d3-a456-426614174000', 'exclusive')
   })
 
+  it('allows the exclusive banner upload browser preflight with PUT and upload headers', async () => {
+    const worker = createWorker(() => repository(null))
+    const response = await worker.fetch(new Request('https://api.example/api/advertising/servers/123e4567-e89b-42d3-a456-426614174000/exclusive-banner', {
+      method: 'OPTIONS',
+      headers: { origin: 'https://mmorpgtop100.com' },
+    }), env)
+
+    expect(response.status).toBe(204)
+    expect(response.headers.get('access-control-allow-methods')).toBe('PUT, OPTIONS')
+    expect(response.headers.get('access-control-allow-headers')).toBe('authorization, content-type, x-banner-alt-text, x-turnstile-token')
+  })
+
   it('serves an approved public banner independently from paid advertising', async () => {
     const banner = vi.fn().mockResolvedValue(new Response(new Uint8Array([137, 80, 78, 71]), { headers: { 'content-type': 'image/png' } }))
     const advertising = {
