@@ -142,6 +142,7 @@ export function createSubmissionEndpoint(dependencies: Dependencies) {
     if (result.outcome === 'duplicate') return error('This server is already listed or pending review.', 409)
     if (result.outcome === 'game_unavailable') return error('Please choose an available game.', 400)
     if (result.outcome === 'limit_reached') return error('You already have several submissions pending review.', 409)
+    if (result.outcome === 'invalid_banner') return error('Choose a valid 468 by 60 pixel GIF, PNG, or JPEG banner.', 400)
     if (result.outcome === 'accepted') return Response.json({ ok: true, reference: result.submissionId, message: 'Your server has been submitted for review.' }, { status: 201, headers })
     return error('Your server could not be submitted. Please try again.', 500)
   }

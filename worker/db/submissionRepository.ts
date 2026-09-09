@@ -14,7 +14,7 @@ export type NewServerSubmission = {
   description: string
   banner?: { image: SanitizedBanner; altText: string }
 }
-export type SubmissionOutcome = { outcome: 'accepted'; submissionId: string } | { outcome: 'duplicate' | 'game_unavailable' | 'limit_reached' }
+export type SubmissionOutcome = { outcome: 'accepted'; submissionId: string } | { outcome: 'duplicate' | 'game_unavailable' | 'limit_reached' | 'invalid_banner' }
 export type SubmissionRepository = { submit(input: NewServerSubmission): Promise<SubmissionOutcome> }
 type SubmissionRow = { outcome: string; submission_id: string | null }
 
@@ -35,15 +35,24 @@ export function createSubmissionRepository(createClient: () => RankingQueryClien
         if (row?.outcome === 'accepted' && row.submission_id) {
           if (input.banner) {
             const banner = input.banner.image
-            const stored = await client.query<{ put_submission_banner: string }>(
-              `SELECT api.put_submission_banner($1::uuid, $2::bytea, $3::bytea, $4::bytea,
-                                                    $5::bytea, $6::bytea, $7::varchar, $8::integer,
-                                                    $9::integer, $10::integer, $11::integer, $12::varchar)
-                        AS put_submission_banner`,
-              [row.submission_id, input.ownerKey, banner.bytes, banner.staticFallbackBytes, banner.originalSha256,
-                banner.sanitizedSha256, banner.mediaType, banner.width, banner.height, banner.frameCount,
-                banner.animationDurationMs, input.banner.altText],
-            )
+            let stored
+            try {
+              stored = await client.query<{ put_submission_banner: string }>(
+                `SELECT api.put_submission_banner($1::uuid, $2::bytea, $3::bytea, $4::bytea,
+                                                      $5::bytea, $6::bytea, $7::varchar, $8::integer,
+                                                      $9::integer, $10::integer, $11::integer, $12::varchar)
+                          AS put_submission_banner`,
+                [row.submission_id, input.ownerKey, banner.bytes, banner.staticFallbackBytes, banner.originalSha256,
+                  banner.sanitizedSha256, banner.mediaType, banner.width, banner.height, banner.frameCount,
+                  banner.animationDurationMs, input.banner.altText],
+              )
+            } catch (error) {
+              if (isCheckViolation(error)) {
+                await client.query('ROLLBACK')
+                return { outcome: 'invalid_banner' }
+              }
+              throw error
+            }
             if (stored.rows[0]?.put_submission_banner !== 'stored') throw new Error('Banner was not stored')
           }
           await client.query('COMMIT')
@@ -62,6 +71,10 @@ export function createSubmissionRepository(createClient: () => RankingQueryClien
       }
     },
   }
+}
+
+function isCheckViolation(error: unknown) {
+  return Boolean(error && typeof error === 'object' && 'code' in error && error.code === '23514')
 }
 
 export function createHyperdriveSubmissionRepository(connectionString: string): SubmissionRepository {

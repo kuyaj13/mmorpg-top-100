@@ -30,6 +30,19 @@ describe('submission repository', () => {
     expect(database.query).toHaveBeenCalledWith('COMMIT')
   })
 
+  it('rolls back a database-rejected banner and returns a safe outcome', async () => {
+    const database = client([{ outcome: 'accepted', submission_id: 'id-one' }])
+    vi.mocked(database.query).mockImplementation((query: string) => {
+      if (query.includes('api.submit_server')) return Promise.resolve({ rows: [{ outcome: 'accepted', submission_id: 'id-one' }] })
+      if (query.includes('api.put_submission_banner')) return Promise.reject(Object.assign(new Error('constraint detail'), { code: '23514' }))
+      return Promise.resolve({ rows: [] })
+    })
+    const image = { bytes: new Uint8Array([1]), staticFallbackBytes: new Uint8Array([2]), originalSha256: new Uint8Array(32), sanitizedSha256: new Uint8Array(32), mediaType: 'image/gif' as const, width: 468 as const, height: 60 as const, frameCount: 45, animationDurationMs: 4500 }
+    await expect(createSubmissionRepository(() => database).submit({ ...input, banner: { image, altText: 'Accessible banner description' } })).resolves.toEqual({ outcome: 'invalid_banner' })
+    expect(database.query).toHaveBeenCalledWith('ROLLBACK')
+    expect(database.query).not.toHaveBeenCalledWith('COMMIT')
+  })
+
   it.each(['duplicate', 'game_unavailable', 'limit_reached'] as const)('maps the %s outcome', async (outcome) => {
     await expect(createSubmissionRepository(() => client([{ outcome, submission_id: null }])).submit(input)).resolves.toEqual({ outcome })
   })

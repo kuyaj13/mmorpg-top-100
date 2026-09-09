@@ -126,6 +126,13 @@ describe('submission endpoint', () => {
     expect((await unavailable.endpoint(unavailable.request)).status).toBe(400)
   })
 
+  it('maps a database banner constraint rejection to a user-safe field-compatible error', async () => {
+    const context = setup({ repository: { submit: vi.fn().mockResolvedValue({ outcome: 'invalid_banner' }) } })
+    const response = await context.endpoint(context.request)
+    expect(response.status).toBe(400)
+    await expect(response.json()).resolves.toEqual({ ok: false, message: 'Choose a valid 468 by 60 pixel GIF, PNG, or JPEG banner.' })
+  })
+
   it.each([
     [{ ...validBody, gameSlug: 'Flyff' }],
     [{ ...validBody, website: 'http://moonlight.example' }],
