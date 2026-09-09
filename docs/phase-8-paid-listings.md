@@ -23,6 +23,7 @@
 - A Neon Free PostgreSQL 17 production database and a project-specific Cloudflare Hyperdrive configuration are provisioned and pass connection/configuration validation. The previous PostgreSQL 18 project remains untouched for rollback.
 - Paid claims and placement activation remain disabled until the administrator review flow passes its own regression gate.
 - Exclusive paid-banner uploads have a separate fail-closed production flag and remain disabled even while free server-banner uploads are available.
+- Exclusive banner listing, preview, and moderation are database-scoped behind a separate disabled flag, so live free-banner moderation cannot expose or approve paid banners.
 - Administrator placement management has a separate fail-closed production flag; general administrator access cannot expose or mutate placements before release approval.
 - Free banner uploads and moderation are enabled with the approved no-cost MVP limits below; a donation is never required to upload a banner.
 - Package prices are server-owned records and are never accepted from the browser.

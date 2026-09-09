@@ -28,6 +28,7 @@ type WorkerEnv = GeneratedBindings & {
   ADMIN_ENABLED: string
   BANNER_UPLOADS_ENABLED: string
   EXCLUSIVE_BANNER_UPLOADS_ENABLED: string
+  EXCLUSIVE_BANNER_MODERATION_ENABLED: string
   EXCLUSIVE_ADS_ENABLED: string
   BANNER_MODERATION_ENABLED: string
   DONATION_CLAIMS_ENABLED: string
@@ -213,6 +214,7 @@ export default createWorker(
       deriveOwnerKey: (uid) => deriveOwnerKey(env.OWNER_HMAC_SECRET, uid),
       deriveModeratorKey: (uid) => deriveModeratorKey(env.MODERATOR_HMAC_SECRET, uid),
       rateLimit: (key) => env.ADVERTISING_RATE_LIMITER.limit({ key }),
+      exclusiveBannerModerationEnabled: env.EXCLUSIVE_BANNER_MODERATION_ENABLED === 'true',
       repository: createHyperdriveAdvertisingRepository(env.HYPERDRIVE.connectionString),
     })
   },

@@ -24,9 +24,9 @@ export type AdvertisingRepository = {
   moderateDonationClaim(id: string, moderatorKey: Uint8Array, decision: 'verify'|'reject', reasonCode: string|null, operationId: string): Promise<DonationModerationOutcome>
   listPublic(gameSlug: string): Promise<PublicAd[]>
   getPublicBanner(id: string, staticFallback: boolean): Promise<{ bytes: Uint8Array; mediaType: string } | null>
-  getBannerReviewPreview(id: string): Promise<{ bytes: Uint8Array; mediaType: 'image/png' } | null>
-  listPendingBanners(): Promise<PendingBanner[]>
-  moderateBanner(id: string, moderatorKey: Uint8Array, decision: 'approve' | 'reject' | 'suspend', operationId: string): Promise<BannerModerationOutcome>
+  getBannerReviewPreview(id: string, includeExclusive: boolean): Promise<{ bytes: Uint8Array; mediaType: 'image/png' } | null>
+  listPendingBanners(includeExclusive: boolean): Promise<PendingBanner[]>
+  moderateBanner(id: string, moderatorKey: Uint8Array, decision: 'approve' | 'reject' | 'suspend', operationId: string, includeExclusive: boolean): Promise<BannerModerationOutcome>
   listAdminPlacements():Promise<AdminPlacement[]>
   moderatePlacement(id:string,moderatorKey:Uint8Array,decision:'suspend'|'reactivate',operationId:string):Promise<PlacementModerationOutcome>
 }
@@ -85,17 +85,17 @@ export function createAdvertisingRepository(createClient: () => RankingQueryClie
       const row = result.rows[0]
       return row ? { bytes: row.content, mediaType: row.media_type } : null
     }),
-    getBannerReviewPreview: (id) => run(async (client) => {
-      const result = await client.query<{ content: Uint8Array; media_type: 'image/png' }>('SELECT content,media_type FROM api.get_banner_review_preview($1::uuid)', [id])
+    getBannerReviewPreview: (id, includeExclusive) => run(async (client) => {
+      const result = await client.query<{ content: Uint8Array; media_type: 'image/png' }>('SELECT content,media_type FROM api.get_banner_review_preview($1::uuid,$2::boolean)', [id, includeExclusive])
       const row = result.rows[0]
       return row ? { bytes: row.content, mediaType: row.media_type } : null
     }),
-    listPendingBanners: () => run(async (client) => {
-      const result = await client.query<PendingRow>('SELECT * FROM api.list_pending_banners()')
+    listPendingBanners: (includeExclusive) => run(async (client) => {
+      const result = await client.query<PendingRow>('SELECT * FROM api.list_pending_banners($1::boolean)', [includeExclusive])
       return result.rows.map((row) => ({ id: row.id, serverId: row.server_id, serverName: row.server_name, gameSlug: row.game_slug, bannerKind:row.banner_kind, mediaType: row.media_type, byteSize: row.byte_size, width:row.width, height:row.height, frameCount: row.frame_count, animationDurationMs: row.animation_duration_ms, altText: row.alt_text, createdAt: new Date(row.created_at).toISOString() }))
     }),
-    moderateBanner: (id, moderatorKey, decision, operationId) => run(async (client) => {
-      const result = await client.query<{ moderate_banner: string }>('SELECT api.moderate_banner($1::uuid,$2::bytea,$3::varchar,$4::uuid) AS moderate_banner', [id, moderatorKey, decision, operationId])
+    moderateBanner: (id, moderatorKey, decision, operationId, includeExclusive) => run(async (client) => {
+      const result = await client.query<{ moderate_banner: string }>('SELECT api.moderate_banner($1::uuid,$2::bytea,$3::varchar,$4::uuid,$5::boolean) AS moderate_banner', [id, moderatorKey, decision, operationId, includeExclusive])
       const value = result.rows[0]?.moderate_banner
       if (value !== 'approved' && value !== 'rejected' && value !== 'suspended' && value !== 'unavailable') throw new Error('Invalid banner moderation outcome')
       return value

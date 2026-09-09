@@ -12,6 +12,7 @@ type Dependencies = {
   deriveOwnerKey(uid: string): Promise<Uint8Array>
   deriveModeratorKey(uid: string): Promise<Uint8Array>
   rateLimit(key: string): Promise<{ success: boolean }>
+  exclusiveBannerModerationEnabled: boolean
   repository: AdvertisingRepository
 }
 
@@ -189,7 +190,7 @@ export function createAdvertisingEndpoints(dependencies: Dependencies) {
       if (request.method !== 'GET') return error('Method not allowed.', 405, { allow: 'GET' })
       const admin = await authorize(request, dependencies, 'admin', 'list-banners')
       if (admin instanceof Response) return admin
-      return Response.json({ ok: true, banners: await dependencies.repository.listPendingBanners() }, { headers: safe })
+      return Response.json({ ok: true, banners: await dependencies.repository.listPendingBanners(dependencies.exclusiveBannerModerationEnabled) }, { headers: safe })
     },
 
     async previewPending(request: Request, bannerId: string): Promise<Response> {
@@ -197,7 +198,7 @@ export function createAdvertisingEndpoints(dependencies: Dependencies) {
       const admin = await authorize(request, dependencies, 'admin', 'preview-banner')
       if (admin instanceof Response) return admin
       if (!uuid.test(bannerId)) return error('Banner not found.', 404)
-      const banner = await dependencies.repository.getBannerReviewPreview(bannerId)
+      const banner = await dependencies.repository.getBannerReviewPreview(bannerId, dependencies.exclusiveBannerModerationEnabled)
       return banner ? new Response(banner.bytes, { headers: { 'content-type': banner.mediaType, 'x-content-type-options': 'nosniff', 'cache-control': 'no-store', 'content-security-policy': "default-src 'none'; sandbox" } }) : error('Banner not found.', 404)
     },
 
@@ -208,7 +209,7 @@ export function createAdvertisingEndpoints(dependencies: Dependencies) {
       if (!uuid.test(bannerId)) return error('Please submit a valid banner decision.', 400)
       const input = await readDecision(request)
       if (!input || !['approve','reject','suspend'].includes(input.decision)) return error('Please submit a valid banner decision.', 400)
-      const outcome = await dependencies.repository.moderateBanner(bannerId, await dependencies.deriveModeratorKey(admin.uid), input.decision as 'approve'|'reject'|'suspend', input.operationId)
+      const outcome = await dependencies.repository.moderateBanner(bannerId, await dependencies.deriveModeratorKey(admin.uid), input.decision as 'approve'|'reject'|'suspend', input.operationId, dependencies.exclusiveBannerModerationEnabled)
       if (outcome === 'approved') return Response.json({ ok: true, message: 'The banner was approved.' }, { headers: safe })
       if (outcome === 'rejected') return Response.json({ ok: true, message: 'The banner was rejected.' }, { headers: safe })
       if (outcome === 'suspended') return Response.json({ ok: true, message: 'The banner was suspended.' }, { headers: safe })
