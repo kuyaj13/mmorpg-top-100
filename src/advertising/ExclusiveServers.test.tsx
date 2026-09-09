@@ -24,6 +24,14 @@ describe('ExclusiveServers', () => {
     expect(screen.getByRole('link', { name: /Flyff Two, Sponsored.*new tab/i })).toBeInTheDocument()
   })
 
+  it('does not show a redundant counter when only one sponsored server is active', async () => {
+    render(<ExclusiveServers gameSlug="flyff" gameName="Flyff" service={{ list: vi.fn().mockResolvedValue([ads[0]]) }} />)
+    await act(async () => {})
+    expect(screen.getByRole('link', { name: /Flyff One, Sponsored.*new tab/i })).toBeInTheDocument()
+    expect(screen.queryByText(/Sponsored server 1 of 1/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /sponsored server/i })).not.toBeInTheDocument()
+  })
+
   it('rotates every 15 seconds and pauses while hovered', async () => {
     render(<ExclusiveServers gameSlug="flyff" gameName="Flyff" service={{ list: vi.fn().mockResolvedValue(ads) }} />)
     await act(async () => {})

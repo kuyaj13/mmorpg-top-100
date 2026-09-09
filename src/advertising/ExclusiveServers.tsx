@@ -51,7 +51,7 @@ export function ExclusiveServers({ gameSlug, gameName, service = productionServi
       <a href={ad.website} target="_blank" rel="noopener noreferrer sponsored external" aria-label={`${ad.serverName}, Sponsored — opens in a new tab`}>
         <picture><source media="(prefers-reduced-motion: reduce)" srcSet={ad.staticBannerUrl} /><img src={reducedMotion ? ad.staticBannerUrl : ad.bannerUrl} alt={ad.altText} width="936" height="120" /></picture>
       </a>
-      <p>Sponsored server {index + 1} of {ads.length}: {ad.serverName}</p>
+      {ads.length > 1 && <p>Sponsored server {index + 1} of {ads.length}: {ad.serverName}</p>}
       <span className="visually-hidden" role="status" aria-atomic="true">{announcement}</span>
       {ads.length > 1 && <div className="exclusive-controls"><button type="button" onClick={() => show(-1)} aria-label="Show previous sponsored server">Previous</button>{!reducedMotion && <button type="button" onClick={() => setUserPaused((current) => !current)} aria-pressed={userPaused}>{userPaused ? 'Resume rotation' : 'Pause rotation'}</button>}<button type="button" onClick={() => show(1)} aria-label="Show next sponsored server">Next</button></div>}
     </div>}
