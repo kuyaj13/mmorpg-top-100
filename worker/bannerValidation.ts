@@ -1,5 +1,4 @@
-import { applyPalette, GIFEncoder, quantize } from 'gifenc'
-import { decompressFrames, parseGIF } from 'gifuct-js'
+import { decompressFrame, decompressFrames, parseGIF } from 'gifuct-js'
 import jpeg from 'jpeg-js'
 import UPNG from 'upng-js'
 
@@ -21,32 +20,33 @@ function hasStrictPngEnvelope(bytes:Uint8Array,limits:BannerLimits){
  return foundEnd&&validHeader
 }
 
-function compositeGif(bytes:Uint8Array,limits:BannerLimits){
+function validateGif(bytes:Uint8Array,limits:BannerLimits){
  const parsed=parseGIF(exactBuffer(bytes));if(parsed.lsd.width!==limits.width||parsed.lsd.height!==limits.height)return null
  const encodedFrames=parsed.frames.filter(frame=>'image'in frame);if(encodedFrames.length<1||encodedFrames.length>limits.maxFrames||encodedFrames.reduce((sum,frame)=>sum+frame.image.descriptor.width*frame.image.descriptor.height,0)>limits.maxPixelWork)return null
- const frames=decompressFrames(parsed,true);if(frames.length<1||frames.length>limits.maxFrames||frames.length*limits.width*limits.height>limits.maxPixelWork)return null
- const canvas=new Uint8Array(limits.width*limits.height*4),composited:Uint8Array[]=[];let duration=0,previous:typeof frames[number]|undefined,restore:Uint8Array|undefined
+ const frames=decompressFrames(parsed,false);if(frames.length<1||frames.length>limits.maxFrames||frames.length*limits.width*limits.height>limits.maxPixelWork)return null
+ let duration=0
  for(const frame of frames){
-  if(previous?.disposalType===2){for(let y=0;y<previous.dims.height;y++)for(let x=0;x<previous.dims.width;x++){const p=((previous.dims.top+y)*limits.width+previous.dims.left+x)*4;canvas.fill(0,p,p+4)}}else if(previous?.disposalType===3&&restore)canvas.set(restore)
-  const {left,top,width,height}=frame.dims;if(width<1||height<1||left<0||top<0||left+width>limits.width||top+height>limits.height||frame.patch.length!==width*height*4)return null
+  const {left,top,width,height}=frame.dims;if(width<1||height<1||left<0||top<0||left+width>limits.width||top+height>limits.height||frame.pixels.length!==width*height)return null
   const delay=frame.delay||limits.minFrameDelayMs;if(delay<limits.minFrameDelayMs||delay>limits.maxFrameDelayMs)return null;duration+=delay;if(duration>limits.maxDurationMs)return null
-  restore=frame.disposalType===3?canvas.slice():undefined
-  for(let y=0;y<height;y++)for(let x=0;x<width;x++){const source=(y*width+x)*4,target=((top+y)*limits.width+left+x)*4;if(frame.patch[source+3]!==0)canvas.set(frame.patch.subarray(source,source+4),target)}
-  composited.push(canvas.slice());previous=frame
  }
- return{frames:composited,delays:frames.map(frame=>frame.delay||limits.minFrameDelayMs),duration}
+ const first=decompressFrame(encodedFrames[0],parsed.gct,true),canvas=new Uint8Array(limits.width*limits.height*4)
+ const {left,top,width,height}=first.dims
+ if(first.patch.length!==width*height*4)return null
+ for(let y=0;y<height;y++)for(let x=0;x<width;x++){const source=(y*width+x)*4,target=((top+y)*limits.width+left+x)*4;if(first.patch[source+3]!==0)canvas.set(first.patch.subarray(source,source+4),target)}
+ return{frameCount:frames.length,duration,firstFrame:canvas}
 }
 
 async function finish(bytes:Uint8Array,staticFallbackBytes:Uint8Array,mediaType:SanitizedBanner['mediaType'],frameCount:number,animationDurationMs:number,original:Uint8Array,limits:BannerLimits):Promise<SanitizedBanner|null>{
  if(!validOutput(bytes,staticFallbackBytes,limits))return null
- return{bytes,staticFallbackBytes,originalSha256:await hash(original),sanitizedSha256:await hash(bytes),mediaType,width:limits.width,height:limits.height,frameCount,animationDurationMs}
+ const originalSha256=await hash(original),sanitizedSha256=bytes===original?originalSha256:await hash(bytes)
+ return{bytes,staticFallbackBytes,originalSha256,sanitizedSha256,mediaType,width:limits.width,height:limits.height,frameCount,animationDurationMs}
 }
 
 export async function validateBanner(input:Uint8Array,kind:'free'|'exclusive'='free'):Promise<SanitizedBanner|null>{
  const limits=kind==='exclusive'?exclusiveBannerLimits:bannerLimits
  if(input.length<4||input.length>limits.maxBytes)return null
  try{
-  if(input[0]===0x47&&input[1]===0x49&&input[2]===0x46){const decoded=compositeGif(input,limits);if(!decoded)return null;const encoder=GIFEncoder();decoded.frames.forEach((rgba,index)=>{const palette=quantize(rgba,256);encoder.writeFrame(applyPalette(rgba,palette),limits.width,limits.height,{palette,delay:decoded.delays[index],repeat:0,dispose:1})});encoder.finish();return finish(encoder.bytes(),png(decoded.frames[0],limits),'image/gif',decoded.frames.length,decoded.duration,input,limits)}
+  if(input[0]===0x47&&input[1]===0x49&&input[2]===0x46&&input.at(-1)===0x3b){const decoded=validateGif(input,limits);if(!decoded)return null;return finish(input,png(decoded.firstFrame,limits),'image/gif',decoded.frameCount,decoded.duration,input,limits)}
   if(hasStrictPngEnvelope(input,limits)){const decoded=UPNG.decode(exactBuffer(input));if(decoded.width!==limits.width||decoded.height!==limits.height||decoded.frames.length!==0)return null;const rgba=new Uint8Array(UPNG.toRGBA8(decoded)[0]);const clean=png(rgba,limits);return finish(clean,clean,'image/png',1,0,input,limits)}
   if(input[0]===0xff&&input[1]===0xd8&&input.at(-2)===0xff&&input.at(-1)===0xd9){const decoded=jpeg.decode(input,{useTArray:true,formatAsRGBA:true,tolerantDecoding:false,maxResolutionInMP:1,maxMemoryUsageInMB:16});if(decoded.width!==limits.width||decoded.height!==limits.height)return null;const rgba=new Uint8Array(decoded.data);return finish(new Uint8Array(jpeg.encode({data:rgba,width:limits.width,height:limits.height},85).data),png(rgba,limits),'image/jpeg',1,0,input,limits)}
  }catch{return null}
