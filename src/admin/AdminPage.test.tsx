@@ -200,6 +200,13 @@ describe('AdminPage', () => {
     expect(screen.getByRole('heading', { name: 'Moderation workspace' })).toHaveFocus()
   })
 
+  it('shows administrators that public sponsored advertising is active', async () => {
+    const placementService: AdPlacementService = { list: () => Promise.resolve([activePlacement]), decide: vi.fn() }
+    render(<AdminPage accessService={{ canModerate: () => Promise.resolve(true) }} moderationService={{ listPending: () => Promise.resolve([]), decide: vi.fn() }} donationClaimReviewService={emptyDonationService} adPlacementService={placementService} publicAdsEnabled />)
+    expect(await screen.findByText('Public sponsored advertising is active. Monitor placement status and inventory here.')).toBeInTheDocument()
+    expect(screen.queryByText(/remains disabled/i)).not.toBeInTheDocument()
+  })
+
   it('recovers safely when a placement decision request fails', async () => {
     const user = userEvent.setup()
     const decide = vi.fn().mockRejectedValue(new Error('network details'))

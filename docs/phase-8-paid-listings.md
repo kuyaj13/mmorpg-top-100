@@ -69,7 +69,7 @@
 - Both submission and owner-upload forms disclose the GIF frame limit and perform a lightweight client-side frame count so an over-limit file receives a plain inline banner-field error before upload. The trusted Worker independently decodes and enforces the same limit.
 - Alternative text is required and limited to 180 characters. Replacements return to pending moderation.
 - Banner bytes stay in PostgreSQL `bytea` for the no-cost MVP. Public responses use the stored fixed media type, `nosniff`, a restrictive content policy, and only the approved server website as destination.
-- Donation claims and exclusive placement flags remain off while their remaining moderation workflow is built. Banner uploads use trusted decoding and a generated static fallback before storage.
+- Donation claims and Exclusive placement features are live behind independent emergency kill switches. Banner uploads use trusted decoding and a generated static fallback before storage.
 
 ## Rotation and game isolation
 
