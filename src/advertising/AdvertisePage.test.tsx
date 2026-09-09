@@ -32,6 +32,17 @@ describe('AdvertisePage', () => {
     expect(screen.getByLabelText('Email address')).toHaveFocus()
   })
 
+  it('tells an unverified advertiser to check the spam folder', async () => {
+    const authService: AdvertiserAuthService = { ...readyAuth, currentStatus: () => Promise.resolve('verify-email') }
+    const advertisingService: AdvertisingService = {
+      loadWorkspace: vi.fn(),
+      createClaim: () => Promise.resolve({ ok: false, message: 'Not available.' }),
+    }
+    render(<AdvertisePage authService={authService} advertisingService={advertisingService} turnstileSiteKey="test-key" />)
+    expect(await screen.findByText(/check your spam folder if the message is not in your inbox/i)).toBeInTheDocument()
+    expect(advertisingService.loadWorkspace).not.toHaveBeenCalled()
+  })
+
   it('submits only the selected approved server, duration, and PayPal reference', async () => {
     const user = userEvent.setup()
     let submitted: { serverId: string; packageCode: string; donorReference: string; turnstileToken: string } | undefined

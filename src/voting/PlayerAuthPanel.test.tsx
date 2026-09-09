@@ -13,3 +13,8 @@ it('provides keyboard-accessible player sign-in and account creation', async () 
   expect(service.signIn).toHaveBeenCalledWith('player@example.com', 'password123')
   expect(onStatusChange).toHaveBeenCalledWith('ready')
 })
+
+it('tells unverified players to check their spam folder', async () => {
+  render(<PlayerAuthPanel service={{ ...service, currentStatus: () => Promise.resolve('verify-email') }} onStatusChange={vi.fn()} />)
+  expect(await screen.findByText(/check your spam folder if the message is not in your inbox/i)).toBeInTheDocument()
+})

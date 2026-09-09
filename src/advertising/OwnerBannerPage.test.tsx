@@ -28,3 +28,8 @@ it('shows a plain failure state without exposing implementation details', async 
   expect(await screen.findByText('You need an approved server before uploading a banner.')).toBeInTheDocument()
   expect(listServers).toHaveBeenCalledTimes(2)
 })
+
+it('tells an unverified server owner to check the spam folder', async () => {
+  render(<OwnerBannerPage authService={{ ...authService, currentStatus: () => Promise.resolve('verify-email') }} workspaceService={{ listServers: vi.fn() }}/>)
+  expect(await screen.findByText(/check your spam folder if the message is not in your inbox/i)).toBeInTheDocument()
+})

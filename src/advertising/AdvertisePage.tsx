@@ -169,7 +169,7 @@ export default function AdvertisePage({
     setAuthPending(true);
     try {
       await authService.sendVerification();
-      setAuthFeedback("A new verification email was sent.");
+      setAuthFeedback("A new verification email was sent. Check your inbox and spam folder.");
     } catch {
       setAuthFeedback("The verification email could not be sent.");
     } finally {
@@ -284,7 +284,7 @@ export default function AdvertisePage({
             aria-labelledby="verify-owner-heading"
           >
             <h2 id="verify-owner-heading">Verify your email address</h2>
-            <p>Use the link in your verification email, then return here.</p>
+            <p>Use the link in your verification email, then return here. Check your spam folder if the message is not in your inbox.</p>
             <div className="advertiser-auth-actions">
               <button
                 type="button"
