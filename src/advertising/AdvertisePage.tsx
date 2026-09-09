@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import logoUrl from "../assets/mmorpg-top-100-logo-web.png";
 import { siteConfig } from "../config/site";
@@ -7,6 +7,7 @@ import {
   advertisingService as defaultAdvertisingService,
 } from "./advertisingServices";
 import { BannerUploadForm } from "./BannerUploadForm";
+import { TurnstileWidget, type TurnstileWidgetHandle } from "../voting/TurnstileWidget";
 import type {
   AdvertiserAuthService,
   AdvertisingService,
@@ -17,11 +18,13 @@ import "./AdvertisePage.css";
 type Props = {
   authService?: AdvertiserAuthService;
   advertisingService?: AdvertisingService;
+  turnstileSiteKey?:string;
 };
 
 export default function AdvertisePage({
   authService = defaultAuthService,
   advertisingService = defaultAdvertisingService,
+  turnstileSiteKey,
 }: Props) {
   const [state, setState] = useState<
     "checking" | "signed-out" | "verify-email" | "loading" | "ready" | "error"
@@ -36,6 +39,7 @@ export default function AdvertisePage({
   const [authErrors, setAuthErrors] = useState<Record<string, string>>({});
   const [claimPending, setClaimPending] = useState(false);
   const [claimFeedback, setClaimFeedback] = useState("");
+  const [claimToken,setClaimToken]=useState("");
   const [claimErrors, setClaimErrors] = useState<Record<string, string>>({});
   const [reload, setReload] = useState(0);
   const [focusClaimResult, setFocusClaimResult] = useState(0);
@@ -46,6 +50,8 @@ export default function AdvertisePage({
   const referenceRef = useRef<HTMLInputElement>(null);
   const turnstileRef = useRef<HTMLDivElement>(null);
   const claimResultRef = useRef<HTMLParagraphElement>(null);
+  const claimWidgetRef=useRef<TurnstileWidgetHandle>(null);
+  const receiveClaimToken=useCallback((value:string)=>{setClaimToken(value);if(value)setClaimErrors((current)=>{if(!current.turnstileToken)return current;const next={...current};delete next.turnstileToken;return next})},[])
 
   useEffect(() => {
     if (focusClaimResult === 0) return;
@@ -120,7 +126,7 @@ export default function AdvertisePage({
       serverId: String(data.get("serverId") ?? ""),
       packageCode: String(data.get("packageCode") ?? ""),
       donorReference: String(data.get("donorReference") ?? ""),
-      turnstileToken: String(data.get("cf-turnstile-response") ?? ""),
+      turnstileToken: claimToken,
     };
     setClaimFeedback("");
     const errors: Record<string, string> = {};
@@ -135,7 +141,7 @@ export default function AdvertisePage({
       if (errors.serverId) serverRef.current?.focus();
       else if (errors.packageCode) packageRef.current?.focus();
       else if (errors.donorReference) referenceRef.current?.focus();
-      else turnstileRef.current?.focus();
+      else turnstileRef.current?.querySelector<HTMLElement>('[role="group"]')?.focus();
       return;
     }
     setClaimPending(true);
@@ -152,6 +158,7 @@ export default function AdvertisePage({
         "Your donation claim could not be submitted. Please try again later.",
       );
     } finally {
+      claimWidgetRef.current?.reset();
       setClaimPending(false);
     }
   };
@@ -399,29 +406,15 @@ export default function AdvertisePage({
                       {claimErrors.donorReference}
                     </p>
                   )}
-                  <p id="security-check-label">Security check</p>
                   <div
                     ref={turnstileRef}
                     tabIndex={-1}
-                    role="group"
-                    aria-labelledby="security-check-label"
-                    aria-describedby={
-                      claimErrors.turnstileToken
-                        ? "security-check-error"
-                        : undefined
-                    }
                   >
-                    <div
-                      className="cf-turnstile"
-                      data-sitekey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
-                      data-action="donation-claim"
-                      data-theme="dark"
-                      data-size="compact"
-                    />
+                    <TurnstileWidget onToken={receiveClaimToken} resetRef={claimWidgetRef} siteKey={turnstileSiteKey} action="donation-claim" idPrefix="claim" label="Security check" describedBy={claimErrors.turnstileToken?'claim-security-field-error':undefined} />
                   </div>
                   {claimErrors.turnstileToken && (
                     <p
-                      id="security-check-error"
+                      id="claim-security-field-error"
                       className="field-error"
                       role="alert"
                     >
@@ -476,7 +469,7 @@ export default function AdvertisePage({
                 </ul>
               )}
             </section>
-            <BannerUploadForm servers={workspace.servers} kind="exclusive" />
+            <BannerUploadForm servers={workspace.servers} kind="exclusive" turnstileSiteKey={turnstileSiteKey} />
           </>
         )}
       </main>
