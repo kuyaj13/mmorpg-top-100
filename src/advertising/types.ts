@@ -41,6 +41,6 @@ export type AdvertiserAuthService = {
 export type AdvertisingService = {
   loadWorkspace: () => Promise<AdvertisingWorkspace>
   createClaim: (input: { serverId: string; packageCode: string; donorReference: string; turnstileToken: string }) => Promise<
-    {ok:true;message:string}|{ok:false;message:string;fieldErrors?:Partial<Record<'serverId'|'packageCode'|'donorReference'|'turnstileToken',string>>}
+    {ok:true;message:string;claimId:string}|{ok:false;message:string;fieldErrors?:Partial<Record<'serverId'|'packageCode'|'donorReference'|'turnstileToken',string>>}
   >
 }

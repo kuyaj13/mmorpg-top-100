@@ -90,16 +90,17 @@ export const advertisingService: AdvertisingService = {
         donorReference,
         turnstileToken: input.turnstileToken,
       })
-      const result = await response.json().catch(() => null) as { message?: unknown } | null
+      const result = await response.json().catch(() => null) as { message?: unknown;claimId?:unknown } | null
       if (!response.ok) return { ok: false,...publicClaimError(response.status, result?.message) }
-      return { ok: true, message: 'Your donation claim was submitted for manual review.' }
+      if(typeof result?.claimId!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(result.claimId))return{ok:false,message:'Your donation claim was saved, but its confirmation could not be loaded. Refresh the page to view it.'}
+      return { ok: true, message: 'Your donation claim was submitted for manual review.',claimId:result.claimId }
     } catch {
       return { ok: false, message: 'This donation claim could not be submitted. Check the details and try again.' }
     }
   },
 }
 
-export function requestAdvertisingWorkspace(apiBaseUrl:string,idToken:string,fetcher:typeof fetch=fetch){return fetcher(new URL('/api/advertising/workspace',apiBaseUrl),{headers:{authorization:`Bearer ${idToken}`}})}
+export function requestAdvertisingWorkspace(apiBaseUrl:string,idToken:string,fetcher:typeof fetch=fetch){return fetcher(new URL('/api/advertising/workspace',apiBaseUrl),{headers:{authorization:`Bearer ${idToken}`},cache:'no-store'})}
 
 export function submitProtectedClaim(
   apiBaseUrl: string,

@@ -150,7 +150,25 @@ export default function AdvertisePage({
       setClaimFeedback({message:result.message,kind:result.ok?'success':'error'});
       if (result.ok) {
         form.reset();
-        setWorkspace(await advertisingService.loadWorkspace());
+        const server=workspace.servers.find((item)=>item.id===input.serverId);
+        const selectedPackage=workspace.packages.find((item)=>item.code===input.packageCode);
+        const confirmedClaim = server && selectedPackage ? {
+          id: result.claimId,
+          serverName: server.name,
+          gameName: server.gameName,
+          durationDays: selectedPackage.durationDays,
+          status: 'pending' as const,
+          createdAt: new Date().toISOString(),
+        } : null;
+        if (confirmedClaim) setWorkspace((current) => current.claims.some((claim) => claim.id === result.claimId) ? current : {...current, claims: [confirmedClaim, ...current.claims]});
+        try {
+          const refreshed = await advertisingService.loadWorkspace();
+          setWorkspace(confirmedClaim && !refreshed.claims.some((claim) => claim.id === result.claimId)
+            ? {...refreshed, claims: [confirmedClaim, ...refreshed.claims]}
+            : refreshed);
+        } catch {
+          // Retain the confirmed claim until the next refresh.
+        }
         setFocusClaimResult((value) => value + 1);
       } else if(result.fieldErrors){
         setClaimErrors((current)=>({...current,...result.fieldErrors}));

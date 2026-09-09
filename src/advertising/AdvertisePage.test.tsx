@@ -55,7 +55,7 @@ describe('AdvertisePage', () => {
         ],
         claims: [],
       }),
-      createClaim: (input) => { submitted = input; return Promise.resolve({ ok: true, message: 'Your donation claim was submitted for manual review.' }) },
+      createClaim: (input) => { submitted = input; return Promise.resolve({ ok: true, message: 'Your donation claim was submitted for manual review.',claimId:'123e4567-e89b-42d3-a456-426614174000' }) },
     }
     render(<AdvertisePage authService={readyAuth} advertisingService={advertisingService} turnstileSiteKey="test-key" />)
 
@@ -70,6 +70,7 @@ describe('AdvertisePage', () => {
     expect(submitted).toEqual({ serverId: 'server-1', packageCode: 'exclusive_30_day', donorReference: 'PAYPAL123456', turnstileToken: 'verified-challenge-token' })
     expect(await screen.findByText('Your donation claim was submitted for manual review.')).toBeInTheDocument()
     expect(screen.getByText('Your donation claim was submitted for manual review.')).toHaveFocus()
+    expect(await screen.findByText('pending')).toBeInTheDocument()
     expect(window.turnstile?.render).toHaveBeenCalledWith(expect.any(HTMLElement),expect.objectContaining({action:'donation-claim',size:'flexible'}))
     expect(window.turnstile?.reset).toHaveBeenCalled()
   })
@@ -84,7 +85,7 @@ describe('AdvertisePage', () => {
         packages: [{ code: 'exclusive_7_day', durationDays: 7, tier: 'exclusive', priceMinor: '1000', currency: 'USD' }],
         claims: [],
       }),
-      createClaim: () => { submitted = true; return Promise.resolve({ ok: true, message: 'Submitted.' }) },
+      createClaim: () => { submitted = true; return Promise.resolve({ ok: true, message: 'Submitted.',claimId:'123e4567-e89b-42d3-a456-426614174000' }) },
     }
     render(<AdvertisePage authService={readyAuth} advertisingService={advertisingService} turnstileSiteKey="test-key" />)
     await user.selectOptions(await screen.findByLabelText('Approved server', { selector: '#claim-server' }), 'server-1')
