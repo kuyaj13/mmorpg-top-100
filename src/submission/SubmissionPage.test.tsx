@@ -1,6 +1,18 @@
 import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { SubmissionPage } from './SubmissionPage'
+import { applyPalette, GIFEncoder, quantize } from 'gifenc'
+
+function animatedGif(frames: number) {
+  const pixels = new Uint8Array(2 * 2 * 4)
+  for (let index = 3; index < pixels.length; index += 4) pixels[index] = 255
+  const palette = quantize(pixels, 256)
+  const indexed = applyPalette(pixels, palette)
+  const encoder = GIFEncoder()
+  for (let frame = 0; frame < frames; frame += 1) encoder.writeFrame(indexed, 2, 2, { palette, delay: 100 })
+  encoder.finish()
+  return new Uint8Array(encoder.bytes())
+}
 
 describe('SubmissionPage', () => {
   const authService = {
@@ -104,6 +116,27 @@ describe('SubmissionPage', () => {
     await user.type(screen.getByLabelText('Banner description'), 'Liberty Troupe blue and red emblem')
     await user.click(screen.getByRole('button', { name: 'Submit for review' }))
     await waitFor(() => expect([...document.querySelectorAll('.field-error')].map((item) => item.textContent)).toEqual(['Choose a banner that is exactly 468 by 60 pixels.']))
+    expect(screen.getByLabelText('Banner image')).toHaveFocus()
+    expect(service.submit).not.toHaveBeenCalled()
+  })
+
+  it('shows the 45-frame GIF error beside the submission banner', async () => {
+    const user = userEvent.setup()
+    const service = { submit: vi.fn() }
+    render(<SubmissionPage service={service} authService={authService} turnstileSiteKey="test-key" />)
+    await user.type(await screen.findByLabelText('Server name'), 'Animated Flyff')
+    await user.type(screen.getByLabelText('Server website'), 'https://animated.example/')
+    await user.selectOptions(screen.getByLabelText('Game'), 'flyff')
+    await user.type(screen.getByLabelText('Game version'), 'v22')
+    await user.type(screen.getByLabelText('Primary region'), 'Asia')
+    await user.selectOptions(screen.getByLabelText('Server mode'), 'PvE')
+    await user.type(screen.getByLabelText('Description'), 'A community-focused animated Flyff server.')
+    await user.upload(screen.getByLabelText('Banner image'), new File([animatedGif(46)], 'animated.gif', { type: 'image/gif' }))
+    await user.type(screen.getByLabelText('Banner description'), 'Animated Flyff fantasy banner')
+    await user.click(screen.getByRole('button', { name: 'Submit for review' }))
+
+    expect(await screen.findByText('Animated GIFs may contain no more than 45 frames.')).toHaveAttribute('role', 'alert')
+    expect(screen.getByLabelText('Banner image')).toHaveAccessibleDescription(/no more than 45 frames/i)
     expect(screen.getByLabelText('Banner image')).toHaveFocus()
     expect(service.submit).not.toHaveBeenCalled()
   })

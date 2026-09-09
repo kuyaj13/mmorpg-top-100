@@ -6,6 +6,7 @@ import { TurnstileWidget, type TurnstileWidgetHandle } from '../voting/Turnstile
 import { protectedSubmissionService } from './protectedSubmissionService'
 import { validateSubmission, type SubmissionErrors } from './submissionValidation'
 import type { ProtectedServerSubmission, ProtectedSubmissionService } from './types'
+import { gifFrameLimitError } from '../advertising/gifInspection'
 
 type FieldName = keyof Omit<ProtectedServerSubmission, 'turnstileToken'> | 'turnstileToken'
 
@@ -56,6 +57,14 @@ export function SubmissionPage({ service = protectedSubmissionService, turnstile
         if (field instanceof HTMLElement) field.focus()
       }
       return
+    }
+    if (banner) {
+      const frameError = await gifFrameLimitError(banner, 45)
+      if (frameError) {
+        setErrors({ banner: frameError })
+        bannerRef.current?.focus()
+        return
+      }
     }
     if (banner && !await hasRequiredBannerDimensions(banner)) {
       setErrors({ banner: 'Choose a banner that is exactly 468 by 60 pixels.' })

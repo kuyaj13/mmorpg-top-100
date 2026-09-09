@@ -62,6 +62,7 @@
 - One free banner record per approved server. Upload and replacement require only verified ownership of that server; they never require a donation.
 - Exact dimensions: 468 by 60 pixels. Maximum encoded size: 512 KiB. Allowed signatures: PNG, JPEG, and GIF.
 - Free 468 by 60 GIF limit: 45 frames and 15 seconds total declared frame delay. The decoded pixel-work ceiling is exactly 45 full-size frames. Static formats are recorded as one frame with zero animation duration.
+- Both submission and owner-upload forms disclose the GIF frame limit and perform a lightweight client-side frame count so an over-limit file receives a plain inline banner-field error before upload. The trusted Worker independently decodes and enforces the same limit.
 - Alternative text is required and limited to 180 characters. Replacements return to pending moderation.
 - Banner bytes stay in PostgreSQL `bytea` for the no-cost MVP. Public responses use the stored fixed media type, `nosniff`, a restrictive content policy, and only the approved server website as destination.
 - Donation claims and exclusive placement flags remain off while their remaining moderation workflow is built. Banner uploads use trusted decoding and a generated static fallback before storage.

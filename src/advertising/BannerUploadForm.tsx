@@ -2,6 +2,7 @@ import { useCallback, useRef, useState, type FormEvent } from 'react'
 import { TurnstileWidget, type TurnstileWidgetHandle } from '../voting/TurnstileWidget'
 import { bannerUploadService } from './bannerServices'
 import type { BannerUploadFormProps } from './bannerTypes'
+import { gifFrameLimitError } from './gifInspection'
 
 const allowedTypes = new Set(['image/gif', 'image/png', 'image/jpeg'])
 
@@ -39,6 +40,12 @@ export function BannerUploadForm({ servers, service = bannerUploadService, turns
     else if (nextErrors.altText) altRef.current?.focus()
     else if (nextErrors.turnstileToken) turnstileRef.current?.focus()
     if (Object.keys(nextErrors).length || !file) return
+    const frameError = await gifFrameLimitError(file, exclusive ? 15 : 45)
+    if (frameError) {
+      setErrors({ file: frameError })
+      fileRef.current?.focus()
+      return
+    }
     if (!await hasRequiredDimensions(file,width,height)) {
       setErrors({ file: `Choose a banner that is exactly ${width} by ${height} pixels.` })
       fileRef.current?.focus()
