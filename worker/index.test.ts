@@ -21,6 +21,7 @@ const env = {
   VOTER_HMAC_SECRET: 'secret',
   OWNER_HMAC_SECRET: 'secret',
   ADMIN_ENABLED: 'false',
+  PAID_WORKFLOW_RELEASED: 'false',
   ADMIN_RATE_LIMITER: { limit: rateLimit } as RateLimit,
   MODERATOR_HMAC_SECRET: 'secret',
   BANNER_UPLOADS_ENABLED: 'false',
@@ -136,7 +137,7 @@ describe('rankings endpoint', () => {
     expect(response.status).toBe(503)
   })
 
-  it('keeps the paid owner workspace disabled independently from donation claims', async () => {
+  it('keeps the paid owner workspace disabled when individual flags are on but the master release is off', async () => {
     const advertisingWorkspace = vi.fn()
     const advertising = {
       ownerWorkspace: vi.fn(), advertisingWorkspace, submitClaim: vi.fn(), listPendingClaims: vi.fn(), moderateClaim: vi.fn(),
@@ -145,7 +146,7 @@ describe('rankings endpoint', () => {
     const worker = createWorker(() => repository(null), undefined, undefined, undefined, () => advertising)
     const response = await worker.fetch(new Request('https://api.example/api/advertising/workspace', {
       headers: { origin: 'https://mmorpgtop100.com' },
-    }), { ...env, DONATION_CLAIMS_ENABLED: 'true' })
+    }), { ...env, ADVERTISING_WORKSPACE_ENABLED: 'true', DONATION_CLAIMS_ENABLED: 'true' })
     expect(response.status).toBe(503)
     expect(advertisingWorkspace).not.toHaveBeenCalled()
   })
@@ -159,7 +160,7 @@ describe('rankings endpoint', () => {
     const worker = createWorker(() => repository(null), undefined, undefined, undefined, () => advertising)
     const response = await worker.fetch(new Request('https://api.example/api/advertising/workspace', {
       headers: { origin: 'https://mmorpgtop100.com' },
-    }), { ...env, ADVERTISING_WORKSPACE_ENABLED: 'true' })
+    }), { ...env, PAID_WORKFLOW_RELEASED: 'true', ADVERTISING_WORKSPACE_ENABLED: 'true' })
     expect(response.status).toBe(200)
     expect(advertisingWorkspace).toHaveBeenCalledOnce()
   })
@@ -206,7 +207,7 @@ describe('rankings endpoint', () => {
     const worker = createWorker(() => repository(null), undefined, undefined, undefined, () => advertising)
     const response = await worker.fetch(new Request('https://api.example/api/admin/ad-placements', {
       headers: { origin: 'https://mmorpgtop100.com' },
-    }), { ...env, ADMIN_ENABLED: 'true', PLACEMENT_MODERATION_ENABLED: 'true' })
+    }), { ...env, PAID_WORKFLOW_RELEASED: 'true', ADMIN_ENABLED: 'true', PLACEMENT_MODERATION_ENABLED: 'true' })
     expect(response.status).toBe(200)
     expect(listPlacements).toHaveBeenCalledOnce()
   })
@@ -301,7 +302,7 @@ describe('rankings endpoint', () => {
     const worker = createWorker(() => repository(null), undefined, undefined, undefined, () => advertising)
     const response = await worker.fetch(new Request('https://api.example/api/advertising/servers/123e4567-e89b-42d3-a456-426614174000/exclusive-banner', {
       method: 'PUT', headers: { origin: 'https://mmorpgtop100.com' },
-    }), { ...env, BANNER_UPLOADS_ENABLED: 'true', EXCLUSIVE_BANNER_UPLOADS_ENABLED: 'true' })
+    }), { ...env, PAID_WORKFLOW_RELEASED: 'true', BANNER_UPLOADS_ENABLED: 'true', EXCLUSIVE_BANNER_UPLOADS_ENABLED: 'true' })
     expect(response.status).toBe(200)
     expect(upload).toHaveBeenCalledWith(expect.any(Request), '123e4567-e89b-42d3-a456-426614174000', 'exclusive')
   })

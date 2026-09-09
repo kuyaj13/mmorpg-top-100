@@ -26,6 +26,7 @@ type WorkerEnv = GeneratedBindings & {
   VOTING_ENABLED: string
   SUBMISSIONS_ENABLED: string
   ADMIN_ENABLED: string
+  PAID_WORKFLOW_RELEASED: string
   BANNER_UPLOADS_ENABLED: string
   EXCLUSIVE_BANNER_UPLOADS_ENABLED: string
   EXCLUSIVE_BANNER_MODERATION_ENABLED: string
@@ -111,13 +112,13 @@ export function createWorker(repositoryFactory: RepositoryFactory, voteHandlerFa
           if (env.BANNER_UPLOADS_ENABLED !== 'true' || !advertisingFactory) return corsResponse(request, env, jsonError('Banner uploads are not available yet.', 503), 'PUT, OPTIONS', 'authorization, content-type, x-banner-alt-text, x-turnstile-token')
           return corsResponse(request, env, await advertisingFactory(env).upload(request, safeDecode(bannerUpload[1])), 'PUT, OPTIONS', 'authorization, content-type, x-banner-alt-text, x-turnstile-token')
         }
-        if(exclusiveBannerUpload){if(request.method!=='PUT')return corsResponse(request,env,methodNotAllowed('PUT'),'PUT, OPTIONS','authorization, content-type, x-banner-alt-text, x-turnstile-token');if(!isAllowedOrigin(request,env))return jsonError('This request is not allowed.',403);if(env.BANNER_UPLOADS_ENABLED!=='true'||env.EXCLUSIVE_BANNER_UPLOADS_ENABLED!=='true'||!advertisingFactory)return corsResponse(request,env,jsonError('Exclusive banner uploads are not available yet.',503),'PUT, OPTIONS','authorization, content-type, x-banner-alt-text, x-turnstile-token');return corsResponse(request,env,await advertisingFactory(env).upload(request,safeDecode(exclusiveBannerUpload[1]),'exclusive'),'PUT, OPTIONS','authorization, content-type, x-banner-alt-text, x-turnstile-token')}
+        if(exclusiveBannerUpload){if(request.method!=='PUT')return corsResponse(request,env,methodNotAllowed('PUT'),'PUT, OPTIONS','authorization, content-type, x-banner-alt-text, x-turnstile-token');if(!isAllowedOrigin(request,env))return jsonError('This request is not allowed.',403);if(env.PAID_WORKFLOW_RELEASED!=='true'||env.BANNER_UPLOADS_ENABLED!=='true'||env.EXCLUSIVE_BANNER_UPLOADS_ENABLED!=='true'||!advertisingFactory)return corsResponse(request,env,jsonError('Exclusive banner uploads are not available yet.',503),'PUT, OPTIONS','authorization, content-type, x-banner-alt-text, x-turnstile-token');return corsResponse(request,env,await advertisingFactory(env).upload(request,safeDecode(exclusiveBannerUpload[1]),'exclusive'),'PUT, OPTIONS','authorization, content-type, x-banner-alt-text, x-turnstile-token')}
         if (ownerBannerWorkspace) {
           if (request.method !== 'GET') return corsResponse(request, env, methodNotAllowed(), 'GET, OPTIONS', 'authorization, content-type')
           if (env.BANNER_UPLOADS_ENABLED !== 'true' || !advertisingFactory) return corsResponse(request, env, jsonError('Banner uploads are not available yet.', 503), 'GET, OPTIONS', 'authorization, content-type')
           return corsResponse(request, env, await advertisingFactory(env).ownerWorkspace(request), 'GET, OPTIONS', 'authorization, content-type')
         }
-        if(advertisingWorkspace){if(request.method!=='GET')return corsResponse(request,env,methodNotAllowed(),'GET, OPTIONS','authorization, content-type');if(env.ADVERTISING_WORKSPACE_ENABLED!=='true'||!advertisingFactory)return corsResponse(request,env,jsonError('Advertising workspace is not available yet.',503),'GET, OPTIONS','authorization, content-type');return corsResponse(request,env,await advertisingFactory(env).advertisingWorkspace(request),'GET, OPTIONS','authorization, content-type')}
+        if(advertisingWorkspace){if(request.method!=='GET')return corsResponse(request,env,methodNotAllowed(),'GET, OPTIONS','authorization, content-type');if(env.PAID_WORKFLOW_RELEASED!=='true'||env.ADVERTISING_WORKSPACE_ENABLED!=='true'||!advertisingFactory)return corsResponse(request,env,jsonError('Advertising workspace is not available yet.',503),'GET, OPTIONS','authorization, content-type');return corsResponse(request,env,await advertisingFactory(env).advertisingWorkspace(request),'GET, OPTIONS','authorization, content-type')}
         if (adminBannerList || adminBannerPreview || adminBannerDecision) {
           const methods = adminBannerDecision ? 'POST, OPTIONS' : 'GET, OPTIONS'
           if (env.BANNER_MODERATION_ENABLED !== 'true' || !advertisingFactory) return corsResponse(request, env, jsonError('Banner moderation is not available yet.', 503), methods, 'authorization, content-type')
@@ -127,15 +128,15 @@ export function createWorker(repositoryFactory: RepositoryFactory, voteHandlerFa
         }
         if (adminDonationClaims || adminDonationDecision) {
           const methods=adminDonationDecision?'POST, OPTIONS':'GET, OPTIONS'
-          if(env.ADMIN_ENABLED!=='true'||env.DONATION_MODERATION_ENABLED!=='true'||!advertisingFactory) return corsResponse(request,env,jsonError('Donation review is not available yet.',503),methods,'authorization, content-type')
+          if(env.PAID_WORKFLOW_RELEASED!=='true'||env.ADMIN_ENABLED!=='true'||env.DONATION_MODERATION_ENABLED!=='true'||!advertisingFactory) return corsResponse(request,env,jsonError('Donation review is not available yet.',503),methods,'authorization, content-type')
           const advertising=advertisingFactory(env)
           const response=adminDonationDecision?await advertising.moderateClaim(request,safeDecode(adminDonationDecision[1])):await advertising.listPendingClaims(request)
           return corsResponse(request,env,response,methods,'authorization, content-type')
         }
-        if(adminPlacements||adminPlacementDecision){const methods=adminPlacementDecision?'POST, OPTIONS':'GET, OPTIONS';if(env.ADMIN_ENABLED!=='true'||env.PLACEMENT_MODERATION_ENABLED!=='true'||!advertisingFactory)return corsResponse(request,env,jsonError('Advertisement management is not available yet.',503),methods,'authorization, content-type');const advertising=advertisingFactory(env);const response=adminPlacementDecision?await advertising.moderatePlacement(request,safeDecode(adminPlacementDecision[1])):await advertising.listPlacements(request);return corsResponse(request,env,response,methods,'authorization, content-type')}
+        if(adminPlacements||adminPlacementDecision){const methods=adminPlacementDecision?'POST, OPTIONS':'GET, OPTIONS';if(env.PAID_WORKFLOW_RELEASED!=='true'||env.ADMIN_ENABLED!=='true'||env.PLACEMENT_MODERATION_ENABLED!=='true'||!advertisingFactory)return corsResponse(request,env,jsonError('Advertisement management is not available yet.',503),methods,'authorization, content-type');const advertising=advertisingFactory(env);const response=adminPlacementDecision?await advertising.moderatePlacement(request,safeDecode(adminPlacementDecision[1])):await advertising.listPlacements(request);return corsResponse(request,env,response,methods,'authorization, content-type')}
         if (publicAds) {
           if (request.method !== 'GET') return corsResponse(request, env, methodNotAllowed())
-          if (env.EXCLUSIVE_ADS_ENABLED !== 'true' || !advertisingFactory) return corsResponse(request, env, jsonError('Exclusive servers are not available yet.', 503))
+          if (env.PAID_WORKFLOW_RELEASED !== 'true' || env.EXCLUSIVE_ADS_ENABLED !== 'true' || !advertisingFactory) return corsResponse(request, env, jsonError('Exclusive servers are not available yet.', 503))
           const gameSlug = parseGameSlug(safeDecode(publicAds[1]))
           if (!gameSlug) return corsResponse(request, env, jsonError('Please choose a valid game.', 400))
           const clientKey = request.headers.get('cf-connecting-ip') ?? 'unknown-client'
@@ -163,7 +164,7 @@ export function createWorker(repositoryFactory: RepositoryFactory, voteHandlerFa
         }
         if (donationClaim) {
           if (request.method!=='POST') return corsResponse(request,env,methodNotAllowed('POST'),'POST, OPTIONS','authorization, content-type')
-          if(env.DONATION_CLAIMS_ENABLED!=='true'||!advertisingFactory) return corsResponse(request,env,jsonError('Donation claims are not available yet.',503),'POST, OPTIONS','authorization, content-type')
+          if(env.PAID_WORKFLOW_RELEASED!=='true'||env.DONATION_CLAIMS_ENABLED!=='true'||!advertisingFactory) return corsResponse(request,env,jsonError('Donation claims are not available yet.',503),'POST, OPTIONS','authorization, content-type')
           return corsResponse(request,env,await advertisingFactory(env).submitClaim(request),'POST, OPTIONS','authorization, content-type')
         }
         return corsResponse(request, env, jsonError('Not found.', 404))
@@ -215,7 +216,7 @@ export default createWorker(
       deriveOwnerKey: (uid) => deriveOwnerKey(env.OWNER_HMAC_SECRET, uid),
       deriveModeratorKey: (uid) => deriveModeratorKey(env.MODERATOR_HMAC_SECRET, uid),
       rateLimit: (key) => env.ADVERTISING_RATE_LIMITER.limit({ key }),
-      exclusiveBannerModerationEnabled: env.EXCLUSIVE_BANNER_MODERATION_ENABLED === 'true',
+      exclusiveBannerModerationEnabled: env.PAID_WORKFLOW_RELEASED === 'true' && env.EXCLUSIVE_BANNER_MODERATION_ENABLED === 'true',
       repository: createHyperdriveAdvertisingRepository(env.HYPERDRIVE.connectionString),
     })
   },
