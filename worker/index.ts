@@ -27,6 +27,7 @@ type WorkerEnv = GeneratedBindings & {
   SUBMISSIONS_ENABLED: string
   ADMIN_ENABLED: string
   BANNER_UPLOADS_ENABLED: string
+  EXCLUSIVE_BANNER_UPLOADS_ENABLED: string
   EXCLUSIVE_ADS_ENABLED: string
   BANNER_MODERATION_ENABLED: string
   DONATION_CLAIMS_ENABLED: string
@@ -107,7 +108,7 @@ export function createWorker(repositoryFactory: RepositoryFactory, voteHandlerFa
           if (env.BANNER_UPLOADS_ENABLED !== 'true' || !advertisingFactory) return corsResponse(request, env, jsonError('Banner uploads are not available yet.', 503), 'PUT, OPTIONS', 'authorization, content-type, x-banner-alt-text, x-turnstile-token')
           return corsResponse(request, env, await advertisingFactory(env).upload(request, safeDecode(bannerUpload[1])), 'PUT, OPTIONS', 'authorization, content-type, x-banner-alt-text, x-turnstile-token')
         }
-        if(exclusiveBannerUpload){if(request.method!=='PUT')return corsResponse(request,env,methodNotAllowed('PUT'),'PUT, OPTIONS','authorization, content-type, x-banner-alt-text, x-turnstile-token');if(!isAllowedOrigin(request,env))return jsonError('This request is not allowed.',403);if(env.BANNER_UPLOADS_ENABLED!=='true'||!advertisingFactory)return corsResponse(request,env,jsonError('Banner uploads are not available yet.',503),'PUT, OPTIONS','authorization, content-type, x-banner-alt-text, x-turnstile-token');return corsResponse(request,env,await advertisingFactory(env).upload(request,safeDecode(exclusiveBannerUpload[1]),'exclusive'),'PUT, OPTIONS','authorization, content-type, x-banner-alt-text, x-turnstile-token')}
+        if(exclusiveBannerUpload){if(request.method!=='PUT')return corsResponse(request,env,methodNotAllowed('PUT'),'PUT, OPTIONS','authorization, content-type, x-banner-alt-text, x-turnstile-token');if(!isAllowedOrigin(request,env))return jsonError('This request is not allowed.',403);if(env.BANNER_UPLOADS_ENABLED!=='true'||env.EXCLUSIVE_BANNER_UPLOADS_ENABLED!=='true'||!advertisingFactory)return corsResponse(request,env,jsonError('Exclusive banner uploads are not available yet.',503),'PUT, OPTIONS','authorization, content-type, x-banner-alt-text, x-turnstile-token');return corsResponse(request,env,await advertisingFactory(env).upload(request,safeDecode(exclusiveBannerUpload[1]),'exclusive'),'PUT, OPTIONS','authorization, content-type, x-banner-alt-text, x-turnstile-token')}
         if (ownerBannerWorkspace) {
           if (request.method !== 'GET') return corsResponse(request, env, methodNotAllowed(), 'GET, OPTIONS', 'authorization, content-type')
           if (env.BANNER_UPLOADS_ENABLED !== 'true' || !advertisingFactory) return corsResponse(request, env, jsonError('Banner uploads are not available yet.', 503), 'GET, OPTIONS', 'authorization, content-type')

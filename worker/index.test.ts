@@ -24,6 +24,7 @@ const env = {
   ADMIN_RATE_LIMITER: { limit: rateLimit } as RateLimit,
   MODERATOR_HMAC_SECRET: 'secret',
   BANNER_UPLOADS_ENABLED: 'false',
+  EXCLUSIVE_BANNER_UPLOADS_ENABLED: 'false',
   EXCLUSIVE_ADS_ENABLED: 'false',
   BANNER_MODERATION_ENABLED: 'false',
   DONATION_CLAIMS_ENABLED: 'false',
@@ -215,6 +216,35 @@ describe('rankings endpoint', () => {
     expect(response.headers.get('access-control-allow-methods')).toBe('PUT, OPTIONS')
     expect(response.headers.get('access-control-allow-headers')).toBe('authorization, content-type, x-banner-alt-text, x-turnstile-token')
     expect(response.headers.get('access-control-allow-headers')).not.toContain('x-firebase-appcheck')
+  })
+
+  it('keeps exclusive banner uploads disabled when free banner uploads are enabled', async () => {
+    const upload = vi.fn()
+    const advertising = {
+      ownerWorkspace: vi.fn(), advertisingWorkspace: vi.fn(), submitClaim: vi.fn(), listPendingClaims: vi.fn(), moderateClaim: vi.fn(),
+      upload, listPublic: vi.fn(), banner: vi.fn(), listPending: vi.fn(), previewPending: vi.fn(), moderate: vi.fn(), listPlacements: vi.fn(), moderatePlacement: vi.fn(),
+    }
+    const worker = createWorker(() => repository(null), undefined, undefined, undefined, () => advertising)
+    const response = await worker.fetch(new Request('https://api.example/api/advertising/servers/123e4567-e89b-42d3-a456-426614174000/exclusive-banner', {
+      method: 'PUT', headers: { origin: 'https://mmorpgtop100.com' },
+    }), { ...env, BANNER_UPLOADS_ENABLED: 'true' })
+    expect(response.status).toBe(503)
+    await expect(response.json()).resolves.toMatchObject({ message: 'Exclusive banner uploads are not available yet.' })
+    expect(upload).not.toHaveBeenCalled()
+  })
+
+  it('routes exclusive banner uploads only when both upload gates are enabled', async () => {
+    const upload = vi.fn().mockResolvedValue(Response.json({ ok: true }))
+    const advertising = {
+      ownerWorkspace: vi.fn(), advertisingWorkspace: vi.fn(), submitClaim: vi.fn(), listPendingClaims: vi.fn(), moderateClaim: vi.fn(),
+      upload, listPublic: vi.fn(), banner: vi.fn(), listPending: vi.fn(), previewPending: vi.fn(), moderate: vi.fn(), listPlacements: vi.fn(), moderatePlacement: vi.fn(),
+    }
+    const worker = createWorker(() => repository(null), undefined, undefined, undefined, () => advertising)
+    const response = await worker.fetch(new Request('https://api.example/api/advertising/servers/123e4567-e89b-42d3-a456-426614174000/exclusive-banner', {
+      method: 'PUT', headers: { origin: 'https://mmorpgtop100.com' },
+    }), { ...env, BANNER_UPLOADS_ENABLED: 'true', EXCLUSIVE_BANNER_UPLOADS_ENABLED: 'true' })
+    expect(response.status).toBe(200)
+    expect(upload).toHaveBeenCalledWith(expect.any(Request), '123e4567-e89b-42d3-a456-426614174000', 'exclusive')
   })
 
   it('serves an approved public banner independently from paid advertising', async () => {
