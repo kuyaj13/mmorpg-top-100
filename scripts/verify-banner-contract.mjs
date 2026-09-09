@@ -6,6 +6,7 @@ const read = (path) => readFileSync(fileURLToPath(new URL(path, root)), 'utf8')
 const worker = read('worker/bannerValidation.ts')
 const migration = read('drizzle/0016_free_banner_45_frame_limit.sql')
 const placementActivationMigration = read('drizzle/0018_activate_placement_after_exclusive_banner_approval.sql')
+const bannerDeliveryMigration = read('drizzle/0019_scope_exclusive_banner_delivery.sql')
 const submission = read('src/submission/SubmissionPage.tsx')
 const upload = read('src/advertising/BannerUploadForm.tsx')
 const review = read('src/admin/bannerReviewApiService.ts')
@@ -27,6 +28,7 @@ requireMatch(review, /isIntegerBetween\(item\.frameCount,\s*1,\s*item\.bannerKin
 requireMatch(placementActivationMigration, /CREATE OR REPLACE FUNCTION api\.moderate_banner\(uuid,bytea,varchar,uuid,boolean\)/i, 'Scoped banner moderation must be replaced by the placement activation migration.')
 requireMatch(placementActivationMigration, /requested\s*=\s*'approved'[\s\S]*PERFORM api\.reconcile_exclusive_game\(approved_game_slug\)/i, 'Approving an Exclusive banner must reconcile its placement in the same transaction.')
 requireMatch(placementActivationMigration, /d\.status\s*=\s*'verified'[\s\S]*b\.moderation_status\s*=\s*'approved'[\s\S]*NOT EXISTS[\s\S]*api\.reconcile_exclusive_game\(eligible_game\)/i, 'The migration must reconcile existing eligible claims without duplicating placements.')
+requireMatch(bannerDeliveryMigration, /b\.banner_kind\s*=\s*'free'[\s\S]*b\.banner_kind\s*=\s*'exclusive'[\s\S]*EXISTS\s*\(SELECT 1 FROM api\.public_exclusive_ads ad WHERE ad\.banner_id=b\.id\)/i, 'Public Exclusive banner bytes must remain scoped to an eligible active placement.')
 
 if (failures.length) {
   for (const failure of failures) console.error(`Banner contract mismatch: ${failure}`)

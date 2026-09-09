@@ -4,7 +4,7 @@
 
 - The public application uses the existing React build, Firebase Authentication, Neon Free PostgreSQL, and Cloudflare Workers/Pages Free configuration.
 - Voting, server submission, administrator moderation, and free banner upload/moderation are enabled after separate compatibility, security, and regression gates.
-- Donation claim submission, donation moderation, verified-claim-only Exclusive banner uploads, and scoped Exclusive-banner moderation are enabled for the controlled manual walkthrough. Paid placement controls and public sponsored ads remain disabled until their later release gates pass.
+- Donation claim submission, donation moderation, verified-claim-only Exclusive banner uploads, scoped Exclusive-banner moderation, paid placement controls, and public sponsored ads are enabled after their independent release gates passed.
 - Do not add Firebase Functions, Secret Manager, another database, or another paid service without a new compatibility and cost review plus explicit product-owner approval.
 - The approved replacement is Neon Free PostgreSQL 17 through a project-specific Cloudflare Hyperdrive configuration. Public rankings and approved authenticated mutations now use narrowly scoped database functions through the trusted Worker.
 - Cloudflare Free does not accept a custom Worker CPU limit, so the preview Worker uses the plan's fixed platform limit without a `limits.cpu_ms` override.
@@ -34,7 +34,7 @@
 - Voting and submission use Firebase identity, server-verified Turnstile, Worker rate limits, validated inputs, and constrained database functions.
 - Submission banners are optional and free. Actual request bytes are bounded; media is decoded and sanitized; quarantined storage is globally capped; moderation promotion/deletion is atomic.
 - Mobile browser audit passed on 2026-09-06 at a 390 by 844 viewport with Fast 4G and 4x CPU throttling. The homepage recorded 660 ms LCP and 0.00 CLS; the homepage and submission page each scored 100 for accessibility, best practices, SEO, and agentic browsing with no failed Lighthouse audits.
-- Remaining: keep donation claims, donation moderation, and exclusive placements disabled until a final manual financial-flow regression pass is approved.
+- The manual financial-flow walkthrough and public Exclusive Servers release gate passed on 2026-09-10. Continue monitoring expiry, suspension, and game-isolation behavior without granting ranking influence.
 - Automated financial-boundary regression for both 7-day and 30-day packages passed on a production-derived branch on 2026-09-09 with all test writes rolled back. The remaining gate is the human PayPal-record matching and administrator UI walkthrough; no payment is required for automated verification.
 - Re-run the database boundary with `npm run db:verify-financial -- --branch <isolated-branch>`. The wrapper requires an explicit branch, refuses the production name and ID, verifies that the SQL retains its rollback boundary, and stops on the first SQL error.
 - Homepage regression tests await the live-directory lifecycle before completing, so asynchronous React updates remain inside the test boundary and cannot hide later failures behind lifecycle warnings.
