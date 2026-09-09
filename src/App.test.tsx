@@ -19,7 +19,7 @@ describe('App', () => {
     expect(await screen.findByRole('heading', { name: 'Prologic Flyff' })).toBeInTheDocument()
   })
 
-  it('presents the reviewed submission flow and future sponsorships honestly', () => {
+  it('presents the reviewed submission flow and future sponsorships honestly', async () => {
     render(<App approvedServersService={approvedServersService} />)
     expect(screen.getByRole('heading', { name: /submissions are coming soon/i })).toBeInTheDocument()
     expect(screen.getAllByText(/planned sponsorship/i)).toHaveLength(2)
@@ -29,6 +29,7 @@ describe('App', () => {
     const donationLink = screen.getByRole('link', { name: /open paypal donation page/i })
     expect(donationLink).toHaveAttribute('href', 'https://www.paypal.com/paypalme/VivaMU')
     expect(donationLink).toHaveAttribute('target', '_blank')
+    expect(await screen.findByRole('heading', { name: 'Prologic Flyff' })).toBeInTheDocument()
   })
 
   it('keeps the legacy sample fixture isolated to injected tests', async () => {
@@ -54,10 +55,11 @@ describe('App', () => {
     expect(await screen.findByText(/there are no approved servers yet/i)).toBeInTheDocument()
   })
 
-  it('keeps voting and submissions fail-closed', () => {
+  it('keeps voting and submissions fail-closed', async () => {
     render(<App approvedServersService={approvedServersService} />)
     expect(screen.getByText(/verified daily voting/i)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /vote for/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /submit for review/i })).not.toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Prologic Flyff' })).toBeInTheDocument()
   })
 })
