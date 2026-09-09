@@ -11,7 +11,7 @@ export type PendingDonationClaim = { id: string; serverName: string; gameName: s
 export type BannerModerationOutcome = 'approved' | 'rejected' | 'suspended' | 'unavailable'
 export type DonationModerationOutcome = 'verified' | 'rejected' | 'invalid' | 'unavailable'
 export type DonationClaimOutcome = { outcome: 'accepted'; claimId: string } | { outcome: 'invalid'|'unavailable'|'limit_reached'|'duplicate' }
-export type AdminPlacement = { id:string;serverName:string;website:string;gameSlug:string;gameName:string;durationDays:number;status:'active'|'waiting'|'suspended'|'expired';startsAt:string|null;expiresAt:string|null;queuedAt:string;bannerStatus:string;claimStatus:string }
+export type AdminPlacement = { id:string;serverName:string;website:string;gameSlug:string;gameName:string;durationDays:number;status:'active'|'waiting'|'suspended'|'expired';startsAt:string|null;expiresAt:string|null;queuedAt:string;bannerStatus:string;claimStatus:string;impressionCount:number }
 export type PlacementModerationOutcome='suspend'|'reactivate'|'expired'|'ineligible'|'inventory_full'|'invalid'|'unavailable'
 export type AdvertisingRepository = {
   putBanner(serverId: string, ownerKey: Uint8Array, banner: SanitizedBanner, altText: string): Promise<'stored' | 'unavailable'>
@@ -24,6 +24,7 @@ export type AdvertisingRepository = {
   listPendingDonationClaims(): Promise<PendingDonationClaim[]>
   moderateDonationClaim(id: string, moderatorKey: Uint8Array, decision: 'verify'|'reject', reasonCode: string|null, operationId: string): Promise<DonationModerationOutcome>
   listPublic(gameSlug: string): Promise<PublicAd[]>
+  recordImpression(placementId: string): Promise<'recorded'|'unavailable'>
   getPublicBanner(id: string, staticFallback: boolean): Promise<{ bytes: Uint8Array; mediaType: string } | null>
   getBannerReviewPreview(id: string, includeExclusive: boolean): Promise<{ bytes: Uint8Array; mediaType: 'image/png' } | null>
   listPendingBanners(includeExclusive: boolean): Promise<PendingBanner[]>
@@ -45,7 +46,7 @@ export function createAdvertisingRepository(createClient: () => RankingQueryClie
       const result = await client.query<{ put_exclusive_banner: string }>('SELECT api.put_exclusive_banner($1::uuid,$2::bytea,$3::bytea,$4::bytea,$5::bytea,$6::bytea,$7::varchar,$8,$9,$10,$11,$12::varchar) AS put_exclusive_banner', [id, owner, banner.bytes, banner.staticFallbackBytes, banner.originalSha256, banner.sanitizedSha256, banner.mediaType, banner.width, banner.height, banner.frameCount, banner.animationDurationMs, altText])
       const value=result.rows[0]?.put_exclusive_banner;if(value!=='stored'&&value!=='unavailable')throw new Error('Invalid banner outcome');return value
     }),
-    listAdminPlacements:()=>run(async(client)=>{const result=await client.query<Record<string,string|number|null>>('SELECT id::text,server_name,website,game_slug,game_name,duration_days,status,starts_at::text,expires_at::text,queued_at::text,banner_status,claim_status FROM api.list_admin_exclusive_placements()');return result.rows.map(row=>({id:String(row.id),serverName:String(row.server_name),website:String(row.website),gameSlug:String(row.game_slug),gameName:String(row.game_name),durationDays:Number(row.duration_days),status:row.status as AdminPlacement['status'],startsAt:row.starts_at?String(row.starts_at):null,expiresAt:row.expires_at?String(row.expires_at):null,queuedAt:String(row.queued_at),bannerStatus:String(row.banner_status),claimStatus:String(row.claim_status)}))}),
+    listAdminPlacements:()=>run(async(client)=>{const result=await client.query<Record<string,string|number|null>>('SELECT id::text,server_name,website,game_slug,game_name,duration_days,status,starts_at::text,expires_at::text,queued_at::text,banner_status,claim_status,impression_count::text FROM api.list_admin_exclusive_placements()');return result.rows.map(row=>({id:String(row.id),serverName:String(row.server_name),website:String(row.website),gameSlug:String(row.game_slug),gameName:String(row.game_name),durationDays:Number(row.duration_days),status:row.status as AdminPlacement['status'],startsAt:row.starts_at?String(row.starts_at):null,expiresAt:row.expires_at?String(row.expires_at):null,queuedAt:String(row.queued_at),bannerStatus:String(row.banner_status),claimStatus:String(row.claim_status),impressionCount:Number(row.impression_count)}))}),
     moderatePlacement:(id,key,decision,operationId)=>run(async(client)=>{const result=await client.query<{moderate_exclusive_placement:string}>('SELECT api.moderate_exclusive_placement($1::uuid,$2::bytea,$3::varchar,$4::uuid) AS moderate_exclusive_placement',[id,key,decision,operationId]);const value=result.rows[0]?.moderate_exclusive_placement;if(['suspend','reactivate','expired','ineligible','inventory_full','invalid','unavailable'].includes(value))return value as PlacementModerationOutcome;throw new Error('Invalid placement moderation outcome')}),
     listPendingDonationClaims: () => run(async (client) => {
       const result = await client.query<Record<string, string|number|Date>>('SELECT id::text,server_name,game_name,website,donor_reference,duration_days,expected_amount_minor::text,currency,created_at FROM api.list_pending_donation_claims()')
@@ -85,6 +86,7 @@ export function createAdvertisingRepository(createClient: () => RankingQueryClie
       const result = await client.query<Record<string, string>>('SELECT id::text,server_id::text,server_name,banner_id::text,media_type,alt_text,destination_url,starts_at::text,expires_at::text FROM api.public_exclusive_ads WHERE game_slug=$1 ORDER BY starts_at,id', [slug])
       return result.rows.map((row) => ({ id: row.id, serverId: row.server_id, serverName: row.server_name, bannerId: row.banner_id, mediaType: row.media_type, altText: row.alt_text, destinationUrl: row.destination_url, startsAt: new Date(row.starts_at).toISOString(), expiresAt: new Date(row.expires_at).toISOString() }))
     }),
+    recordImpression:(placementId)=>run(async(client)=>{const result=await client.query<{record_exclusive_impression:string}>('SELECT api.record_exclusive_impression($1::uuid) AS record_exclusive_impression',[placementId]);const value=result.rows[0]?.record_exclusive_impression;if(value==='recorded'||value==='unavailable')return value;throw new Error('Invalid impression outcome')}),
     getPublicBanner: (id, staticFallback) => run(async (client) => {
       const result = await client.query<{ content: Uint8Array; media_type: string }>('SELECT content,media_type FROM api.get_public_banner($1::uuid,$2::boolean)', [id, staticFallback])
       const row = result.rows[0]

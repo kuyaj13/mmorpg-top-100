@@ -179,6 +179,14 @@ export function createAdvertisingEndpoints(dependencies: Dependencies) {
       return Response.json({ ok: true, advertisements }, { headers: { ...safe, 'cache-control': 'public, max-age=60' } })
     },
 
+    async recordImpression(request:Request,placementId:string):Promise<Response>{
+      if(request.method!=='POST')return error('Method not allowed.',405,{allow:'POST'})
+      const origin=request.headers.get('origin')
+      if(!origin||!dependencies.allowedOrigins.includes(origin)||!uuid.test(placementId))return error('This request is not allowed.',403)
+      const outcome=await dependencies.repository.recordImpression(placementId)
+      return outcome==='recorded'?new Response(null,{status:204,headers:safe}):error('This advertisement is not available.',404)
+    },
+
     async banner(request: Request, bannerId: string): Promise<Response> {
       if (request.method !== 'GET') return error('Method not allowed.', 405, { allow: 'GET' })
       if (!uuid.test(bannerId)) return error('Banner not found.', 404)

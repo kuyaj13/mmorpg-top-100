@@ -23,4 +23,10 @@ describe('advertising repository',()=>{
     const client:RankingQueryClient={connect:vi.fn(),query,end:vi.fn()}
     await expect(createAdvertisingRepository(()=>client).listPublic('flyff')).resolves.toMatchObject([{startsAt:'2026-09-09T16:37:07.000Z',expiresAt:'2026-09-16T16:37:07.000Z'}])
   })
+  it('records impressions only through the constrained database function',async()=>{
+    const query=vi.fn().mockResolvedValue({rows:[{record_exclusive_impression:'recorded'}]})
+    const client:RankingQueryClient={connect:vi.fn(),query,end:vi.fn()}
+    await expect(createAdvertisingRepository(()=>client).recordImpression('placement-1')).resolves.toBe('recorded')
+    expect(query).toHaveBeenCalledWith('SELECT api.record_exclusive_impression($1::uuid) AS record_exclusive_impression',['placement-1'])
+  })
 })

@@ -148,7 +148,7 @@ describe('rankings endpoint', () => {
     const advertisingWorkspace = vi.fn()
     const advertising = {
       ownerWorkspace: vi.fn(), advertisingWorkspace, submitClaim: vi.fn(), listPendingClaims: vi.fn(), moderateClaim: vi.fn(),
-      upload: vi.fn(), listPublic: vi.fn(), banner: vi.fn(), listPending: vi.fn(), previewPending: vi.fn(), moderate: vi.fn(), listPlacements: vi.fn(), moderatePlacement: vi.fn(),
+      upload: vi.fn(), listPublic: vi.fn(), banner: vi.fn(), listPending: vi.fn(), previewPending: vi.fn(), moderate: vi.fn(), listPlacements: vi.fn(), moderatePlacement: vi.fn(), recordImpression: vi.fn(),
     }
     const worker = createWorker(() => repository(null), undefined, undefined, undefined, () => advertising)
     const response = await worker.fetch(new Request('https://api.example/api/advertising/workspace', {
@@ -162,7 +162,7 @@ describe('rankings endpoint', () => {
     const advertisingWorkspace = vi.fn().mockResolvedValue(Response.json({ ok: true, servers: [], packages: [], claims: [] }))
     const advertising = {
       ownerWorkspace: vi.fn(), advertisingWorkspace, submitClaim: vi.fn(), listPendingClaims: vi.fn(), moderateClaim: vi.fn(),
-      upload: vi.fn(), listPublic: vi.fn(), banner: vi.fn(), listPending: vi.fn(), previewPending: vi.fn(), moderate: vi.fn(), listPlacements: vi.fn(), moderatePlacement: vi.fn(),
+      upload: vi.fn(), listPublic: vi.fn(), banner: vi.fn(), listPending: vi.fn(), previewPending: vi.fn(), moderate: vi.fn(), listPlacements: vi.fn(), moderatePlacement: vi.fn(), recordImpression: vi.fn(),
     }
     const worker = createWorker(() => repository(null), undefined, undefined, undefined, () => advertising)
     const response = await worker.fetch(new Request('https://api.example/api/advertising/workspace', {
@@ -195,7 +195,7 @@ describe('rankings endpoint', () => {
     const listPlacements = vi.fn()
     const advertising = {
       ownerWorkspace: vi.fn(), advertisingWorkspace: vi.fn(), submitClaim: vi.fn(), listPendingClaims: vi.fn(), moderateClaim: vi.fn(),
-      upload: vi.fn(), listPublic: vi.fn(), banner: vi.fn(), listPending: vi.fn(), previewPending: vi.fn(), moderate: vi.fn(), listPlacements, moderatePlacement: vi.fn(),
+      upload: vi.fn(), listPublic: vi.fn(), banner: vi.fn(), listPending: vi.fn(), previewPending: vi.fn(), moderate: vi.fn(), listPlacements, moderatePlacement: vi.fn(), recordImpression: vi.fn(),
     }
     const worker = createWorker(() => repository(null), undefined, undefined, undefined, () => advertising)
     const response = await worker.fetch(new Request('https://api.example/api/admin/ad-placements', {
@@ -209,7 +209,7 @@ describe('rankings endpoint', () => {
     const listPlacements = vi.fn().mockResolvedValue(Response.json({ ok: true, placements: [] }))
     const advertising = {
       ownerWorkspace: vi.fn(), advertisingWorkspace: vi.fn(), submitClaim: vi.fn(), listPendingClaims: vi.fn(), moderateClaim: vi.fn(),
-      upload: vi.fn(), listPublic: vi.fn(), banner: vi.fn(), listPending: vi.fn(), previewPending: vi.fn(), moderate: vi.fn(), listPlacements, moderatePlacement: vi.fn(),
+      upload: vi.fn(), listPublic: vi.fn(), banner: vi.fn(), listPending: vi.fn(), previewPending: vi.fn(), moderate: vi.fn(), listPlacements, moderatePlacement: vi.fn(), recordImpression: vi.fn(),
     }
     const worker = createWorker(() => repository(null), undefined, undefined, undefined, () => advertising)
     const response = await worker.fetch(new Request('https://api.example/api/admin/ad-placements', {
@@ -289,7 +289,7 @@ describe('rankings endpoint', () => {
     const upload = vi.fn()
     const advertising = {
       ownerWorkspace: vi.fn(), advertisingWorkspace: vi.fn(), submitClaim: vi.fn(), listPendingClaims: vi.fn(), moderateClaim: vi.fn(),
-      upload, listPublic: vi.fn(), banner: vi.fn(), listPending: vi.fn(), previewPending: vi.fn(), moderate: vi.fn(), listPlacements: vi.fn(), moderatePlacement: vi.fn(),
+      upload, listPublic: vi.fn(), banner: vi.fn(), listPending: vi.fn(), previewPending: vi.fn(), moderate: vi.fn(), listPlacements: vi.fn(), moderatePlacement: vi.fn(), recordImpression: vi.fn(),
     }
     const worker = createWorker(() => repository(null), undefined, undefined, undefined, () => advertising)
     const response = await worker.fetch(new Request('https://api.example/api/advertising/servers/123e4567-e89b-42d3-a456-426614174000/exclusive-banner', {
@@ -304,7 +304,7 @@ describe('rankings endpoint', () => {
     const upload = vi.fn().mockResolvedValue(Response.json({ ok: true }))
     const advertising = {
       ownerWorkspace: vi.fn(), advertisingWorkspace: vi.fn(), submitClaim: vi.fn(), listPendingClaims: vi.fn(), moderateClaim: vi.fn(),
-      upload, listPublic: vi.fn(), banner: vi.fn(), listPending: vi.fn(), previewPending: vi.fn(), moderate: vi.fn(), listPlacements: vi.fn(), moderatePlacement: vi.fn(),
+      upload, listPublic: vi.fn(), banner: vi.fn(), listPending: vi.fn(), previewPending: vi.fn(), moderate: vi.fn(), listPlacements: vi.fn(), moderatePlacement: vi.fn(), recordImpression: vi.fn(),
     }
     const worker = createWorker(() => repository(null), undefined, undefined, undefined, () => advertising)
     const response = await worker.fetch(new Request('https://api.example/api/advertising/servers/123e4567-e89b-42d3-a456-426614174000/exclusive-banner', {
@@ -330,7 +330,7 @@ describe('rankings endpoint', () => {
     const banner = vi.fn().mockResolvedValue(new Response(new Uint8Array([137, 80, 78, 71]), { headers: { 'content-type': 'image/png' } }))
     const advertising = {
       ownerWorkspace: vi.fn(),advertisingWorkspace:vi.fn(), submitClaim: vi.fn(), listPendingClaims: vi.fn(), moderateClaim: vi.fn(),
-      upload: vi.fn(), listPublic: vi.fn(), banner, listPending: vi.fn(), previewPending: vi.fn(), moderate: vi.fn(),listPlacements:vi.fn(),moderatePlacement:vi.fn(),
+      upload: vi.fn(), listPublic: vi.fn(), banner, listPending: vi.fn(), previewPending: vi.fn(), moderate: vi.fn(),listPlacements:vi.fn(),moderatePlacement:vi.fn(),recordImpression:vi.fn(),
     }
     const worker = createWorker(() => repository(null), undefined, undefined, undefined, () => advertising)
     const response = await worker.fetch(new Request('https://api.example/api/advertising/banners/62719124-cb58-41e6-8086-3bc241394f5d'), env)
@@ -350,7 +350,7 @@ describe('rankings endpoint', () => {
     const ownerWorkspace = vi.fn().mockResolvedValue(Response.json({ ok: true, servers: [] }))
     const advertising = {
       ownerWorkspace,advertisingWorkspace:vi.fn(), submitClaim: vi.fn(), listPendingClaims: vi.fn(), moderateClaim: vi.fn(),
-      upload: vi.fn(), listPublic: vi.fn(), banner: vi.fn(), listPending: vi.fn(), previewPending: vi.fn(), moderate: vi.fn(),listPlacements:vi.fn(),moderatePlacement:vi.fn(),
+      upload: vi.fn(), listPublic: vi.fn(), banner: vi.fn(), listPending: vi.fn(), previewPending: vi.fn(), moderate: vi.fn(),listPlacements:vi.fn(),moderatePlacement:vi.fn(),recordImpression:vi.fn(),
     }
     const worker = createWorker(() => repository(null), undefined, undefined, undefined, () => advertising)
     const response = await worker.fetch(new Request('https://api.example/api/advertising/owner-workspace', {

@@ -65,6 +65,11 @@ export const exclusiveServersService: ExclusiveServersService = {
     if (!Array.isArray(body.advertisements)) throw new Error('Unavailable')
     return body.advertisements.filter((value): value is ExclusiveServerAd => isExclusiveAd(value, gameSlug)).slice(0, 3)
   },
+  async recordImpression(placementId) {
+    const apiBaseUrl=import.meta.env.VITE_API_BASE_URL
+    if(!apiBaseUrl)return
+    await fetch(new URL(`/api/advertising/placements/${encodeURIComponent(placementId)}/impression`,apiBaseUrl),{method:'POST',keepalive:true})
+  },
 }
 
 function isExclusiveAd(value: unknown, gameSlug: string): value is ExclusiveServerAd {

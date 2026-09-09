@@ -32,6 +32,7 @@ const activePlacement: AdPlacementItem = {
   gameSlug: 'flyff', gameName: 'Flyff', durationDays: 30, status: 'active',
   startsAt: '2026-09-01T00:00:00Z', expiresAt: '2026-10-01T00:00:00Z',
   queuedAt: '2026-08-31T00:00:00Z', bannerStatus: 'approved', claimStatus: 'verified',
+  impressionCount: 0,
 }
 
 describe('AdminPage', () => {

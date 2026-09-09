@@ -15,6 +15,7 @@ export function ExclusiveServers({ gameSlug, gameName, service = productionServi
   const [announcement, setAnnouncement] = useState('')
   const [reducedMotion, setReducedMotion] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches)
   const sectionRef = useRef<HTMLElement>(null)
+  const recordedImpressions = useRef(new Set<string>())
 
   useEffect(() => {
     const query = window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -62,6 +63,7 @@ export function ExclusiveServers({ gameSlug, gameName, service = productionServi
   const show = (offset: number) => {const next=(index+offset+ads.length)%ads.length;setIndex(next);setAnnouncement(`Sponsored server ${next+1} of ${ads.length}: ${ads[next].serverName}`)}
   const safeIndex = ads.length ? index % ads.length : 0
   const ad = ads[safeIndex]
+  useEffect(()=>{if(!ad||pageHidden||recordedImpressions.current.has(ad.id)||!service.recordImpression)return;recordedImpressions.current.add(ad.id);void service.recordImpression(ad.id).catch(()=>{recordedImpressions.current.delete(ad.id)})},[ad,pageHidden,service])
   return <section ref={sectionRef} className="exclusive-servers" aria-labelledby={`exclusive-heading-${gameSlug}`} onPointerEnter={() => setInteractionPaused(true)} onPointerLeave={() => setInteractionPaused(false)} onFocus={() => setInteractionPaused(true)} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setInteractionPaused(false) }}>
     <p className="eyebrow">Advertisement</p><h2 id={`exclusive-heading-${gameSlug}`}>Exclusive {gameName} servers</h2>
     {status === 'loading' && <p role="status">Loading sponsored servers…</p>}

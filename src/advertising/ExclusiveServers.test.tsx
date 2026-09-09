@@ -93,4 +93,15 @@ describe('ExclusiveServers', () => {
     expect(list).toHaveBeenCalledTimes(2)
     Object.defineProperty(document, 'hidden', { configurable: true, value: false })
   })
+
+  it('records each displayed placement at most once per mounted page', async () => {
+    const recordImpression=vi.fn().mockResolvedValue(undefined)
+    render(<ExclusiveServers gameSlug="flyff" gameName="Flyff" service={{list:vi.fn().mockResolvedValue(ads),recordImpression}} />)
+    await act(async()=>{})
+    expect(recordImpression).toHaveBeenCalledWith('a')
+    fireEvent.click(screen.getByRole('button',{name:'Show next sponsored server'}))
+    expect(recordImpression).toHaveBeenCalledWith('b')
+    fireEvent.click(screen.getByRole('button',{name:'Show previous sponsored server'}))
+    expect(recordImpression).toHaveBeenCalledTimes(2)
+  })
 })

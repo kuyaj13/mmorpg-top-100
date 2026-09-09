@@ -78,13 +78,13 @@ export function parseAdPlacements(value: unknown): AdPlacementItem[] {
 function isAdPlacement(value: unknown): value is AdPlacementItem {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const item = value as Record<string, unknown>
-  const keys = new Set(['id', 'serverName', 'website', 'gameSlug', 'gameName', 'durationDays', 'status', 'startsAt', 'expiresAt', 'queuedAt', 'bannerStatus', 'claimStatus'])
+  const keys = new Set(['id', 'serverName', 'website', 'gameSlug', 'gameName', 'durationDays', 'status', 'startsAt', 'expiresAt', 'queuedAt', 'bannerStatus', 'claimStatus', 'impressionCount'])
   return Object.keys(item).every((key) => keys.has(key)) &&
     boundedText(item.id, 100) && boundedText(item.serverName, 80) && safeHttpsUrl(item.website) &&
     boundedText(item.gameSlug, 80) && boundedText(item.gameName, 80) &&
     (item.durationDays === 7 || item.durationDays === 30) && statuses.has(String(item.status)) &&
     nullableDate(item.startsAt) && nullableDate(item.expiresAt) && validDate(item.queuedAt) &&
-    boundedText(item.bannerStatus, 30) && boundedText(item.claimStatus, 30)
+    boundedText(item.bannerStatus, 30) && boundedText(item.claimStatus, 30) && Number.isSafeInteger(item.impressionCount) && Number(item.impressionCount)>=0
 }
 
 function boundedText(value: unknown, maximum: number) {

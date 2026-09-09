@@ -67,5 +67,5 @@ export type BannerReviewService = {
   decide: (id: string, decision: 'approve' | 'reject') => Promise<{ ok: boolean; message: string }>
 }
 
-export type AdPlacementItem={id:string;serverName:string;website:string;gameSlug:string;gameName:string;durationDays:number;status:'active'|'waiting'|'suspended'|'expired';startsAt:string|null;expiresAt:string|null;queuedAt:string;bannerStatus:string;claimStatus:string}
+export type AdPlacementItem={id:string;serverName:string;website:string;gameSlug:string;gameName:string;durationDays:number;status:'active'|'waiting'|'suspended'|'expired';startsAt:string|null;expiresAt:string|null;queuedAt:string;bannerStatus:string;claimStatus:string;impressionCount:number}
 export type AdPlacementService={list:()=>Promise<AdPlacementItem[]>;decide:(id:string,decision:'suspend'|'reactivate')=>Promise<{ok:boolean;message:string}>}

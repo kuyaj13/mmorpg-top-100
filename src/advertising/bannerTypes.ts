@@ -32,6 +32,7 @@ export type ExclusiveServerAd = {
 
 export type ExclusiveServersService = {
   list(gameSlug: string, signal?: AbortSignal): Promise<ExclusiveServerAd[]>
+  recordImpression?(placementId: string): Promise<void>
 }
 
 export type BannerUploadFormProps = {

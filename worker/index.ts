@@ -64,6 +64,7 @@ export function createWorker(repositoryFactory: RepositoryFactory, voteHandlerFa
         const ownerBannerWorkspace = url.pathname === '/api/advertising/owner-workspace'
         const advertisingWorkspace=url.pathname==='/api/advertising/workspace'
         const publicAds = url.pathname.match(/^\/api\/games\/([^/]+)\/exclusive-servers$/)
+        const adImpression = url.pathname.match(/^\/api\/advertising\/placements\/([^/]+)\/impression$/)
         const publicBanner = url.pathname.match(/^\/api\/advertising\/banners\/([^/]+)$/)
         const adminBannerList = url.pathname === '/api/admin/banners'
         const adminBannerPreview = url.pathname.match(/^\/api\/admin\/banners\/([^/]+)\/preview$/)
@@ -74,7 +75,7 @@ export function createWorker(repositoryFactory: RepositoryFactory, voteHandlerFa
         const adminPlacements=url.pathname==='/api/admin/ad-placements'
         const adminPlacementDecision=url.pathname.match(/^\/api\/admin\/ad-placements\/([^/]+)\/decision$/)
         if (request.method === 'OPTIONS') {
-          const writeRoute = voteMatch || isSubmission || adminDecision || bannerUpload || exclusiveBannerUpload || adminBannerDecision || donationClaim || adminDonationDecision || adminPlacementDecision
+          const writeRoute = voteMatch || isSubmission || adminDecision || bannerUpload || exclusiveBannerUpload || adminBannerDecision || donationClaim || adminDonationDecision || adminPlacementDecision || adImpression
           const protectedRoute = voteMatch || isSubmission || adminList || adminDecision || bannerUpload || exclusiveBannerUpload || ownerBannerWorkspace || advertisingWorkspace || adminBannerList || adminBannerPreview || adminBannerDecision || donationClaim || adminDonationClaims || adminDonationDecision || adminPlacements || adminPlacementDecision
           const uploadRoute = bannerUpload || exclusiveBannerUpload
           return corsResponse(request, env, new Response(null, { status: 204 }), writeRoute ? `${uploadRoute ? 'PUT' : 'POST'}, OPTIONS` : 'GET, OPTIONS', protectedRoute ? `authorization, content-type${uploadRoute ? ', x-banner-alt-text, x-turnstile-token' : ''}` : undefined)
@@ -144,6 +145,7 @@ export function createWorker(repositoryFactory: RepositoryFactory, voteHandlerFa
           if (!(await env.ADVERTISING_RATE_LIMITER.limit({ key: `${clientKey}:exclusive:${gameSlug}` })).success) return corsResponse(request, env, rateLimited())
           return corsResponse(request, env, await advertisingFactory(env).listPublic(request, gameSlug))
         }
+        if(adImpression){if(request.method!=='POST')return corsResponse(request,env,methodNotAllowed('POST'),'POST, OPTIONS');if(env.PAID_WORKFLOW_RELEASED!=='true'||env.EXCLUSIVE_ADS_ENABLED!=='true'||!advertisingFactory)return corsResponse(request,env,jsonError('This advertisement is not available.',404),'POST, OPTIONS');if(!isAllowedOrigin(request,env))return corsResponse(request,env,jsonError('This request is not allowed.',403),'POST, OPTIONS');const clientKey=request.headers.get('cf-connecting-ip')??'unknown-client';if(!(await env.ADVERTISING_RATE_LIMITER.limit({key:`${clientKey}:impression`})).success)return corsResponse(request,env,rateLimited(),'POST, OPTIONS');return corsResponse(request,env,await advertisingFactory(env).recordImpression(request,safeDecode(adImpression[1])),'POST, OPTIONS')}
         if (publicBanner) {
           if (request.method !== 'GET') return corsResponse(request, env, methodNotAllowed())
           if (!advertisingFactory) return corsResponse(request, env, jsonError('Banner not found.', 404))

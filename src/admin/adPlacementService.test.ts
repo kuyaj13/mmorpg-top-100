@@ -4,7 +4,7 @@ const placement = {
   id: 'placement-1', serverName: 'Flyff One', website: 'https://flyff.example/',
   gameSlug: 'flyff', gameName: 'Flyff', durationDays: 30, status: 'active',
   startsAt: '2026-09-01T00:00:00Z', expiresAt: '2026-10-01T00:00:00Z',
-  queuedAt: '2026-08-31T00:00:00Z', bannerStatus: 'approved', claimStatus: 'verified',
+  queuedAt: '2026-08-31T00:00:00Z', bannerStatus: 'approved', claimStatus: 'verified', impressionCount: 12,
 }
 
 describe('advertisement placement API boundary', () => {
@@ -33,6 +33,7 @@ describe('advertisement placement API boundary', () => {
     expect(() => parseAdPlacements({ placements: [{ ...placement, website: 'javascript:alert(1)' }] })).toThrow()
     expect(() => parseAdPlacements({ placements: [{ ...placement, durationDays: 365 }] })).toThrow()
     expect(() => parseAdPlacements({ placements: [{ ...placement, queuedAt: 'not-a-date' }] })).toThrow()
+    expect(() => parseAdPlacements({ placements: [{ ...placement, impressionCount: -1 }] })).toThrow()
     expect(() => parseAdPlacements({ placements: [{ ...placement, unexpected: true }] })).toThrow()
   })
 
