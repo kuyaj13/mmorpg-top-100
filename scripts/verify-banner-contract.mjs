@@ -5,6 +5,7 @@ const root = new URL('../', import.meta.url)
 const read = (path) => readFileSync(fileURLToPath(new URL(path, root)), 'utf8')
 const worker = read('worker/bannerValidation.ts')
 const migration = read('drizzle/0016_free_banner_45_frame_limit.sql')
+const placementActivationMigration = read('drizzle/0018_activate_placement_after_exclusive_banner_approval.sql')
 const submission = read('src/submission/SubmissionPage.tsx')
 const upload = read('src/advertising/BannerUploadForm.tsx')
 const review = read('src/admin/bannerReviewApiService.ts')
@@ -23,6 +24,9 @@ requireMatch(submission, /gifFrameLimitError\(banner,\s*45\)/, 'The submission f
 requireMatch(submission, /up to \{?45\}? frames and run for up to 15 seconds/, 'The submission form must disclose the 45-frame and 15-second limits.')
 requireMatch(upload, /gifFrameLimitError\(file,\s*exclusive\s*\?\s*15\s*:\s*45\)/, 'The owner upload form must enforce the free and exclusive frame limits.')
 requireMatch(review, /isIntegerBetween\(item\.frameCount,\s*1,\s*item\.bannerKind\s*===\s*'exclusive'\s*\?\s*15\s*:\s*45\)/, 'The administrator response validator must enforce the same frame limits.')
+requireMatch(placementActivationMigration, /CREATE OR REPLACE FUNCTION api\.moderate_banner\(uuid,bytea,varchar,uuid,boolean\)/i, 'Scoped banner moderation must be replaced by the placement activation migration.')
+requireMatch(placementActivationMigration, /requested\s*=\s*'approved'[\s\S]*PERFORM api\.reconcile_exclusive_game\(approved_game_slug\)/i, 'Approving an Exclusive banner must reconcile its placement in the same transaction.')
+requireMatch(placementActivationMigration, /d\.status\s*=\s*'verified'[\s\S]*b\.moderation_status\s*=\s*'approved'[\s\S]*NOT EXISTS[\s\S]*api\.reconcile_exclusive_game\(eligible_game\)/i, 'The migration must reconcile existing eligible claims without duplicating placements.')
 
 if (failures.length) {
   for (const failure of failures) console.error(`Banner contract mismatch: ${failure}`)

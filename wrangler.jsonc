@@ -27,7 +27,7 @@
     "DONATION_CLAIMS_ENABLED": "true",
     "ADVERTISING_WORKSPACE_ENABLED": "true",
     "DONATION_MODERATION_ENABLED": "true",
-    "PLACEMENT_MODERATION_ENABLED": "false",
+    "PLACEMENT_MODERATION_ENABLED": "true",
     "FIREBASE_PROJECT_ID": "mmorpg-top-100",
     "TURNSTILE_HOSTNAME": "mmorpgtop100.com,www.mmorpgtop100.com",
     "TURNSTILE_ACTION": "vote",
