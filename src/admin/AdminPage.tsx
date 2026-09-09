@@ -50,6 +50,7 @@ export default function AdminPage({
     | { kind: 'submission'; id: string; name: string; decision: 'approve' | 'reject' }
     | { kind: 'banner'; id: string; name: string; decision: 'approve' | 'reject' }
     | { kind: 'donation'; claim: DonationClaimReviewItem; name: string; decision: 'verify' | 'reject' }
+    | { kind: 'placement'; item: AdPlacementItem; name: string; decision: 'suspend' | 'reactivate' }
     | null
   >(null)
   const decisionTriggerRef = useRef<HTMLButtonElement | null>(null)
@@ -193,6 +194,11 @@ export default function AdminPage({
     setConfirmation({ kind: 'donation', claim, name: `${claim.serverName} donation claim`, decision })
   }
 
+  const requestPlacementDecision = (trigger: HTMLButtonElement, item: AdPlacementItem, decision: 'suspend' | 'reactivate') => {
+    decisionTriggerRef.current = trigger
+    setConfirmation({ kind: 'placement', item, name: `${item.serverName} advertisement`, decision })
+  }
+
   const cancelDecision = () => {
     setConfirmation(null)
     requestAnimationFrame(() => decisionTriggerRef.current?.focus())
@@ -204,7 +210,8 @@ export default function AdminPage({
     setConfirmation(null)
     if (current.kind === 'submission') await decide(current.id, current.decision)
     else if (current.kind === 'banner') await decideBanner(current.id, current.decision)
-    else await decideDonationClaim(current.claim, current.decision)
+    else if (current.kind === 'donation') await decideDonationClaim(current.claim, current.decision)
+    else await decidePlacement(current.item, current.decision)
   }
 
   const decideBanner = async (id: string, decision: 'approve' | 'reject') => {
@@ -260,7 +267,29 @@ export default function AdminPage({
     }
   }
 
-  const decidePlacement=async(item:AdPlacementItem,decision:'suspend'|'reactivate')=>{if(!activeAdPlacementService)return;setPendingId(item.id);setFeedback('');const result=await activeAdPlacementService.decide(item.id,decision);setFeedback(result.message);if(result.ok){try{setPlacements(await activeAdPlacementService.list())}catch{setPlacementsUnavailable(true)}}setPendingId('')}
+  const decidePlacement = async (item: AdPlacementItem, decision: 'suspend' | 'reactivate') => {
+    if (!activeAdPlacementService) return
+    setPendingId(item.id)
+    setFeedback('')
+    try {
+      const result = await activeAdPlacementService.decide(item.id, decision)
+      setFeedback(result.message)
+      if (result.ok) {
+        try {
+          setPlacements(await activeAdPlacementService.list())
+          setPlacementsUnavailable(false)
+          setFocusAfterDecision((value) => value + 1)
+        } catch {
+          setPlacementsUnavailable(true)
+        }
+      } else requestAnimationFrame(() => decisionTriggerRef.current?.focus())
+    } catch {
+      setFeedback('The advertisement decision could not be saved. Please try again.')
+      requestAnimationFrame(() => decisionTriggerRef.current?.focus())
+    } finally {
+      setPendingId('')
+    }
+  }
 
   return (
     <main className="admin-shell">
@@ -372,14 +401,14 @@ export default function AdminPage({
           </div>
         </section>
       )}
-      {state==='ready'&&<section aria-labelledby="ad-management-heading"><h2 id="ad-management-heading">Ads Management</h2><p>Public paid advertising remains disabled until its release review is complete.</p>{activeAdPlacementService&&placementsUnavailable&&<p role="status">Advertisement records are unavailable right now.</p>}{activeAdPlacementService&&!placementsUnavailable&&placements.length===0&&<p role="status">There are no advertisement placements.</p>}{activeAdPlacementService&&<><div className="ad-inventory" aria-label="Advertising inventory">{[...new Set(placements.map(item=>item.gameName))].map(game=><p key={game}><strong>{game}:</strong> {placements.filter(item=>item.gameName===game&&item.status==='active').length} of 3 active</p>)}</div><div className="moderation-list" role="list" aria-label="Advertisement placements">{placements.map(item=><article key={item.id} className="moderation-card ad-placement-card" role="listitem"><div><p className="moderation-meta">{item.gameName} | {item.durationDays} days | <span className={`placement-status ${item.status}`}>{item.status}</span></p><h3>{item.serverName}</h3><p>{item.status==='active'&&item.expiresAt?`Ends ${formatDate(item.expiresAt)}`:item.status==='waiting'?`Queued ${formatDate(item.queuedAt)}`:item.status==='expired'?'Placement ended':'Not publicly eligible'}</p><a href={item.website} target="_blank" rel="noopener noreferrer">Review website <span className="visually-hidden">(opens in a new tab)</span></a></div><div className="moderation-actions">{(item.status==='active'||item.status==='waiting')&&<button disabled={pendingId===item.id} onClick={()=>void decidePlacement(item,'suspend')}>Suspend</button>}{item.status==='suspended'&&<button disabled={pendingId===item.id} onClick={()=>void decidePlacement(item,'reactivate')}>Reactivate</button>}</div></article>)}</div></> }</section>}
+      {state==='ready'&&<section aria-labelledby="ad-management-heading"><h2 id="ad-management-heading">Ads Management</h2><p>Public paid advertising remains disabled until its release review is complete.</p>{activeAdPlacementService&&placementsUnavailable&&<p role="status">Advertisement records are unavailable right now.</p>}{activeAdPlacementService&&!placementsUnavailable&&placements.length===0&&<p role="status">There are no advertisement placements.</p>}{activeAdPlacementService&&<><div className="ad-inventory" aria-label="Advertising inventory">{[...new Set(placements.map(item=>item.gameName))].map(game=><p key={game}><strong>{game}:</strong> {placements.filter(item=>item.gameName===game&&item.status==='active').length} of 3 active</p>)}</div><div className="moderation-list" role="list" aria-label="Advertisement placements">{placements.map(item=><article key={item.id} className="moderation-card ad-placement-card" role="listitem"><div><p className="moderation-meta">{item.gameName} | {item.durationDays} days | <span className={`placement-status ${item.status}`}>{item.status}</span></p><h3>{item.serverName}</h3><p>{item.status==='active'&&item.expiresAt?`Ends ${formatDate(item.expiresAt)}`:item.status==='waiting'?`Queued ${formatDate(item.queuedAt)}`:item.status==='expired'?'Placement ended':'Not publicly eligible'}</p><a href={item.website} target="_blank" rel="noopener noreferrer">Review website <span className="visually-hidden">(opens in a new tab)</span></a></div><div className="moderation-actions">{(item.status==='active'||item.status==='waiting')&&<button aria-label={`Suspend advertisement for ${item.serverName}`} disabled={pendingId===item.id} onClick={(event)=>requestPlacementDecision(event.currentTarget,item,'suspend')}>Suspend</button>}{item.status==='suspended'&&<button aria-label={`Reactivate advertisement for ${item.serverName}`} disabled={pendingId===item.id} onClick={(event)=>requestPlacementDecision(event.currentTarget,item,'reactivate')}>Reactivate</button>}</div></article>)}</div></> }</section>}
       {feedback && <p className="admin-feedback" role="status">{feedback}</p>}
       {confirmation && <div ref={confirmationRef} className="moderation-confirmation" role="alertdialog" aria-modal="true" aria-labelledby="moderation-confirmation-heading" aria-describedby="moderation-confirmation-description" onKeyDown={handleConfirmationKeyDown}>
         <h2 id="moderation-confirmation-heading">Confirm {confirmation.decision}</h2>
         <p id="moderation-confirmation-description">Are you sure you want to {confirmation.decision} {confirmation.name}?</p>
         <div className="moderation-actions">
           <button type="button" onClick={cancelDecision}>Cancel</button>
-          <button type="button" autoFocus onClick={() => void confirmDecision()}>{confirmation.decision === 'approve' ? 'Confirm approval' : confirmation.decision==='verify'?'Confirm verification':'Confirm rejection'}</button>
+          <button type="button" autoFocus onClick={() => void confirmDecision()}>{confirmation.decision === 'approve' ? 'Confirm approval' : confirmation.decision==='verify'?'Confirm verification':confirmation.decision==='suspend'?'Confirm suspension':confirmation.decision==='reactivate'?'Confirm reactivation':'Confirm rejection'}</button>
         </div>
       </div>}
     </main>

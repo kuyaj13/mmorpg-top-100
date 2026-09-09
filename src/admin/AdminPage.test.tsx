@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import AdminPage from './AdminPage'
-import type { AdminAccessService, AdminAuthService, BannerReviewService, DonationClaimReviewService, ModerationItem, ModerationService } from './types'
+import type { AdPlacementItem, AdPlacementService, AdminAccessService, AdminAuthService, BannerReviewService, DonationClaimReviewService, ModerationItem, ModerationService } from './types'
 
 const pendingItem: ModerationItem = {
   id: 'submission-1',
@@ -25,6 +25,13 @@ const authService: AdminAuthService = {
 const emptyDonationService: DonationClaimReviewService = {
   listPending: () => Promise.resolve([]),
   decide: () => Promise.resolve({ ok: false, message: 'Not available.' }),
+}
+
+const activePlacement: AdPlacementItem = {
+  id: 'placement-1', serverName: 'Flyff One', website: 'https://flyff.example/',
+  gameSlug: 'flyff', gameName: 'Flyff', durationDays: 30, status: 'active',
+  startsAt: '2026-09-01T00:00:00Z', expiresAt: '2026-10-01T00:00:00Z',
+  queuedAt: '2026-08-31T00:00:00Z', bannerStatus: 'approved', claimStatus: 'verified',
 }
 
 describe('AdminPage', () => {
@@ -168,5 +175,44 @@ describe('AdminPage', () => {
     expect(cancel).toHaveFocus()
     await user.tab({ shift: true })
     expect(confirm).toHaveFocus()
+  })
+
+  it('confirms placement suspension and refreshes game inventory', async () => {
+    const user = userEvent.setup()
+    const decide = vi.fn().mockResolvedValue({ ok: true, message: 'The advertisement was suspended.' })
+    const list = vi.fn()
+      .mockResolvedValueOnce([activePlacement])
+      .mockResolvedValueOnce([{ ...activePlacement, status: 'suspended' }])
+    const placementService: AdPlacementService = { list, decide }
+
+    render(<AdminPage accessService={{ canModerate: () => Promise.resolve(true) }} moderationService={{ listPending: () => Promise.resolve([]), decide: vi.fn() }} donationClaimReviewService={emptyDonationService} adPlacementService={placementService} />)
+
+    expect(await screen.findByText('1 of 3 active')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Suspend advertisement for Flyff One' }))
+    expect(screen.getByRole('alertdialog', { name: 'Confirm suspend' })).toHaveTextContent('Flyff One advertisement')
+    expect(decide).not.toHaveBeenCalled()
+    await user.click(screen.getByRole('button', { name: 'Confirm suspension' }))
+
+    expect(await screen.findByText('The advertisement was suspended.')).toBeInTheDocument()
+    expect(decide).toHaveBeenCalledWith('placement-1', 'suspend')
+    expect(await screen.findByText('0 of 3 active')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Reactivate advertisement for Flyff One' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Moderation workspace' })).toHaveFocus()
+  })
+
+  it('recovers safely when a placement decision request fails', async () => {
+    const user = userEvent.setup()
+    const decide = vi.fn().mockRejectedValue(new Error('network details'))
+    const placementService: AdPlacementService = { list: () => Promise.resolve([activePlacement]), decide }
+
+    render(<AdminPage accessService={{ canModerate: () => Promise.resolve(true) }} moderationService={{ listPending: () => Promise.resolve([]), decide: vi.fn() }} donationClaimReviewService={emptyDonationService} adPlacementService={placementService} />)
+
+    const suspend = await screen.findByRole('button', { name: 'Suspend advertisement for Flyff One' })
+    await user.click(suspend)
+    await user.click(screen.getByRole('button', { name: 'Confirm suspension' }))
+
+    expect(await screen.findByText('The advertisement decision could not be saved. Please try again.')).toBeInTheDocument()
+    await waitFor(() => expect(suspend).toHaveFocus())
+    expect(suspend).toBeEnabled()
   })
 })
