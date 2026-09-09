@@ -109,12 +109,18 @@ describe('AdminPage', () => {
     const accessService: AdminAccessService = { canModerate: () => Promise.resolve(true) }
     const moderationService: ModerationService = { listPending: () => Promise.resolve([]), decide: () => Promise.resolve({ ok: false, message: 'Not available.' }) }
     const donationClaimReviewService: DonationClaimReviewService = {
-      listPending: () => Promise.resolve([{ id: 'claim-1', serverName: 'Flyff One', gameName: 'Flyff', website: 'https://flyff.example', donorReference: 'PAYPAL123456', durationDays: 7, expectedAmountMinor: '900', currency: 'USD', createdAt: '2026-08-30T00:00:00Z' }]),
+      listPending: () => Promise.resolve([{ id: 'claim-1', serverName: 'Flyff One', gameName: 'Flyff', website: 'https://flyff.example', donorReference: 'PAYPAL123456', durationDays: 30, expectedAmountMinor: '2000', currency: 'USD', createdAt: '2026-08-30T00:00:00Z' }]),
       decide: () => Promise.resolve({ ok: true, message: 'The donation claim was verified.' }),
     }
     render(<AdminPage accessService={accessService} moderationService={moderationService} donationClaimReviewService={donationClaimReviewService} />)
 
     expect(await screen.findByText('PAYPAL123456')).toBeInTheDocument()
+    expect(screen.getByText('Flyff | 30 days')).toBeInTheDocument()
+    expect(
+      screen.getByText((_, element) =>
+        element?.tagName === 'P' && element.textContent === 'Expected: $20.00 USD',
+      ),
+    ).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Verify donation match for Flyff One' }))
     expect(screen.getByRole('alertdialog')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Confirm verification' }))

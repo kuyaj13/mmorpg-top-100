@@ -389,7 +389,7 @@ export default function AdminPage({
 function formatMoney(amountMinor: string, currency: string) {
   const amount = Number(amountMinor) / 100
   if (!Number.isFinite(amount)) return `${currency} amount unavailable`
-  return new Intl.NumberFormat('en', { style: 'currency', currency }).format(amount)
+  return `${new Intl.NumberFormat('en', { style: 'currency', currency }).format(amount)} ${currency}`
 }
 
 function formatFileSize(bytes: number) { return `${Math.ceil(bytes / 1024)} KiB` }

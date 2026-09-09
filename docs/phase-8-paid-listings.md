@@ -30,6 +30,7 @@
 - Administrator placement management has a separate fail-closed production flag; general administrator access cannot expose or mutate placements before release approval.
 - Free banner uploads and moderation are enabled with the approved no-cost MVP limits below; a donation is never required to upload a banner.
 - Package prices are server-owned records and are never accepted from the browser.
+- Owner and administrator views show both the formatted amount and explicit `USD` currency; UI regression coverage confirms the 30-day selection submits only the server-owned `exclusive_30_day` package code.
 
 ## Package rules
 

@@ -480,7 +480,8 @@ export default function AdvertisePage({
 }
 
 function formatMoney(amountMinor: string, currency: string) {
-  return new Intl.NumberFormat("en", { style: "currency", currency }).format(
+  const amount = new Intl.NumberFormat("en", { style: "currency", currency }).format(
     Number(amountMinor) / 100,
   );
+  return `${amount} ${currency}`;
 }

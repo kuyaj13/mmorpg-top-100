@@ -38,7 +38,10 @@ describe('AdvertisePage', () => {
     const advertisingService: AdvertisingService = {
       loadWorkspace: () => Promise.resolve({
         servers: [{ id: 'server-1', name: 'Flyff One', gameName: 'Flyff', gameSlug: 'flyff' }],
-        packages: [{ code: 'exclusive_7_day', durationDays: 7, tier: 'exclusive', priceMinor: '1000', currency: 'USD' }],
+        packages: [
+          { code: 'exclusive_7_day', durationDays: 7, tier: 'exclusive', priceMinor: '1000', currency: 'USD' },
+          { code: 'exclusive_30_day', durationDays: 30, tier: 'exclusive', priceMinor: '2000', currency: 'USD' },
+        ],
         claims: [],
       }),
       createClaim: (input) => { submitted = input; return Promise.resolve({ ok: true, message: 'Your donation claim was submitted for manual review.' }) },
@@ -47,11 +50,13 @@ describe('AdvertisePage', () => {
 
     await user.selectOptions(await screen.findByLabelText('Approved server', { selector: '#claim-server' }), 'server-1')
     await waitFor(()=>expect(window.turnstile?.render).toHaveBeenCalled())
-    await user.selectOptions(screen.getByLabelText('Placement duration'), 'exclusive_7_day')
+    expect(screen.getByRole('option', { name: '7 days - $10.00 USD' })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: '30 days - $20.00 USD' })).toBeInTheDocument()
+    await user.selectOptions(screen.getByLabelText('Placement duration'), 'exclusive_30_day')
     await user.type(screen.getByLabelText('PayPal transaction reference'), 'PAYPAL123456')
     await user.click(screen.getByRole('button', { name: 'Submit for manual review' }))
 
-    expect(submitted).toEqual({ serverId: 'server-1', packageCode: 'exclusive_7_day', donorReference: 'PAYPAL123456', turnstileToken: 'verified-challenge-token' })
+    expect(submitted).toEqual({ serverId: 'server-1', packageCode: 'exclusive_30_day', donorReference: 'PAYPAL123456', turnstileToken: 'verified-challenge-token' })
     expect(await screen.findByText('Your donation claim was submitted for manual review.')).toBeInTheDocument()
     expect(screen.getByText('Your donation claim was submitted for manual review.')).toHaveFocus()
     expect(window.turnstile?.render).toHaveBeenCalledWith(expect.any(HTMLElement),expect.objectContaining({action:'donation-claim',size:'flexible'}))
