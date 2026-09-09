@@ -38,7 +38,7 @@ export default function AdvertisePage({
   const [authFeedback, setAuthFeedback] = useState("");
   const [authErrors, setAuthErrors] = useState<Record<string, string>>({});
   const [claimPending, setClaimPending] = useState(false);
-  const [claimFeedback, setClaimFeedback] = useState("");
+  const [claimFeedback, setClaimFeedback] = useState<{message:string;kind:'success'|'error'}|null>(null);
   const [claimToken,setClaimToken]=useState("");
   const [claimErrors, setClaimErrors] = useState<Record<string, string>>({});
   const [reload, setReload] = useState(0);
@@ -128,7 +128,7 @@ export default function AdvertisePage({
       donorReference: String(data.get("donorReference") ?? ""),
       turnstileToken: claimToken,
     };
-    setClaimFeedback("");
+    setClaimFeedback(null);
     const errors: Record<string, string> = {};
     if (!input.serverId) errors.serverId = "Select an approved server.";
     if (!input.packageCode) errors.packageCode = "Select a placement duration.";
@@ -147,16 +147,18 @@ export default function AdvertisePage({
     setClaimPending(true);
     try {
       const result = await advertisingService.createClaim(input);
-      setClaimFeedback(result.message);
+      setClaimFeedback({message:result.message,kind:result.ok?'success':'error'});
       if (result.ok) {
         form.reset();
         setWorkspace(await advertisingService.loadWorkspace());
         setFocusClaimResult((value) => value + 1);
-      }
+      } else if(result.fieldErrors){
+        setClaimErrors((current)=>({...current,...result.fieldErrors}));
+        const first=Object.keys(result.fieldErrors)[0];if(first==='serverId')serverRef.current?.focus();else if(first==='packageCode')packageRef.current?.focus();else if(first==='donorReference')referenceRef.current?.focus();else if(first==='turnstileToken')turnstileRef.current?.querySelector<HTMLElement>('[role="group"]')?.focus()
+      } else requestAnimationFrame(()=>claimResultRef.current?.focus())
     } catch {
-      setClaimFeedback(
-        "Your donation claim could not be submitted. Please try again later.",
-      );
+      setClaimFeedback({message:"Your donation claim could not be submitted. Please try again later.",kind:'error'});
+      requestAnimationFrame(()=>claimResultRef.current?.focus())
     } finally {
       claimWidgetRef.current?.reset();
       setClaimPending(false);
@@ -351,7 +353,7 @@ export default function AdvertisePage({
                     ))}
                   </select>
                   {claimErrors.serverId && (
-                    <p id="claim-server-error" className="field-error">
+                    <p id="claim-server-error" className="field-error" role="alert">
                       {claimErrors.serverId}
                     </p>
                   )}
@@ -379,7 +381,7 @@ export default function AdvertisePage({
                     ))}
                   </select>
                   {claimErrors.packageCode && (
-                    <p id="claim-package-error" className="field-error">
+                    <p id="claim-package-error" className="field-error" role="alert">
                       {claimErrors.packageCode}
                     </p>
                   )}
@@ -402,7 +404,7 @@ export default function AdvertisePage({
                     }
                   />
                   {claimErrors.donorReference && (
-                    <p id="donor-reference-error" className="field-error">
+                    <p id="donor-reference-error" className="field-error" role="alert">
                       {claimErrors.donorReference}
                     </p>
                   )}
@@ -427,8 +429,8 @@ export default function AdvertisePage({
                       : "Submit for manual review"}
                   </button>
                   {claimFeedback && (
-                    <p ref={claimResultRef} tabIndex={-1} role="status">
-                      {claimFeedback}
+                    <p ref={claimResultRef} tabIndex={-1} role={claimFeedback.kind==='error'?'alert':'status'}>
+                      {claimFeedback.message}
                     </p>
                   )}
                 </form>

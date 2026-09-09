@@ -81,6 +81,8 @@ describe('AdvertisePage', () => {
     expect(screen.getByRole('group',{name:'Security check'})).toHaveAccessibleDescription('Complete the security check.')
   })
 
+  it('shows a rejected transaction reference inline and focuses it',async()=>{const user=userEvent.setup();const advertisingService:AdvertisingService={loadWorkspace:()=>Promise.resolve({servers:[{id:'server-1',name:'Flyff One',gameName:'Flyff',gameSlug:'flyff'}],packages:[{code:'exclusive_7_day',durationDays:7,tier:'exclusive',priceMinor:'1000',currency:'USD'}],claims:[]}),createClaim:()=>Promise.resolve({ok:false,message:'This PayPal transaction reference has already been used.',fieldErrors:{donorReference:'Enter a different PayPal transaction reference.'}})};render(<AdvertisePage authService={readyAuth} advertisingService={advertisingService} turnstileSiteKey="test-key"/>);await user.selectOptions(await screen.findByLabelText('Approved server',{selector:'#claim-server'}),'server-1');await user.selectOptions(screen.getByLabelText('Placement duration'),'exclusive_7_day');await user.type(screen.getByLabelText('PayPal transaction reference'),'PAYPAL123456');await user.click(screen.getByRole('button',{name:'Submit for manual review'}));expect(await screen.findByText('Enter a different PayPal transaction reference.')).toHaveAttribute('role','alert');expect(screen.getByLabelText('PayPal transaction reference')).toHaveFocus();expect(screen.getByText('This PayPal transaction reference has already been used.')).toHaveAttribute('role','alert')})
+
   it('offers the larger exclusive banner upload only for an approved owner server', async () => {
     const advertisingService: AdvertisingService = {
       loadWorkspace: () => Promise.resolve({ servers: [], packages: [], claims: [] }),

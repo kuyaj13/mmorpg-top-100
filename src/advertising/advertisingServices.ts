@@ -91,7 +91,7 @@ export const advertisingService: AdvertisingService = {
         turnstileToken: input.turnstileToken,
       })
       const result = await response.json().catch(() => null) as { message?: unknown } | null
-      if (!response.ok) return { ok: false, message: publicClaimError(response.status, result?.message) }
+      if (!response.ok) return { ok: false,...publicClaimError(response.status, result?.message) }
       return { ok: true, message: 'Your donation claim was submitted for manual review.' }
     } catch {
       return { ok: false, message: 'This donation claim could not be submitted. Check the details and try again.' }
@@ -117,9 +117,13 @@ export function submitProtectedClaim(
       })
 }
 
-function publicClaimError(status: number, message: unknown) {
-  if (typeof message === 'string' && status >= 400 && status < 500) return message
-  return 'This donation claim could not be submitted. Check the details and try again.'
+export function publicClaimError(status: number, message: unknown) {
+  if(status===403)return{message:'Complete the security check again.',fieldErrors:{turnstileToken:'Complete the security check again.'}}
+  if(status===409)return{message:'This PayPal transaction reference has already been used.',fieldErrors:{donorReference:'Enter a different PayPal transaction reference.'}}
+  if(status===401)return{message:'Your account could not be verified. Sign out, then sign in again.'}
+  if(status===400&&message==='This claim is not available for submission.')return{message:'Check the highlighted fields and try again.',fieldErrors:{serverId:'Select an eligible approved server.',packageCode:'Select an available placement duration.'}}
+  if(status===429)return{message:'You already have several claims awaiting review.'}
+  return {message:'This donation claim could not be submitted. Check the details and try again.'}
 }
 
 function normalizeReference(value: string) {

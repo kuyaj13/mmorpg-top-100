@@ -116,10 +116,10 @@ export function createAdvertisingEndpoints(dependencies: Dependencies) {
       const bytes=await readBoundedBytes(request,1024); if(!bytes) return error('Please check the claim details.',400)
       let body:Record<string,unknown>; try { const parsed:unknown=JSON.parse(new TextDecoder().decode(bytes)); if(!parsed||typeof parsed!=='object'||Array.isArray(parsed)) throw new Error(); body=parsed as Record<string,unknown> } catch { return error('Please check the claim details.',400) }
       if(Object.keys(body).some((key)=>!['serverId','packageCode','donorReference','turnstileToken'].includes(key))||typeof body.serverId!=='string'||!uuid.test(body.serverId)||typeof body.packageCode!=='string'||!['exclusive_7_day','exclusive_30_day'].includes(body.packageCode)||typeof body.donorReference!=='string'||!/^[A-Z0-9]{8,128}$/.test(body.donorReference)||typeof body.turnstileToken!=='string'||body.turnstileToken.length<1||body.turnstileToken.length>2048) return error('Please check the claim details.',400)
-      if(!await dependencies.verifyDonationTurnstile(body.turnstileToken,request.headers.get('cf-connecting-ip')??undefined)) return error('Your claim could not be verified.',401)
+      if(!await dependencies.verifyDonationTurnstile(body.turnstileToken,request.headers.get('cf-connecting-ip')??undefined)) return error('Complete the security check again.',403)
       const result=await dependencies.repository.submitDonationClaim(await dependencies.deriveOwnerKey(owner.uid),body.serverId,body.packageCode,body.donorReference)
       if(result.outcome==='accepted') return Response.json({ok:true,message:'Your donation claim was submitted for manual review.',claimId:result.claimId},{status:201,headers:safe})
-      if(result.outcome==='duplicate') return error('This claim could not be submitted.',409)
+      if(result.outcome==='duplicate') return error('This PayPal transaction reference has already been used.',409)
       if(result.outcome==='limit_reached') return error('You already have several claims awaiting review.',429)
       return error('This claim is not available for submission.',400)
     },
