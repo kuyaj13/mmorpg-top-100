@@ -169,8 +169,11 @@ export function createWorker(repositoryFactory: RepositoryFactory, voteHandlerFa
         }
         return corsResponse(request, env, jsonError('Not found.', 404))
       } catch (error) {
-        console.error(JSON.stringify({ event: 'request_failed', error: error instanceof Error ? error.name : 'unknown' }))
-        return corsResponse(request, env, jsonError('The request could not be completed.', 500))
+        const requestId = crypto.randomUUID()
+        console.error(JSON.stringify({ event: 'request_failed', requestId, method: request.method, route: classifyRoute(new URL(request.url).pathname), errorType: error instanceof Error ? error.name : 'unknown' }))
+        const response = jsonError('The request could not be completed.', 500)
+        response.headers.set('x-request-id', requestId)
+        return corsResponse(request, env, response)
       }
     },
   } satisfies ExportedHandler<WorkerEnv>
@@ -229,3 +232,16 @@ function rateLimited() { return Response.json({ ok: false, message: 'Too many re
 function isAllowedOrigin(request: Request, env: WorkerEnv) { const origin = request.headers.get('origin'); return Boolean(origin && env.ALLOWED_ORIGIN.split(',').includes(origin)) }
 function corsResponse(request: Request, env: WorkerEnv, response: Response, methods = 'GET, OPTIONS', headers = 'authorization, content-type, x-firebase-appcheck') { const origin = request.headers.get('origin'); if (origin && env.ALLOWED_ORIGIN.split(',').includes(origin)) { response.headers.set('access-control-allow-origin', origin); response.headers.set('access-control-allow-headers', headers); response.headers.set('access-control-allow-methods', methods); response.headers.set('vary', 'Origin') } return response }
 function safeDecode(value: string) { try { return decodeURIComponent(value) } catch { return '' } }
+function classifyRoute(pathname: string) {
+  if (pathname === '/api/server-submissions') return 'server_submission'
+  if (pathname.startsWith('/api/admin/server-submissions/')) return 'server_moderation'
+  if (pathname.startsWith('/api/admin/banners')) return 'banner_moderation'
+  if (pathname.startsWith('/api/admin/donation-claims')) return 'donation_moderation'
+  if (pathname.startsWith('/api/admin/ad-placements')) return 'placement_moderation'
+  if (pathname.startsWith('/api/advertising/servers/')) return 'banner_upload'
+  if (pathname.startsWith('/api/advertising/')) return 'advertising'
+  if (pathname.includes('/votes')) return 'vote'
+  if (pathname.includes('/rankings')) return 'rankings'
+  if (pathname === '/api/servers') return 'server_directory'
+  return 'other'
+}

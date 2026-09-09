@@ -126,10 +126,17 @@ describe('rankings endpoint', () => {
   })
 
   it('keeps failures generic', async () => {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined)
     const failing: RankingRepository = { findByGameSlug: vi.fn().mockRejectedValue(new Error('sensitive database detail')), listApprovedServers: vi.fn().mockResolvedValue([]) }
-    const response = await createWorker(() => failing).fetch(new Request('https://api.example/api/games/flyff/rankings'), env)
+    const response = await createWorker(() => failing).fetch(new Request('https://api.example/api/games/private-game/rankings'), env)
     expect(response.status).toBe(500)
     expect(JSON.stringify(await response.json())).not.toContain('database detail')
+    const requestId = response.headers.get('x-request-id')
+    expect(requestId).toMatch(/^[0-9a-f-]{36}$/)
+    const entry = JSON.parse(String(logged.mock.calls[0][0]))
+    expect(entry).toMatchObject({ event: 'request_failed', requestId, method: 'GET', route: 'rankings', errorType: 'Error' })
+    expect(JSON.stringify(entry)).not.toContain('private-game')
+    expect(JSON.stringify(entry)).not.toContain('database detail')
   })
 
   it('keeps donation claims unavailable', async () => {
