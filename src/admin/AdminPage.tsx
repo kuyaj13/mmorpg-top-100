@@ -352,7 +352,7 @@ export default function AdminPage({
             {banners.map((banner) => (
               <article key={banner.id} className="moderation-card banner-review-card" role="listitem">
                 <div>
-                  <p className="moderation-meta">{banner.gameSlug} | {formatFileSize(banner.byteSize)}</p>
+                  <p className="moderation-meta">{banner.gameSlug} | {banner.bannerKind === 'exclusive' ? 'Exclusive paid banner' : 'Free server banner'} | {formatFileSize(banner.byteSize)}</p>
                   <h3>{banner.serverName}</h3>
                   <BannerReviewPreview banner={banner} service={activeBannerReviewService} />
                   <dl className="banner-review-details">
@@ -413,6 +413,6 @@ function BannerReviewPreview({ banner, service }: { banner: BannerReviewItem; se
   }, [banner.id, service])
   if (failed) return <p role="status">The banner preview is unavailable.</p>
   if (!previewUrl) return <p role="status">Loading banner preview…</p>
-  return <img className="banner-review-preview" src={previewUrl} alt={banner.altText} width="468" height="60" />
+  return <img className="banner-review-preview" src={previewUrl} alt={banner.altText} width={banner.width} height={banner.height} />
 }
 function formatDate(value: string) { return new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) }

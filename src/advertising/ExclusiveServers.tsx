@@ -49,7 +49,7 @@ export function ExclusiveServers({ gameSlug, gameName, service = productionServi
     {status === 'ready' && !ad && <p role="status">There are no active sponsored servers for this game.</p>}
     {ad && <div className="exclusive-banner">
       <a href={ad.website} target="_blank" rel="noopener noreferrer sponsored external" aria-label={`${ad.serverName}, Sponsored — opens in a new tab`}>
-        <picture><source media="(prefers-reduced-motion: reduce)" srcSet={ad.staticBannerUrl} /><img src={reducedMotion ? ad.staticBannerUrl : ad.bannerUrl} alt={ad.altText} width="468" height="60" /></picture>
+        <picture><source media="(prefers-reduced-motion: reduce)" srcSet={ad.staticBannerUrl} /><img src={reducedMotion ? ad.staticBannerUrl : ad.bannerUrl} alt={ad.altText} width="936" height="120" /></picture>
       </a>
       <p>Sponsored server {index + 1} of {ads.length}: {ad.serverName}</p>
       <span className="visually-hidden" role="status" aria-atomic="true">{announcement}</span>

@@ -20,7 +20,7 @@ describe('BannerUploadForm', () => {
     await user.upload(screen.getByLabelText('Banner image'), file)
     await user.type(screen.getByLabelText('Banner description'), 'Flyff One fantasy landscape banner')
     await user.click(screen.getByRole('button', { name: 'Upload for review' }))
-    expect(service.upload).toHaveBeenCalledWith({ serverId: server.id, altText: 'Flyff One fantasy landscape banner', file,turnstileToken:'challenge-token' })
+    expect(service.upload).toHaveBeenCalledWith({ serverId: server.id, altText: 'Flyff One fantasy landscape banner', file,turnstileToken:'challenge-token',kind:'free' })
     expect(await screen.findByRole('status')).toHaveTextContent('uploaded for moderation review')
     expect(window.turnstile?.reset).toHaveBeenCalledWith('banner-widget')
   })

@@ -55,7 +55,7 @@
 .exclusive-banner a,
 .exclusive-banner picture,
 .exclusive-banner img { display: block; max-width: 100%; }
-.exclusive-banner img { width: 468px; height: auto; }
+.exclusive-banner img { width: min(100%, 936px); height: auto; }
 .exclusive-controls { display: flex; flex-wrap: wrap; gap: 10px; }
 .exclusive-controls button { min-width: 44px; min-height: 44px; padding: 8px 12px; }
 

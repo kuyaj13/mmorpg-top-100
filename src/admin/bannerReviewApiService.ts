@@ -62,11 +62,12 @@ export function requestBannerReview(apiBaseUrl: string, path: string, idToken: s
 function isPendingBanner(value: unknown): value is BannerReviewItem {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const item = value as Record<string, unknown>
-  const allowedKeys = new Set(['id', 'serverId', 'serverName', 'gameSlug', 'mediaType', 'byteSize', 'frameCount', 'animationDurationMs', 'altText', 'createdAt'])
+  const allowedKeys = new Set(['id', 'serverId', 'serverName', 'gameSlug', 'bannerKind', 'mediaType', 'byteSize', 'width', 'height', 'frameCount', 'animationDurationMs', 'altText', 'createdAt'])
   return Object.keys(item).every((key) => allowedKeys.has(key)) &&
     isBoundedText(item.id, 100) && isBoundedText(item.serverId, 100) && isBoundedText(item.serverName, 80) &&
-    isBoundedText(item.gameSlug, 80) && (item.mediaType === 'image/gif' || item.mediaType === 'image/png' || item.mediaType === 'image/jpeg') &&
-    isIntegerBetween(item.byteSize, 1, 524_288) && isIntegerBetween(item.frameCount, 1, 30) &&
+    isBoundedText(item.gameSlug, 80) && (item.bannerKind === 'free' || item.bannerKind === 'exclusive') && (item.mediaType === 'image/gif' || item.mediaType === 'image/png' || item.mediaType === 'image/jpeg') &&
+    isIntegerBetween(item.byteSize, 1, item.bannerKind === 'exclusive' ? 1_048_576 : 524_288) &&
+    item.width === (item.bannerKind === 'exclusive' ? 936 : 468) && item.height === (item.bannerKind === 'exclusive' ? 120 : 60) && isIntegerBetween(item.frameCount, 1, 30) &&
     isIntegerBetween(item.animationDurationMs, 0, 15_000) && isBoundedText(item.altText, 160, 10) &&
     typeof item.createdAt === 'string' && Number.isFinite(Date.parse(item.createdAt))
 }

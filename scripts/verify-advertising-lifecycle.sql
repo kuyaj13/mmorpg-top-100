@@ -6,8 +6,8 @@ WITH new_servers AS (
   SELECT 'flyff','Ad lifecycle '||n,'https://ad-lifecycle-'||n||'.invalid/','active',decode(repeat('42',32),'hex'),'v1','Global','PvE','Rollback-only advertising verification server.'
   FROM generate_series(1,4) n RETURNING id,name
 )
-INSERT INTO app.banner_assets(server_id,content,static_content,original_sha256,sanitized_sha256,media_type,byte_size,width,height,frame_count,animation_duration_ms,alt_text,moderation_status,reviewed_at)
-SELECT id,decode('00','hex'),decode('00','hex'),decode(repeat('01',32),'hex'),decode(repeat('02',32),'hex'),'image/png',1,468,60,1,0,name||' banner','approved',clock_timestamp() FROM new_servers;
+INSERT INTO app.banner_assets(server_id,banner_kind,content,static_content,original_sha256,sanitized_sha256,media_type,byte_size,width,height,frame_count,animation_duration_ms,alt_text,moderation_status,reviewed_at)
+SELECT id,'exclusive',decode('00','hex'),decode('00','hex'),decode(repeat('01',32),'hex'),decode(repeat('02',32),'hex'),'image/png',1,936,120,1,0,name||' banner','approved',clock_timestamp() FROM new_servers;
 
 INSERT INTO app.donation_claims(server_id,owner_key,package_code,donor_reference,status,verified_amount_minor,verified_currency,reviewed_at,expected_amount_minor,expected_currency,expected_duration_days)
 SELECT s.id,decode(repeat('42',32),'hex'),'exclusive_7_day','LIFECYCLE'||row_number() OVER(ORDER BY s.name)||'TEST','verified',1000,'USD',clock_timestamp(),1000,'USD',7

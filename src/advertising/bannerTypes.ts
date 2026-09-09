@@ -5,6 +5,7 @@ export type BannerUploadInput = {
   altText: string
   file: File
   turnstileToken: string
+  kind?:'free'|'exclusive'
 }
 
 export type BannerUploadResult = { ok: true; message: string } | { ok: false; message: string }
@@ -36,4 +37,5 @@ export type BannerUploadFormProps = {
   servers: EligibleServer[]
   service?: BannerUploadService
   turnstileSiteKey?: string
+  kind?:'free'|'exclusive'
 }

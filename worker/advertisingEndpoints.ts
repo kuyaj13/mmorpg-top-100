@@ -1,6 +1,6 @@
 import type { VerifiedAdministrator } from './adminAuth'
 import type { VerifiedFirebaseUser } from './auth'
-import { validateBanner } from './bannerValidation'
+import { bannerLimits,exclusiveBannerLimits,validateBanner } from './bannerValidation'
 import type { AdvertisingRepository } from './db/advertisingRepository'
 
 type Dependencies = {
@@ -30,14 +30,7 @@ async function authorize(request: Request, dependencies: Dependencies, role: 'ow
   return user ?? error(role === 'admin' ? 'Administrator access is required.' : 'Your request could not be verified.', role === 'admin' ? 403 : 401)
 }
 
-function validContentLength(request: Request) {
-  const raw = request.headers.get('content-length')
-  if (!raw || !/^\d+$/.test(raw)) return false
-  const length = Number(raw)
-  return Number.isSafeInteger(length) && length > 0 && length <= 524_288
-}
-
-async function readBannerBytes(request: Request): Promise<Uint8Array | null> {
+async function readBannerBytes(request: Request, maximum: number): Promise<Uint8Array | null> {
   const reader = request.body?.getReader()
   if (!reader) return null
   const chunks: Uint8Array[] = []; let size = 0
@@ -45,7 +38,7 @@ async function readBannerBytes(request: Request): Promise<Uint8Array | null> {
     const { done, value } = await reader.read()
     if (done) break
     size += value.byteLength
-    if (size > 524_288) { await reader.cancel(); return null }
+    if (size > maximum) { await reader.cancel(); return null }
     chunks.push(value)
   }
   if (size < 1) return null
@@ -138,7 +131,7 @@ export function createAdvertisingEndpoints(dependencies: Dependencies) {
       return Response.json({ ok: true, servers }, { headers: safe })
     },
 
-    async upload(request: Request, serverId: string): Promise<Response> {
+    async upload(request: Request, serverId: string,kind:'free'|'exclusive'='free'): Promise<Response> {
       if (request.method !== 'PUT') return error('Method not allowed.', 405, { allow: 'PUT' })
       const owner = await authorize(request, dependencies, 'owner', 'banner-upload')
       if (owner instanceof Response) return owner
@@ -149,12 +142,15 @@ export function createAdvertisingEndpoints(dependencies: Dependencies) {
       const encodedAltText = request.headers.get('x-banner-alt-text')
       let altText = ''
       try { if (encodedAltText && encodedAltText.length <= 2_000) altText = decodeURIComponent(encodedAltText).trim() } catch { /* invalid encoding */ }
-      if (!uuid.test(serverId) || !validContentLength(request) || !altText || altText.length < 10 || altText.length > 160) return error('Please check the banner details.', 400)
-      const bytes = await readBannerBytes(request)
+      const limits=kind==='exclusive'?exclusiveBannerLimits:bannerLimits
+      const rawLength=request.headers.get('content-length');const validLength=rawLength!==null&&/^\d+$/.test(rawLength)&&Number(rawLength)>0&&Number(rawLength)<=limits.maxBytes
+      if (!uuid.test(serverId) || !validLength || !altText || altText.length < 10 || altText.length > 160) return error('Please check the banner details.', 400)
+      const bytes = await readBannerBytes(request, limits.maxBytes)
       if (!bytes) return error('Please choose a valid banner image.', 400)
-      const banner = await validateBanner(bytes)
-      if (!banner) return error('Please choose a valid 468 by 60 banner image.', 400)
-      const outcome = await dependencies.repository.putBanner(serverId, await dependencies.deriveOwnerKey(owner.uid), banner, altText.trim())
+      const banner = await validateBanner(bytes,kind)
+      if (!banner) return error(`Please choose a valid ${limits.width} by ${limits.height} banner image.`, 400)
+      const key=await dependencies.deriveOwnerKey(owner.uid)
+      const outcome = kind==='exclusive'?await dependencies.repository.putExclusiveBanner(serverId,key,banner,altText.trim()):await dependencies.repository.putBanner(serverId,key,banner,altText.trim())
       return outcome === 'stored' ? Response.json({ ok: true, message: 'Your banner was submitted for review.' }, { status: 201, headers: safe }) : error('This server is not available for banner uploads.', 404)
     },
 

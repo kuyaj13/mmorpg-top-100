@@ -79,15 +79,15 @@ describe('AdvertisePage', () => {
     expect(screen.getByRole('group', { name: 'Security check' })).toHaveFocus()
   })
 
-  it('offers free banner upload only for an approved owner server', async () => {
+  it('offers the larger exclusive banner upload only for an approved owner server', async () => {
     const advertisingService: AdvertisingService = {
       loadWorkspace: () => Promise.resolve({ servers: [], packages: [], claims: [] }),
       createClaim: () => Promise.resolve({ ok: false, message: 'Not available.' }),
     }
     render(<AdvertisePage authService={readyAuth} advertisingService={advertisingService} />)
 
-    expect(await screen.findByRole('heading', { name: 'Upload a server banner' })).toBeInTheDocument()
-    expect(screen.getByText(/free for every approved server owner/i)).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Upload an exclusive paid banner' })).toBeInTheDocument()
+    expect(screen.getByText(/larger banner is used only for approved Exclusive Server advertising/i)).toBeInTheDocument()
     expect(screen.getByText(/need an approved server before uploading/i)).toBeInTheDocument()
     expect(document.querySelector('input[type="file"]')).not.toBeInTheDocument()
     expect(document.body.textContent).not.toMatch(/â|Â/)

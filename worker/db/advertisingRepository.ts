@@ -3,7 +3,7 @@ import type { SanitizedBanner } from '../bannerValidation'
 import type { RankingQueryClient } from './rankingRepository'
 
 export type PublicAd = { id: string; serverId: string; serverName: string; bannerId: string; mediaType: string; altText: string; destinationUrl: string; startsAt: string; expiresAt: string }
-export type PendingBanner = { id: string; serverId: string; serverName: string; gameSlug: string; mediaType: string; byteSize: number; frameCount: number; animationDurationMs: number; altText: string; createdAt: string }
+export type PendingBanner = { id: string; serverId: string; serverName: string; gameSlug: string; bannerKind: 'free'|'exclusive'; mediaType: string; byteSize: number; width: number; height: number; frameCount: number; animationDurationMs: number; altText: string; createdAt: string }
 export type OwnedServer = { id: string; name: string; gameSlug: string; gameName: string }
 export type PendingDonationClaim = { id: string; serverName: string; gameName: string; website: string; donorReference: string; durationDays: number; expectedAmountMinor: string; currency: string; createdAt: string }
 export type BannerModerationOutcome = 'approved' | 'rejected' | 'suspended' | 'unavailable'
@@ -13,6 +13,7 @@ export type AdminPlacement = { id:string;serverName:string;website:string;gameSl
 export type PlacementModerationOutcome='suspend'|'reactivate'|'expired'|'ineligible'|'inventory_full'|'invalid'|'unavailable'
 export type AdvertisingRepository = {
   putBanner(serverId: string, ownerKey: Uint8Array, banner: SanitizedBanner, altText: string): Promise<'stored' | 'unavailable'>
+  putExclusiveBanner(serverId: string, ownerKey: Uint8Array, banner: SanitizedBanner, altText: string): Promise<'stored' | 'unavailable'>
   listOwnedServers(ownerKey: Uint8Array): Promise<OwnedServer[]>
   submitDonationClaim(ownerKey: Uint8Array, serverId: string, packageCode: string, donorReference: string): Promise<DonationClaimOutcome>
   listPendingDonationClaims(): Promise<PendingDonationClaim[]>
@@ -26,7 +27,7 @@ export type AdvertisingRepository = {
   moderatePlacement(id:string,moderatorKey:Uint8Array,decision:'suspend'|'reactivate',operationId:string):Promise<PlacementModerationOutcome>
 }
 
-type PendingRow = { id: string; server_id: string; server_name: string; game_slug: string; media_type: string; byte_size: number; frame_count: number; animation_duration_ms: number; alt_text: string; created_at: Date | string }
+type PendingRow = { id: string; server_id: string; server_name: string; game_slug: string; banner_kind:'free'|'exclusive'; media_type: string; byte_size: number; width:number; height:number; frame_count: number; animation_duration_ms: number; alt_text: string; created_at: Date | string }
 type OwnedServerRow = { id: string; name: string; game_slug: string; game_name: string }
 
 export function createAdvertisingRepository(createClient: () => RankingQueryClient): AdvertisingRepository {
@@ -35,6 +36,10 @@ export function createAdvertisingRepository(createClient: () => RankingQueryClie
     try { await client.connect(); return await operation(client) } finally { await client.end() }
   }
   return {
+    putExclusiveBanner: (id, owner, banner, altText) => run(async (client) => {
+      const result = await client.query<{ put_exclusive_banner: string }>('SELECT api.put_exclusive_banner($1::uuid,$2::bytea,$3::bytea,$4::bytea,$5::bytea,$6::bytea,$7::varchar,$8,$9,$10,$11,$12::varchar) AS put_exclusive_banner', [id, owner, banner.bytes, banner.staticFallbackBytes, banner.originalSha256, banner.sanitizedSha256, banner.mediaType, banner.width, banner.height, banner.frameCount, banner.animationDurationMs, altText])
+      const value=result.rows[0]?.put_exclusive_banner;if(value!=='stored'&&value!=='unavailable')throw new Error('Invalid banner outcome');return value
+    }),
     listAdminPlacements:()=>run(async(client)=>{const result=await client.query<Record<string,string|number|null>>('SELECT id::text,server_name,website,game_slug,game_name,duration_days,status,starts_at::text,expires_at::text,queued_at::text,banner_status,claim_status FROM api.list_admin_exclusive_placements()');return result.rows.map(row=>({id:String(row.id),serverName:String(row.server_name),website:String(row.website),gameSlug:String(row.game_slug),gameName:String(row.game_name),durationDays:Number(row.duration_days),status:row.status as AdminPlacement['status'],startsAt:row.starts_at?String(row.starts_at):null,expiresAt:row.expires_at?String(row.expires_at):null,queuedAt:String(row.queued_at),bannerStatus:String(row.banner_status),claimStatus:String(row.claim_status)}))}),
     moderatePlacement:(id,key,decision,operationId)=>run(async(client)=>{const result=await client.query<{moderate_exclusive_placement:string}>('SELECT api.moderate_exclusive_placement($1::uuid,$2::bytea,$3::varchar,$4::uuid) AS moderate_exclusive_placement',[id,key,decision,operationId]);const value=result.rows[0]?.moderate_exclusive_placement;if(['suspend','reactivate','expired','ineligible','inventory_full','invalid','unavailable'].includes(value))return value as PlacementModerationOutcome;throw new Error('Invalid placement moderation outcome')}),
     listPendingDonationClaims: () => run(async (client) => {
@@ -81,7 +86,7 @@ export function createAdvertisingRepository(createClient: () => RankingQueryClie
     }),
     listPendingBanners: () => run(async (client) => {
       const result = await client.query<PendingRow>('SELECT * FROM api.list_pending_banners()')
-      return result.rows.map((row) => ({ id: row.id, serverId: row.server_id, serverName: row.server_name, gameSlug: row.game_slug, mediaType: row.media_type, byteSize: row.byte_size, frameCount: row.frame_count, animationDurationMs: row.animation_duration_ms, altText: row.alt_text, createdAt: new Date(row.created_at).toISOString() }))
+      return result.rows.map((row) => ({ id: row.id, serverId: row.server_id, serverName: row.server_name, gameSlug: row.game_slug, bannerKind:row.banner_kind, mediaType: row.media_type, byteSize: row.byte_size, width:row.width, height:row.height, frameCount: row.frame_count, animationDurationMs: row.animation_duration_ms, altText: row.alt_text, createdAt: new Date(row.created_at).toISOString() }))
     }),
     moderateBanner: (id, moderatorKey, decision, operationId) => run(async (client) => {
       const result = await client.query<{ moderate_banner: string }>('SELECT api.moderate_banner($1::uuid,$2::bytea,$3::varchar,$4::uuid) AS moderate_banner', [id, moderatorKey, decision, operationId])

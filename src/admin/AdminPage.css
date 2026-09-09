@@ -132,9 +132,9 @@
 .ad-inventory{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0}.ad-inventory p{margin:0;padding:8px 12px;border-radius:999px;background:#1e293b}.placement-status{text-transform:capitalize}.placement-status.active{color:#86efac}.placement-status.waiting{color:#fde68a}.placement-status.suspended{color:#fca5a5}.placement-status.expired{color:#cbd5e1}
 
 .banner-review-preview {
-  display: block;
-  width: min(100%, 468px);
+  width: min(100%, 936px);
   height: auto;
+  display: block;
   margin: 14px 0;
   border: 1px solid rgba(148, 163, 184, 0.35);
   background: #020817;

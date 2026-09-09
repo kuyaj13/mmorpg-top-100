@@ -131,7 +131,7 @@ describe('AdminPage', () => {
     const bannerReviewService: BannerReviewService = {
       listPending: () => Promise.resolve([{
         id: 'banner-1', serverId: 'server-1', serverName: 'Flyff One', gameSlug: 'flyff',
-        mediaType: 'image/gif', byteSize: 48_000, frameCount: 12, animationDurationMs: 3_600,
+        bannerKind:'free',mediaType: 'image/gif', byteSize: 48_000,width:468,height:60, frameCount: 12, animationDurationMs: 3_600,
         altText: 'Flyff One fantasy landscape', createdAt: '2026-08-30T00:00:00Z',
       }]),
       loadPreview: () => Promise.resolve(new Blob(['preview'], { type: 'image/png' })),

@@ -476,7 +476,7 @@ export default function AdvertisePage({
                 </ul>
               )}
             </section>
-            <BannerUploadForm servers={workspace.servers} />
+            <BannerUploadForm servers={workspace.servers} kind="exclusive" />
           </>
         )}
       </main>

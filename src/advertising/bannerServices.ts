@@ -46,8 +46,9 @@ export function requestOwnerBannerWorkspace(apiBaseUrl: string, idToken: string,
   })
 }
 
-export function uploadProtectedBanner(apiBaseUrl: string, input: { serverId: string; altText: string; file: File; turnstileToken:string }, credentials: { idToken: string }, fetcher: typeof fetch = fetch) {
-  return fetcher(new URL(`/api/advertising/servers/${encodeURIComponent(input.serverId)}/banner`, apiBaseUrl), {
+export function uploadProtectedBanner(apiBaseUrl: string, input: { serverId: string; altText: string; file: File; turnstileToken:string;kind?:'free'|'exclusive' }, credentials: { idToken: string }, fetcher: typeof fetch = fetch) {
+  const path=input.kind==='exclusive'?'exclusive-banner':'banner'
+  return fetcher(new URL(`/api/advertising/servers/${encodeURIComponent(input.serverId)}/${path}`, apiBaseUrl), {
     method: 'PUT',
     headers: { authorization: `Bearer ${credentials.idToken}`,'x-turnstile-token':input.turnstileToken,'x-banner-alt-text':encodeURIComponent(input.altText),'content-type':input.file.type },
     body: input.file,

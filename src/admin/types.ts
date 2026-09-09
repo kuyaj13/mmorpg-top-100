@@ -50,8 +50,11 @@ export type BannerReviewItem = {
   serverId: string
   serverName: string
   gameSlug: string
+  bannerKind: 'free' | 'exclusive'
   mediaType: 'image/gif' | 'image/png' | 'image/jpeg'
   byteSize: number
+  width: number
+  height: number
   frameCount: number
   animationDurationMs: number
   altText: string
