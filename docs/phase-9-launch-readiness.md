@@ -8,6 +8,7 @@
 - Do not add Firebase Functions, Secret Manager, another database, or another paid service without a new compatibility and cost review plus explicit product-owner approval.
 - The approved replacement is Neon Free PostgreSQL 17 through a project-specific Cloudflare Hyperdrive configuration. Public rankings and approved authenticated mutations now use narrowly scoped database functions through the trusted Worker.
 - Cloudflare Free does not accept a custom Worker CPU limit, so the preview Worker uses the plan's fixed platform limit without a `limits.cpu_ms` override.
+- Before any production deployment, run `npm run release:check`. It fails closed if the banner limits drift between the public forms, Worker validation, administrator response validation, and the database migration contract, then runs lint, the complete test suite, the production build, and the Worker deployment dry-run.
 
 ## PostgreSQL trial exit
 

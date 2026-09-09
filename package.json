@@ -10,6 +10,8 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run",
+    "banner:verify-contract": "node scripts/verify-banner-contract.mjs",
+    "release:check": "npm run banner:verify-contract && npm run lint && npm test -- --run && npm run build && npm run worker:check",
     "db:migrate": "node scripts/apply-sql-migration.mjs",
     "db:seed-games": "node scripts/seed-games.mjs",
     "db:import-servers": "node scripts/import-approved-servers.mjs",
