@@ -574,7 +574,7 @@ function App({
               <p className="eyebrow">Pricing</p>
               <h2>Boost your server visibility</h2>
               <p className="section-note">
-                Sponsorship packages are a public preview and are not available for purchase yet.
+                {siteConfig.advertisingWorkspaceEnabled ? 'Submit a PayPal donation reference for manual review. Payment never changes organic rank or votes.' : 'Sponsorship packages are a public preview and are not available for purchase yet.'}
               </p>
             </div>
           </div>
@@ -596,7 +596,7 @@ function App({
                     <li key={feature}>{feature}</li>
                   ))}
                 </ul>
-                <span className="package-status">Planned sponsorship</span>
+                <span className="package-status">{siteConfig.advertisingWorkspaceEnabled ? 'Manual review required' : 'Planned sponsorship'}</span>
               </article>
             ))}
           </div>

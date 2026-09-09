@@ -4,7 +4,7 @@
 
 - The public application uses the existing React build, Firebase Authentication, Neon Free PostgreSQL, and Cloudflare Workers/Pages Free configuration.
 - Voting, server submission, administrator moderation, and free banner upload/moderation are enabled after separate compatibility, security, and regression gates.
-- Donation claims, donation moderation, and paid placements remain disabled until their complete release gate passes.
+- Donation claim submission is enabled for the controlled manual walkthrough. Donation moderation, exclusive-banner handling, paid placements, and public sponsored ads remain disabled until their later release gates pass.
 - Do not add Firebase Functions, Secret Manager, another database, or another paid service without a new compatibility and cost review plus explicit product-owner approval.
 - The approved replacement is Neon Free PostgreSQL 17 through a project-specific Cloudflare Hyperdrive configuration. Public rankings and approved authenticated mutations now use narrowly scoped database functions through the trusted Worker.
 - Cloudflare Free does not accept a custom Worker CPU limit, so the preview Worker uses the plan's fixed platform limit without a `limits.cpu_ms` override.

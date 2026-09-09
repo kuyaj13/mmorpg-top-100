@@ -13,8 +13,8 @@
 ### Current implementation status
 
 - The owner workspace and free, moderated banner workflow are live for approved server owners.
-- The trusted Worker donation-claim submission boundary is implemented and validated on an isolated database branch, but its production feature flag remains off.
-- The complete owner advertising workspace now has an independent frontend and Worker release flag. The public route continues to show only the live free-banner workspace until both that flag and donation claims are deliberately enabled.
+- The trusted Worker donation-claim submission boundary is implemented, validated on an isolated database branch, and enabled in production for controlled manual review. Exclusive upload, donation moderation, placement management, and public sponsored-ad gates remain off until the submitted reference completes the administrator walkthrough.
+- The complete owner advertising workspace has independent frontend and Worker release flags. Claim submission is enabled, while every later paid-advertising stage remains separately fail-closed.
 - Every paid route also requires one master release gate in addition to its individual kill switch. The master gate remains off so a single accidentally enabled paid flag cannot expose claims, Exclusive uploads or moderation, placement controls, or public sponsored ads.
 - The authenticated advertising workspace now loads owned servers, server-defined packages, and owner-scoped claim history through Cloudflare and narrowly granted Neon functions. It no longer depends on the generated Firebase SQL Connect client.
 - The administrator donation-review boundary is implemented through the trusted Worker, validated on an isolated branch, and installed in production. Its feature flag remains off while placement activation receives its own release gate.
