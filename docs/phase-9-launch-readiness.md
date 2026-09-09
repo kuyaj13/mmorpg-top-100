@@ -10,6 +10,7 @@
 - Cloudflare Free does not accept a custom Worker CPU limit, so the preview Worker uses the plan's fixed platform limit without a `limits.cpu_ms` override.
 - Before any production deployment, run `npm run release:check`. It fails closed if the banner limits drift between the public forms, Worker validation, administrator response validation, and the database migration contract, then runs lint, the complete test suite, the production build, and the Worker deployment dry-run.
 - Unexpected Worker failures emit a structured, privacy-safe event containing a generated request ID, HTTP method, allowlisted route category, and error type only. The same request ID is returned in the 500 response header for support correlation; URLs, identifiers, credentials, submitted content, and database messages are excluded.
+- The server-submission form displays a syntactically validated support reference only for unexpected server failures. It remains an accessible alert, while malformed or attacker-controlled reference headers are ignored.
 
 ## PostgreSQL trial exit
 

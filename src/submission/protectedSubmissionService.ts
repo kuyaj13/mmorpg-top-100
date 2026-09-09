@@ -14,7 +14,7 @@ export const protectedSubmissionService: ProtectedSubmissionService = {
       const idToken = await user.getIdToken(true)
       const response = await submitProtectedServer(apiBaseUrl, submission, { idToken })
       const body = await response.json().catch(() => null) as (SubmissionResponse & { message?: unknown }) | null
-      if (!response.ok) return publicSubmissionFailure(response.status, body?.message)
+      if (!response.ok) return publicSubmissionFailure(response.status, body?.message, response.headers.get('x-request-id'))
       if (typeof body?.reference !== 'string' || body.reference.length < 1 || body.reference.length > 100) {
         return { ok: false, message: 'Your submission could not be confirmed. Please try again.' }
       }
@@ -51,7 +51,7 @@ export function submitProtectedServer(
   })
 }
 
-export function publicSubmissionFailure(status: number, responseMessage?: unknown): Extract<import('./types').SubmissionResult, { ok: false }> {
+export function publicSubmissionFailure(status: number, responseMessage?: unknown, requestId?: string | null): Extract<import('./types').SubmissionResult, { ok: false }> {
   if (status === 401) return {
     ok: false,
     message: 'Your account could not be verified. Sign out, then sign in with your verified account and try again.',
@@ -74,5 +74,6 @@ export function publicSubmissionFailure(status: number, responseMessage?: unknow
     return { ok: false, message, fieldErrors: { name: message, website: message } }
   }
   if (status === 429) return { ok: false, message: 'Submissions are temporarily limited. Please wait and try again.' }
-  return { ok: false, message: 'Your server could not be submitted. Please try again.' }
+  const reference = typeof requestId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestId) ? requestId : null
+  return { ok: false, message: `Your server could not be submitted. Please try again.${reference ? ` Support reference: ${reference}` : ''}` }
 }

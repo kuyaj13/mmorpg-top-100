@@ -50,4 +50,10 @@ describe('public submission failures', () => {
   it('maps an actual security-check failure to its field', () => {
     expect(publicSubmissionFailure(403)).toMatchObject({ fieldErrors: { turnstileToken: 'Complete the security check again.' } })
   })
+
+  it('shows only a validated support reference for an unexpected server failure', () => {
+    const reference = '123e4567-e89b-42d3-a456-426614174000'
+    expect(publicSubmissionFailure(500, undefined, reference).message).toBe(`Your server could not be submitted. Please try again. Support reference: ${reference}`)
+    expect(publicSubmissionFailure(500, undefined, '<script>alert(1)</script>').message).toBe('Your server could not be submitted. Please try again.')
+  })
 })
