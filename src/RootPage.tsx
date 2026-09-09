@@ -18,8 +18,8 @@ export default function RootPage() {
       </main>
     )
   }
-  if (window.location.pathname === '/advertise' && siteConfig.bannerUploadsEnabled) return <OwnerBannerPage />
   if (window.location.pathname === '/advertise' && siteConfig.advertisingWorkspaceEnabled) return <AdvertisePage />
+  if (window.location.pathname === '/advertise' && siteConfig.bannerUploadsEnabled) return <OwnerBannerPage />
   if (window.location.pathname === '/submit' && siteConfig.submissionsEnabled) return <SubmissionPage turnstileSiteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY} />
   if (window.location.pathname === '/submit') return <main className="submission-page"><a href="/">Back to rankings</a><h1>Submissions are not available yet</h1><p>The form will open after its security checks are ready.</p></main>
   if (gameMatch) return <GamePage slug={decodeURIComponent(gameMatch[1])} />

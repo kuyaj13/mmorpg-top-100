@@ -32,6 +32,7 @@ type WorkerEnv = GeneratedBindings & {
   EXCLUSIVE_ADS_ENABLED: string
   BANNER_MODERATION_ENABLED: string
   DONATION_CLAIMS_ENABLED: string
+  ADVERTISING_WORKSPACE_ENABLED: string
   DONATION_MODERATION_ENABLED: string
   PLACEMENT_MODERATION_ENABLED: string
   DONATION_TURNSTILE_ACTION: string
@@ -116,7 +117,7 @@ export function createWorker(repositoryFactory: RepositoryFactory, voteHandlerFa
           if (env.BANNER_UPLOADS_ENABLED !== 'true' || !advertisingFactory) return corsResponse(request, env, jsonError('Banner uploads are not available yet.', 503), 'GET, OPTIONS', 'authorization, content-type')
           return corsResponse(request, env, await advertisingFactory(env).ownerWorkspace(request), 'GET, OPTIONS', 'authorization, content-type')
         }
-        if(advertisingWorkspace){if(request.method!=='GET')return corsResponse(request,env,methodNotAllowed(),'GET, OPTIONS','authorization, content-type');if(env.DONATION_CLAIMS_ENABLED!=='true'||!advertisingFactory)return corsResponse(request,env,jsonError('Advertising workspace is not available yet.',503),'GET, OPTIONS','authorization, content-type');return corsResponse(request,env,await advertisingFactory(env).advertisingWorkspace(request),'GET, OPTIONS','authorization, content-type')}
+        if(advertisingWorkspace){if(request.method!=='GET')return corsResponse(request,env,methodNotAllowed(),'GET, OPTIONS','authorization, content-type');if(env.ADVERTISING_WORKSPACE_ENABLED!=='true'||!advertisingFactory)return corsResponse(request,env,jsonError('Advertising workspace is not available yet.',503),'GET, OPTIONS','authorization, content-type');return corsResponse(request,env,await advertisingFactory(env).advertisingWorkspace(request),'GET, OPTIONS','authorization, content-type')}
         if (adminBannerList || adminBannerPreview || adminBannerDecision) {
           const methods = adminBannerDecision ? 'POST, OPTIONS' : 'GET, OPTIONS'
           if (env.BANNER_MODERATION_ENABLED !== 'true' || !advertisingFactory) return corsResponse(request, env, jsonError('Banner moderation is not available yet.', 503), methods, 'authorization, content-type')

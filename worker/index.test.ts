@@ -29,6 +29,7 @@ const env = {
   EXCLUSIVE_ADS_ENABLED: 'false',
   BANNER_MODERATION_ENABLED: 'false',
   DONATION_CLAIMS_ENABLED: 'false',
+  ADVERTISING_WORKSPACE_ENABLED: 'false',
   DONATION_MODERATION_ENABLED: 'false',
   PLACEMENT_MODERATION_ENABLED: 'false',
   ADVERTISING_RATE_LIMITER: { limit: rateLimit } as RateLimit,
@@ -133,6 +134,34 @@ describe('rankings endpoint', () => {
   it('keeps donation claims unavailable', async () => {
     const response = await createWorker(() => repository(null)).fetch(new Request('https://api.example/api/advertising/claims', { method: 'POST' }), env)
     expect(response.status).toBe(503)
+  })
+
+  it('keeps the paid owner workspace disabled independently from donation claims', async () => {
+    const advertisingWorkspace = vi.fn()
+    const advertising = {
+      ownerWorkspace: vi.fn(), advertisingWorkspace, submitClaim: vi.fn(), listPendingClaims: vi.fn(), moderateClaim: vi.fn(),
+      upload: vi.fn(), listPublic: vi.fn(), banner: vi.fn(), listPending: vi.fn(), previewPending: vi.fn(), moderate: vi.fn(), listPlacements: vi.fn(), moderatePlacement: vi.fn(),
+    }
+    const worker = createWorker(() => repository(null), undefined, undefined, undefined, () => advertising)
+    const response = await worker.fetch(new Request('https://api.example/api/advertising/workspace', {
+      headers: { origin: 'https://mmorpgtop100.com' },
+    }), { ...env, DONATION_CLAIMS_ENABLED: 'true' })
+    expect(response.status).toBe(503)
+    expect(advertisingWorkspace).not.toHaveBeenCalled()
+  })
+
+  it('routes the paid owner workspace only when its dedicated gate is enabled', async () => {
+    const advertisingWorkspace = vi.fn().mockResolvedValue(Response.json({ ok: true, servers: [], packages: [], claims: [] }))
+    const advertising = {
+      ownerWorkspace: vi.fn(), advertisingWorkspace, submitClaim: vi.fn(), listPendingClaims: vi.fn(), moderateClaim: vi.fn(),
+      upload: vi.fn(), listPublic: vi.fn(), banner: vi.fn(), listPending: vi.fn(), previewPending: vi.fn(), moderate: vi.fn(), listPlacements: vi.fn(), moderatePlacement: vi.fn(),
+    }
+    const worker = createWorker(() => repository(null), undefined, undefined, undefined, () => advertising)
+    const response = await worker.fetch(new Request('https://api.example/api/advertising/workspace', {
+      headers: { origin: 'https://mmorpgtop100.com' },
+    }), { ...env, ADVERTISING_WORKSPACE_ENABLED: 'true' })
+    expect(response.status).toBe(200)
+    expect(advertisingWorkspace).toHaveBeenCalledOnce()
   })
 
   it('advertises the protected donation claim contract during preflight', async () => {

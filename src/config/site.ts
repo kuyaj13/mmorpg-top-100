@@ -3,7 +3,7 @@ export const siteConfig = {
   votingEnabled: import.meta.env.VITE_VOTING_ENABLED === 'true' && Boolean(import.meta.env.VITE_TURNSTILE_SITE_KEY),
   submissionsEnabled: import.meta.env.VITE_SUBMISSIONS_ENABLED === 'true' && Boolean(import.meta.env.VITE_TURNSTILE_SITE_KEY),
   adminWorkspaceEnabled: import.meta.env.VITE_ADMIN_ENABLED === 'true',
-  advertisingWorkspaceEnabled: false,
+  advertisingWorkspaceEnabled: import.meta.env.VITE_ADVERTISING_WORKSPACE_ENABLED === 'true' && import.meta.env.VITE_DONATION_CLAIMS_ENABLED === 'true' && Boolean(import.meta.env.VITE_TURNSTILE_SITE_KEY),
   bannerModerationEnabled: import.meta.env.VITE_BANNER_MODERATION_ENABLED === 'true',
   donationModerationEnabled: import.meta.env.VITE_DONATION_MODERATION_ENABLED === 'true',
   placementModerationEnabled: import.meta.env.VITE_PLACEMENT_MODERATION_ENABLED === 'true',
