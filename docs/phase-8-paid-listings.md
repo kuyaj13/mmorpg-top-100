@@ -78,4 +78,5 @@
 - Equal-tier placements use deterministic round robin with a distributed initial offset and a default 15-second interval.
 - Browser-provided game IDs, eligibility flags, ranks, or time values are never authoritative.
 - Public responses include the backend-owned placement expiry so an open game page removes the banner at the entitlement boundary without requiring a refresh.
+- Open, visible game pages revalidate sponsored eligibility once per minute and immediately after returning from a hidden tab. Hidden pages do not poll, keeping database traffic bounded while removing suspended or otherwise ineligible ads without requiring a manual refresh.
 - Automatic rotation pauses on keyboard focus, appropriate pointer hover, and hidden pages; manual controls are available when multiple banners are eligible.

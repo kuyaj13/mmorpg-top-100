@@ -3,6 +3,7 @@ import { exclusiveServersService as productionService } from './bannerServices'
 import type { ExclusiveServerAd, ExclusiveServersService } from './bannerTypes'
 
 const rotationMilliseconds = 15_000
+const eligibilityRefreshMilliseconds = 60_000
 
 export function ExclusiveServers({ gameSlug, gameName, service = productionService }: { gameSlug: string; gameName: string; service?: ExclusiveServersService }) {
   const [ads, setAds] = useState<ExclusiveServerAd[]>([])
@@ -22,18 +23,26 @@ export function ExclusiveServers({ gameSlug, gameName, service = productionServi
     return () => query.removeEventListener('change', update)
   }, [])
   useEffect(() => {
-    const controller = new AbortController(); let active = true
-    service.list(gameSlug, controller.signal).then((items) => {
-      if (!active) return
-      setAds(items); setIndex(items.length ? Math.floor(Date.now() / rotationMilliseconds) % items.length : 0); setStatus('ready')
-    }, () => { if (active) setStatus('error') })
-    return () => { active = false; controller.abort() }
-  }, [gameSlug, service])
-  useEffect(() => {
     const visibility = () => setPageHidden(document.hidden)
     document.addEventListener('visibilitychange', visibility)
     return () => document.removeEventListener('visibilitychange', visibility)
   }, [])
+  useEffect(() => {
+    if (pageHidden) return
+    let active = true
+    let controller: AbortController | null = null
+    const load = () => {
+      controller?.abort()
+      controller = new AbortController()
+      service.list(gameSlug, controller.signal).then((items) => {
+        if (!active) return
+        setAds(items); setIndex(items.length ? Math.floor(Date.now() / rotationMilliseconds) % items.length : 0); setStatus('ready')
+      }, () => { if (active) { setAds([]); setStatus('error') } })
+    }
+    load()
+    const timer = window.setInterval(load, eligibilityRefreshMilliseconds)
+    return () => { active = false; controller?.abort(); window.clearInterval(timer) }
+  }, [gameSlug, pageHidden, service])
   useEffect(() => {
     if (ads.length < 2 || userPaused || interactionPaused || pageHidden || reducedMotion) return
     const timer = window.setInterval(() => setIndex((current) => (current + 1) % ads.length), rotationMilliseconds)

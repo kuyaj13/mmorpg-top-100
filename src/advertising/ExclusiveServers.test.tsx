@@ -9,6 +9,7 @@ const ads = [
 describe('ExclusiveServers', () => {
   beforeEach(() => {
     vi.useFakeTimers(); vi.setSystemTime(0)
+    Object.defineProperty(document, 'hidden', { configurable: true, value: false })
     window.matchMedia = vi.fn().mockReturnValue({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })
   })
   afterEach(() => vi.useRealTimers())
@@ -75,5 +76,21 @@ describe('ExclusiveServers', () => {
     act(() => vi.advanceTimersByTime(1_000))
     expect(screen.queryByRole('link', { name: /Flyff One, Sponsored.*new tab/i })).not.toBeInTheDocument()
     expect(screen.getByText('There are no active sponsored servers for this game.')).toBeInTheDocument()
+  })
+
+  it('revalidates eligibility without polling while the page is hidden', async () => {
+    const list = vi.fn().mockResolvedValueOnce([ads[0]]).mockResolvedValueOnce([])
+    render(<ExclusiveServers gameSlug="flyff" gameName="Flyff" service={{ list }} />)
+    await act(async () => {})
+    expect(list).toHaveBeenCalledTimes(1)
+    await act(async () => { vi.advanceTimersByTime(60_000) })
+    expect(list).toHaveBeenCalledTimes(2)
+    expect(screen.getByText('There are no active sponsored servers for this game.')).toBeInTheDocument()
+
+    Object.defineProperty(document, 'hidden', { configurable: true, value: true })
+    fireEvent(document, new Event('visibilitychange'))
+    await act(async () => { vi.advanceTimersByTime(120_000) })
+    expect(list).toHaveBeenCalledTimes(2)
+    Object.defineProperty(document, 'hidden', { configurable: true, value: false })
   })
 })
