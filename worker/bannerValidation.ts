@@ -3,7 +3,7 @@ import { decompressFrames, parseGIF } from 'gifuct-js'
 import jpeg from 'jpeg-js'
 import UPNG from 'upng-js'
 
-export const bannerLimits={maxBytes:524_288,maxStaticBytes:262_144,width:468,height:60,maxFrames:30,maxDurationMs:15_000,maxFrameDelayMs:1_000,minFrameDelayMs:100,maxPixelWork:842_400}as const
+export const bannerLimits={maxBytes:524_288,maxStaticBytes:262_144,width:468,height:60,maxFrames:45,maxDurationMs:15_000,maxFrameDelayMs:1_000,minFrameDelayMs:100,maxPixelWork:1_263_600}as const
 export const exclusiveBannerLimits={maxBytes:1_048_576,maxStaticBytes:524_288,width:936,height:120,maxFrames:15,maxDurationMs:15_000,maxFrameDelayMs:1_000,minFrameDelayMs:100,maxPixelWork:1_684_800}as const
 type BannerLimits=typeof bannerLimits|typeof exclusiveBannerLimits
 export type SanitizedBanner={bytes:Uint8Array;staticFallbackBytes:Uint8Array;originalSha256:Uint8Array;sanitizedSha256:Uint8Array;mediaType:'image/gif'|'image/png'|'image/jpeg';width:number;height:number;frameCount:number;animationDurationMs:number}

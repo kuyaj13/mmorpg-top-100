@@ -67,7 +67,7 @@ function isPendingBanner(value: unknown): value is BannerReviewItem {
     isBoundedText(item.id, 100) && isBoundedText(item.serverId, 100) && isBoundedText(item.serverName, 80) &&
     isBoundedText(item.gameSlug, 80) && (item.bannerKind === 'free' || item.bannerKind === 'exclusive') && (item.mediaType === 'image/gif' || item.mediaType === 'image/png' || item.mediaType === 'image/jpeg') &&
     isIntegerBetween(item.byteSize, 1, item.bannerKind === 'exclusive' ? 1_048_576 : 524_288) &&
-    item.width === (item.bannerKind === 'exclusive' ? 936 : 468) && item.height === (item.bannerKind === 'exclusive' ? 120 : 60) && isIntegerBetween(item.frameCount, 1, 30) &&
+    item.width === (item.bannerKind === 'exclusive' ? 936 : 468) && item.height === (item.bannerKind === 'exclusive' ? 120 : 60) && isIntegerBetween(item.frameCount, 1, item.bannerKind === 'exclusive' ? 15 : 45) &&
     isIntegerBetween(item.animationDurationMs, 0, 15_000) && isBoundedText(item.altText, 160, 10) &&
     typeof item.createdAt === 'string' && Number.isFinite(Date.parse(item.createdAt))
 }

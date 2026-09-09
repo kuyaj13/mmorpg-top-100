@@ -61,7 +61,7 @@ export function BannerUploadForm({ servers, service = bannerUploadService, turns
       {errors.serverId && <p id="banner-server-error">{errors.serverId}</p>}
       <label htmlFor="banner-file">Banner image</label>
       <input ref={fileRef} id="banner-file" name="banner" type="file" required accept="image/gif,image/png,image/jpeg,.gif,.png,.jpg,.jpeg" aria-invalid={Boolean(errors.file)} aria-describedby={`banner-requirements${errors.file ? ' banner-file-error' : ''}`} />
-      <p id="banner-requirements">Exactly {width} by {height} pixels; GIF, PNG, or JPEG; maximum {exclusive?'1 MiB':'512 KiB'}. Animated banners require a reduced-motion alternative during moderation.</p>
+      <p id="banner-requirements">Exactly {width} by {height} pixels; GIF, PNG, or JPEG; maximum {exclusive?'1 MiB':'512 KiB'}. Animated GIFs may contain up to {exclusive ? 15 : 45} frames and run for up to 15 seconds. A reduced-motion alternative is created during moderation.</p>
       {errors.file && <p id="banner-file-error">{errors.file}</p>}
       <label htmlFor="banner-alt">Banner description</label>
       <input ref={altRef} id="banner-alt" name="altText" type="text" required minLength={10} maxLength={160} aria-invalid={Boolean(errors.altText)} aria-describedby={errors.altText ? 'banner-alt-error' : undefined} />

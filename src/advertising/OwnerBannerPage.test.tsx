@@ -15,6 +15,7 @@ it('shows only approved servers returned by the protected owner workspace', asyn
   render(<OwnerBannerPage authService={authService} workspaceService={{ listServers: () => Promise.resolve([{ id:'server-1',name:'Flyff One',gameName:'Flyff',gameSlug:'flyff' }]) }}/>)
   expect(await screen.findByRole('heading',{name:'Upload a server banner'})).toBeInTheDocument()
   expect(screen.getByRole('option',{name:'Flyff One — Flyff'})).toBeInTheDocument()
+  expect(screen.getByText(/up to 45 frames and run for up to 15 seconds/i)).toBeInTheDocument()
   expect(screen.queryByText(/PayPal transaction reference/i)).not.toBeInTheDocument()
 })
 

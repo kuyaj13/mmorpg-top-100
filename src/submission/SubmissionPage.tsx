@@ -116,7 +116,7 @@ export function SubmissionPage({ service = protectedSubmissionService, turnstile
         <SubmissionField id="server-description" name="description" label="Description" error={errors.description}><textarea id="server-description" name="description" required minLength={20} maxLength={1000} rows={6} /></SubmissionField>
         <fieldset>
           <legend>Banner (optional and free)</legend>
-          <p id="banner-help">Upload a 468 by 60 pixel GIF, PNG, or JPEG up to 512 KB. If you choose one, its description is required. It will be reviewed separately and will not affect your rank.</p>
+          <p id="banner-help">Upload a 468 by 60 pixel GIF, PNG, or JPEG up to 512 KB. Animated GIFs may contain up to 45 frames and run for up to 15 seconds. If you choose one, its description is required. It will be reviewed separately and will not affect your rank.</p>
           <SubmissionField id="server-banner" name="banner" label="Banner image" error={errors.banner}><input ref={bannerRef} id="server-banner" name="banner" type="file" accept="image/gif,image/png,image/jpeg" aria-describedby={errors.banner ? 'banner-error' : 'banner-help'} /></SubmissionField>
           <SubmissionField id="banner-alt-text" name="bannerAltText" label="Banner description" error={errors.bannerAltText}><input id="banner-alt-text" name="bannerAltText" type="text" minLength={10} maxLength={160} aria-describedby="banner-help" placeholder="Describe the banner for visitors who cannot see it" /></SubmissionField>
         </fieldset>
