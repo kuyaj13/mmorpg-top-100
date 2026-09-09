@@ -32,6 +32,7 @@
 - Package prices are server-owned records and are never accepted from the browser.
 - Owner and administrator views show both the formatted amount and explicit `USD` currency; UI regression coverage confirms the 30-day selection submits only the server-owned `exclusive_30_day` package code.
 - Administrator placement suspension and reactivation require an explicit keyboard-accessible confirmation. Failed decisions recover focus and controls without exposing technical errors, and successful decisions reload server-owned inventory counts.
+- The placement-management client sends a freshly authenticated administrator token in the authorization header and only an allowlisted decision plus a fresh operation identifier. It rejects malformed, non-HTTPS, unsupported-duration, or unbounded placement records before rendering them.
 
 ## Package rules
 
