@@ -29,6 +29,7 @@ const env = {
   BANNER_MODERATION_ENABLED: 'false',
   DONATION_CLAIMS_ENABLED: 'false',
   DONATION_MODERATION_ENABLED: 'false',
+  PLACEMENT_MODERATION_ENABLED: 'false',
   ADVERTISING_RATE_LIMITER: { limit: rateLimit } as RateLimit,
 }
 
@@ -150,6 +151,34 @@ describe('rankings endpoint', () => {
     expect(preflight.status).toBe(204)
     expect(preflight.headers.get('access-control-allow-methods')).toBe('POST, OPTIONS')
     expect(preflight.headers.get('access-control-allow-headers')).toBe('authorization, content-type')
+  })
+
+  it('keeps placement management disabled before invoking its protected handler', async () => {
+    const listPlacements = vi.fn()
+    const advertising = {
+      ownerWorkspace: vi.fn(), advertisingWorkspace: vi.fn(), submitClaim: vi.fn(), listPendingClaims: vi.fn(), moderateClaim: vi.fn(),
+      upload: vi.fn(), listPublic: vi.fn(), banner: vi.fn(), listPending: vi.fn(), previewPending: vi.fn(), moderate: vi.fn(), listPlacements, moderatePlacement: vi.fn(),
+    }
+    const worker = createWorker(() => repository(null), undefined, undefined, undefined, () => advertising)
+    const response = await worker.fetch(new Request('https://api.example/api/admin/ad-placements', {
+      headers: { origin: 'https://mmorpgtop100.com' },
+    }), { ...env, ADMIN_ENABLED: 'true' })
+    expect(response.status).toBe(503)
+    expect(listPlacements).not.toHaveBeenCalled()
+  })
+
+  it('routes placement management only when its dedicated gate is enabled', async () => {
+    const listPlacements = vi.fn().mockResolvedValue(Response.json({ ok: true, placements: [] }))
+    const advertising = {
+      ownerWorkspace: vi.fn(), advertisingWorkspace: vi.fn(), submitClaim: vi.fn(), listPendingClaims: vi.fn(), moderateClaim: vi.fn(),
+      upload: vi.fn(), listPublic: vi.fn(), banner: vi.fn(), listPending: vi.fn(), previewPending: vi.fn(), moderate: vi.fn(), listPlacements, moderatePlacement: vi.fn(),
+    }
+    const worker = createWorker(() => repository(null), undefined, undefined, undefined, () => advertising)
+    const response = await worker.fetch(new Request('https://api.example/api/admin/ad-placements', {
+      headers: { origin: 'https://mmorpgtop100.com' },
+    }), { ...env, ADMIN_ENABLED: 'true', PLACEMENT_MODERATION_ENABLED: 'true' })
+    expect(response.status).toBe(200)
+    expect(listPlacements).toHaveBeenCalledOnce()
   })
 
   it('keeps voting disabled before invoking the protected handler', async () => {

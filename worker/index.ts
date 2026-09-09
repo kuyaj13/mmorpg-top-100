@@ -32,6 +32,7 @@ type WorkerEnv = GeneratedBindings & {
   BANNER_MODERATION_ENABLED: string
   DONATION_CLAIMS_ENABLED: string
   DONATION_MODERATION_ENABLED: string
+  PLACEMENT_MODERATION_ENABLED: string
   DONATION_TURNSTILE_ACTION: string
   TURNSTILE_SECRET: string
   VOTER_HMAC_SECRET: string
@@ -129,7 +130,7 @@ export function createWorker(repositoryFactory: RepositoryFactory, voteHandlerFa
           const response=adminDonationDecision?await advertising.moderateClaim(request,safeDecode(adminDonationDecision[1])):await advertising.listPendingClaims(request)
           return corsResponse(request,env,response,methods,'authorization, content-type')
         }
-        if(adminPlacements||adminPlacementDecision){const methods=adminPlacementDecision?'POST, OPTIONS':'GET, OPTIONS';if(env.ADMIN_ENABLED!=='true'||!advertisingFactory)return corsResponse(request,env,jsonError('Advertisement management is not available yet.',503),methods,'authorization, content-type');const advertising=advertisingFactory(env);const response=adminPlacementDecision?await advertising.moderatePlacement(request,safeDecode(adminPlacementDecision[1])):await advertising.listPlacements(request);return corsResponse(request,env,response,methods,'authorization, content-type')}
+        if(adminPlacements||adminPlacementDecision){const methods=adminPlacementDecision?'POST, OPTIONS':'GET, OPTIONS';if(env.ADMIN_ENABLED!=='true'||env.PLACEMENT_MODERATION_ENABLED!=='true'||!advertisingFactory)return corsResponse(request,env,jsonError('Advertisement management is not available yet.',503),methods,'authorization, content-type');const advertising=advertisingFactory(env);const response=adminPlacementDecision?await advertising.moderatePlacement(request,safeDecode(adminPlacementDecision[1])):await advertising.listPlacements(request);return corsResponse(request,env,response,methods,'authorization, content-type')}
         if (publicAds) {
           if (request.method !== 'GET') return corsResponse(request, env, methodNotAllowed())
           if (env.EXCLUSIVE_ADS_ENABLED !== 'true' || !advertisingFactory) return corsResponse(request, env, jsonError('Exclusive servers are not available yet.', 503))
