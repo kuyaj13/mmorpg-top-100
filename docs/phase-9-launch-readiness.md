@@ -9,6 +9,8 @@
 - The approved replacement is Neon Free PostgreSQL 17 through a project-specific Cloudflare Hyperdrive configuration. Public rankings and approved authenticated mutations now use narrowly scoped database functions through the trusted Worker.
 - Cloudflare Free does not accept a custom Worker CPU limit, so the preview Worker uses the plan's fixed platform limit without a `limits.cpu_ms` override.
 - Before any production deployment, run `npm run release:check`. It fails closed if the banner limits drift between the public forms, Worker validation, administrator response validation, and the database migration contract, then runs lint, the complete test suite, the production build, and the Worker deployment dry-run.
+- Cloudflare Pages uses the separate `cloudflare-pages/wrangler.jsonc` source of truth and `npm run deploy:pages`. Keeping Pages configuration separate prevents Worker bindings and production variables from being applied to the static site and removes the ambiguous-config deployment warning.
+- A point-in-time recovery drill completed on 2026-09-10 using an isolated, automatically expiring Neon branch. The recovered snapshot matched production for the core server, vote, submission, donation-claim, placement, public-ad, and impression-schema checks. The project's verified Free plan currently provides a six-hour restore window; operational recovery must therefore begin inside that window.
 - Unexpected Worker failures emit a structured, privacy-safe event containing a generated request ID, HTTP method, allowlisted route category, and error type only. The same request ID is returned in the 500 response header for support correlation; URLs, identifiers, credentials, submitted content, and database messages are excluded.
 - The server-submission form displays a syntactically validated support reference only for unexpected server failures. It remains an accessible alert, while malformed or attacker-controlled reference headers are ignored.
 
@@ -39,3 +41,9 @@
 - Re-run the database boundary with `npm run db:verify-financial -- --branch <isolated-branch>`. The wrapper requires an explicit branch, refuses the production name and ID, verifies that the SQL retains its rollback boundary, and stops on the first SQL error.
 - Homepage regression tests await the live-directory lifecycle before completing, so asynchronous React updates remain inside the test boundary and cannot hide later failures behind lifecycle warnings.
 - Player, free-banner owner, and future advertiser verification screens consistently direct users to check both their inbox and spam folder while keeping private workspace data unloaded until verification succeeds.
+
+## Operational follow-ups
+
+- The live 7-day placement has an exact database interval from 2026-09-09 16:37:07 UTC to 2026-09-16 16:37:07 UTC (2026-09-17 00:37:07 Asia/Manila). Its automatic removal must be observed at that real boundary; do not shorten or alter a customer's active entitlement merely to complete the check early.
+- Neon is verified on `free_v3`. Review Neon usage and Cloudflare Workers/Pages usage in their dashboards, and enable the available account email notifications there. The current CLI authorization can deploy Workers and Pages but cannot administer account notification policies, so that dashboard-only control remains an owner action.
+- Search indexing and production-error monitoring are ongoing operations rather than release blockers.

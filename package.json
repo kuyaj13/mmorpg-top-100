@@ -9,6 +9,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
+    "deploy:pages": "wrangler pages deploy --cwd cloudflare-pages --branch main",
     "test": "vitest run",
     "banner:verify-contract": "node scripts/verify-banner-contract.mjs",
     "advertising:verify-contract": "node scripts/verify-advertising-contract.mjs",
