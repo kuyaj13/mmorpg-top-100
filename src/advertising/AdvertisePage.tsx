@@ -218,7 +218,7 @@ export default function AdvertisePage({
         <a href="/" aria-label="MMORPG Top 100 home">
           <img src={logoUrl} alt="MMORPG Top 100" />
         </a>
-        <a href="/">Back to rankings</a>
+        <nav className="advertise-nav" aria-label="Advertising navigation"><a href="/advertise/banner">Manage listings &amp; banners</a><a href="/">Back to rankings</a></nav>
       </header>
       <main id="advertise-main">
         <section className="advertise-intro">

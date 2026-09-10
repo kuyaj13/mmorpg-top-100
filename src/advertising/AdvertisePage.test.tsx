@@ -15,6 +15,7 @@ const readyAuth: AdvertiserAuthService = {
 describe('AdvertisePage', () => {
   beforeEach(()=>{let widget=0;window.turnstile={render:vi.fn((_element,options)=>{(options.callback as (token:string)=>void)('verified-challenge-token');widget+=1;return `widget-${widget}`}),remove:vi.fn(),reset:vi.fn()}})
   afterEach(()=>{delete window.turnstile})
+  it('links directly to listing and banner management',()=>{const authService:AdvertiserAuthService={...readyAuth,currentStatus:()=>Promise.resolve('signed-out')};render(<AdvertisePage authService={authService} advertisingService={{loadWorkspace:vi.fn(),createClaim:vi.fn()}} turnstileSiteKey="test-key"/>);expect(screen.getByRole('link',{name:'Manage listings & banners'})).toHaveAttribute('href','/advertise/banner')})
   it('requires an owner account before loading private advertising data', async () => {
     let loaded = false
     const authService: AdvertiserAuthService = { ...readyAuth, currentStatus: () => Promise.resolve('signed-out') }

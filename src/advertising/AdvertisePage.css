@@ -2,7 +2,8 @@
 .advertise-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 76px; }
 .advertise-header > a:first-child { display: inline-flex; width: clamp(190px, 25vw, 280px); }
 .advertise-header img { width: 100%; height: auto; max-height: 68px; object-fit: contain; }
-.advertise-header > a:last-child { min-height: 44px; display: inline-flex; align-items: center; color: #bfdbfe; }
+.advertise-nav { display:flex; align-items:center; gap:18px; }
+.advertise-nav a { min-height:44px; display:inline-flex; align-items:center; color:#bfdbfe; }
 .advertise-intro, .advertiser-auth, .claim-panel, .claim-history, .banner-upload, .listing-manager { margin-top: 24px; padding: clamp(20px, 4vw, 36px); border: 1px solid rgba(148,163,184,.2); border-radius: 20px; background: rgba(15,23,42,.78); }
 .listing-manager ul { display:grid; gap:12px; padding:0; list-style:none; }
 .listing-manager li { display:grid; gap:12px; padding:16px; border-radius:12px; background:rgba(30,41,59,.8); }
@@ -27,4 +28,4 @@
 .claim-status.pending { background: #78350f; color: #fef3c7; }
 .claim-status.verified { background: #14532d; color: #dcfce7; }
 .claim-status.rejected { background: #7f1d1d; color: #fee2e2; }
-@media (max-width: 700px) { .advertise-header { align-items: flex-start; flex-direction: column; } .claim-panel { grid-template-columns: 1fr; } .advertiser-auth-actions, .claim-history-heading { align-items: stretch; flex-direction: column; } .advertiser-auth-actions button, .claim-history-heading button { width: 100%; } .claim-history li { grid-template-columns: 1fr; } }
+@media (max-width: 700px) { .advertise-header { align-items: flex-start; flex-direction: column; } .advertise-nav { width:100%; align-items:stretch; flex-direction:column; gap:4px; } .advertise-nav a { width:100%; } .claim-panel { grid-template-columns: 1fr; } .advertiser-auth-actions, .claim-history-heading { align-items: stretch; flex-direction: column; } .advertiser-auth-actions button, .claim-history-heading button { width: 100%; } .claim-history li { grid-template-columns: 1fr; } }
