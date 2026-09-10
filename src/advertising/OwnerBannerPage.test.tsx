@@ -19,6 +19,7 @@ it('shows only approved servers returned by the protected owner workspace', asyn
   expect(screen.getByRole('option',{name:'Flyff One — Flyff'})).toBeInTheDocument()
   expect(screen.getByText(/up to 45 frames and run for up to 15 seconds/i)).toBeInTheDocument()
   expect(screen.queryByText(/PayPal transaction reference/i)).not.toBeInTheDocument()
+  expect(screen.getByRole('link',{name:'Advertising requests'})).toHaveAttribute('href','/advertise')
 })
 
 it('shows a plain failure state without exposing implementation details', async () => {

@@ -80,7 +80,7 @@ export default function OwnerBannerPage({ authService = advertiserAuthService, w
 
   return <div className="advertise-page">
     <a className="skip-link" href="#banner-main">Skip to main content</a>
-    <header className="advertise-header"><a href="/" aria-label="MMORPG Top 100 home"><img src={logoUrl} alt="MMORPG Top 100" /></a><a href="/">Back to rankings</a></header>
+    <header className="advertise-header"><a href="/" aria-label="MMORPG Top 100 home"><img src={logoUrl} alt="MMORPG Top 100" /></a><nav className="advertise-nav" aria-label="Advertising navigation"><a href="/advertise">Advertising requests</a><a href="/">Back to rankings</a></nav></header>
     <main id="banner-main">
       <section className="advertise-intro"><p className="eyebrow">Server owners</p><h1>Manage your server banner</h1><p>Banner upload is free for every approved server owner. Every image is reviewed before it appears publicly.</p></section>
       {state === 'checking' && <p role="status">Checking your account...</p>}
