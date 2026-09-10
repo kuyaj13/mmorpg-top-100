@@ -18,6 +18,7 @@ export default function RootPage() {
       </main>
     )
   }
+  if (window.location.pathname === '/advertise/banner' && siteConfig.bannerUploadsEnabled) return <OwnerBannerPage />
   if (window.location.pathname === '/advertise' && siteConfig.advertisingWorkspaceEnabled) return <AdvertisePage />
   if (window.location.pathname === '/advertise' && siteConfig.bannerUploadsEnabled) return <OwnerBannerPage />
   if (window.location.pathname === '/submit' && siteConfig.submissionsEnabled) return <SubmissionPage turnstileSiteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY} />
