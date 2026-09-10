@@ -54,5 +54,5 @@ function isModerationItem(value: unknown): value is ModerationItem {
     typeof item.name === 'string' && item.name.length > 0 && item.name.length <= 80 && safeWebsite &&
     typeof item.gameVersion === 'string' && typeof item.region === 'string' &&
     (item.mode === 'PvE' || item.mode === 'PvP' || item.mode === 'RPG') && typeof item.description === 'string' &&
-    typeof item.submittedAt === 'string' && Number.isFinite(Date.parse(item.submittedAt)) && item.status === 'pending'
+    typeof item.submittedAt === 'string' && Number.isFinite(Date.parse(item.submittedAt)) && item.status === 'pending' && (item.requestType==='new'||item.requestType==='change')
 }

@@ -340,9 +340,10 @@ export default function AdminPage({
           {items.map((item) => (
             <article key={item.id} className="moderation-card" role="listitem">
               <div>
-                <p className="moderation-meta">{item.mode} | {item.region}</p>
+                <p className="moderation-meta">{item.requestType==='change'?'Listing change':'New listing'} | {item.mode} | {item.region}</p>
                 <h3>{item.name}</h3>
                 <p>{item.description}</p>
+                {item.requestType==='change'&&<p><strong>The current listing remains live until this change is approved.</strong></p>}
                 <a href={item.website} target="_blank" rel="noopener noreferrer">Review website <span className="visually-hidden">(opens in a new tab)</span></a>
               </div>
               <div className="moderation-actions">

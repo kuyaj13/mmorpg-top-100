@@ -6,6 +6,7 @@ export type ModerationItem = ServerSubmission & {
   id: string
   submittedAt: string
   status: ModerationStatus
+  requestType: 'new' | 'change'
 }
 
 export type AdminAccessService = {

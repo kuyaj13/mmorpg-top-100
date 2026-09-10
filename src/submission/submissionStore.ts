@@ -8,7 +8,8 @@ export function addPendingSubmission(submission: ServerSubmission) {
     ...submission,
     id: `preview-${submissions.length + 1}`,
     submittedAt: new Date().toISOString(),
-    status: 'pending',
+      status: 'pending',
+      requestType: 'new',
   }
   submissions.push(item)
   return { ...item }

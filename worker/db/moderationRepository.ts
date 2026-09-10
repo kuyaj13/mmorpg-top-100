@@ -1,7 +1,7 @@
 import { Client } from 'pg'
 import type { RankingQueryClient } from './rankingRepository'
 
-export type PendingSubmission = { id: string; gameSlug: string; gameName: string; name: string; website: string; gameVersion: string; region: string; mode: string; description: string; submittedAt: string }
+export type PendingSubmission = { id:string;gameSlug:string;gameName:string;name:string;website:string;gameVersion:string;region:string;mode:string;description:string;submittedAt:string;requestType:'new'|'change' }
 export type ModerationOutcome = { outcome: 'approved'; serverId: string } | { outcome: 'rejected' | 'already_resolved' | 'duplicate' | 'game_unavailable' }
 export type ModerationRepository = {
   listPending(): Promise<PendingSubmission[]>
@@ -18,7 +18,7 @@ export function createModerationRepository(createClient: () => RankingQueryClien
   return {
     listPending: () => connected(async (client) => {
       const [submissions,changes]=await Promise.all([client.query<PendingRow>('SELECT * FROM api.list_pending_server_submissions()'),client.query<PendingRow>('SELECT id,game_slug,game_name,name,website,game_version,region,mode,description,created_at FROM api.list_pending_server_listing_changes()')])
-      return [...submissions.rows,...changes.rows].sort((a,b)=>new Date(a.created_at).getTime()-new Date(b.created_at).getTime()).map((row) => ({ id: row.id, gameSlug: row.game_slug, gameName: row.game_name, name: row.name, website: row.website, gameVersion: row.game_version, region: row.region, mode: row.mode, description: row.description, submittedAt: new Date(row.created_at).toISOString(), status: 'pending' as const }))
+      return [...submissions.rows.map(row=>({row,requestType:'new' as const})),...changes.rows.map(row=>({row,requestType:'change' as const}))].sort((a,b)=>new Date(a.row.created_at).getTime()-new Date(b.row.created_at).getTime()).map(({row,requestType}) => ({ id: row.id, gameSlug: row.game_slug, gameName: row.game_name, name: row.name, website: row.website, gameVersion: row.game_version, region: row.region, mode: row.mode, description: row.description, submittedAt: new Date(row.created_at).toISOString(), status: 'pending' as const,requestType }))
     }),
     decide: (id, moderatorKey, decision, reasonCode, operationId) => connected(async (client) => {
       const result = await client.query<OutcomeRow>(
