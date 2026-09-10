@@ -163,3 +163,9 @@
 
   .banner-review-details { grid-template-columns: 1fr; }
 }
+.listing-comparison { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-top:14px; }
+.listing-comparison section { padding:12px; border:1px solid rgba(148,163,184,.3); border-radius:10px; }
+.listing-comparison dl,.listing-comparison dd { margin:0; }
+.listing-comparison dl { display:grid; gap:8px; }
+.listing-comparison dt { font-weight:800; }
+@media(max-width:700px){.listing-comparison{grid-template-columns:1fr}}

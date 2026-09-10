@@ -343,7 +343,7 @@ export default function AdminPage({
                 <p className="moderation-meta">{item.requestType==='change'?'Listing change':'New listing'} | {item.mode} | {item.region}</p>
                 <h3>{item.name}</h3>
                 <p>{item.description}</p>
-                {item.requestType==='change'&&<p><strong>The current listing remains live until this change is approved.</strong></p>}
+                {item.requestType==='change'&&item.currentListing&&<><p><strong>The current listing remains live until this change is approved.</strong></p><div className="listing-comparison" aria-label={`Current and proposed details for ${item.name}`}><section><h4>Current listing</h4><ListingSnapshot item={item.currentListing}/></section><section><h4>Proposed changes</h4><ListingSnapshot item={item}/></section></div></>}
                 <a href={item.website} target="_blank" rel="noopener noreferrer">Review website <span className="visually-hidden">(opens in a new tab)</span></a>
               </div>
               <div className="moderation-actions">
@@ -418,6 +418,7 @@ export default function AdminPage({
   )
 }
 
+function ListingSnapshot({item}:{item:{name:string;website:string;gameVersion:string;region:string;mode:string;description:string}}){return <dl><div><dt>Name</dt><dd>{item.name}</dd></div><div><dt>Website</dt><dd>{item.website}</dd></div><div><dt>Version</dt><dd>{item.gameVersion}</dd></div><div><dt>Region</dt><dd>{item.region}</dd></div><div><dt>Mode</dt><dd>{item.mode}</dd></div><div><dt>Description</dt><dd>{item.description}</dd></div></dl>}
 function formatMoney(amountMinor: string, currency: string) {
   const amount = Number(amountMinor) / 100
   if (!Number.isFinite(amount)) return `${currency} amount unavailable`

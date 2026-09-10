@@ -50,9 +50,11 @@ function isModerationItem(value: unknown): value is ModerationItem {
   const item = value as Record<string, unknown>
   let safeWebsite = false
   try { safeWebsite = new URL(String(item.website)).protocol === 'https:' } catch { safeWebsite = false }
+  const currentValid=item.requestType!=='change'||isListingSnapshot(item.currentListing)
   return typeof item.id === 'string' && item.id.length > 0 && item.id.length <= 100 &&
     typeof item.name === 'string' && item.name.length > 0 && item.name.length <= 80 && safeWebsite &&
     typeof item.gameVersion === 'string' && typeof item.region === 'string' &&
     (item.mode === 'PvE' || item.mode === 'PvP' || item.mode === 'RPG') && typeof item.description === 'string' &&
-    typeof item.submittedAt === 'string' && Number.isFinite(Date.parse(item.submittedAt)) && item.status === 'pending' && (item.requestType==='new'||item.requestType==='change')
+    typeof item.submittedAt === 'string' && Number.isFinite(Date.parse(item.submittedAt)) && item.status === 'pending' && (item.requestType==='new'||item.requestType==='change')&&currentValid
 }
+function isListingSnapshot(value:unknown){if(!value||typeof value!=='object'||Array.isArray(value))return false;const item=value as Record<string,unknown>;let website=false;try{website=new URL(String(item.website)).protocol==='https:'}catch{website=false}return typeof item.name==='string'&&item.name.length>0&&item.name.length<=80&&website&&typeof item.gameVersion==='string'&&typeof item.region==='string'&&['PvE','PvP','RPG'].includes(String(item.mode))&&typeof item.description==='string'}

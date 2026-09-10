@@ -37,7 +37,7 @@ const activePlacement: AdPlacementItem = {
 }
 
 describe('AdminPage', () => {
-  it('clearly identifies a listing change that leaves the current listing live',async()=>{const moderationService:ModerationService={listPending:()=>Promise.resolve([{...pendingItem,requestType:'change'}]),decide:()=>Promise.resolve({ok:true,message:'Approved'})};render(<AdminPage accessService={{canModerate:()=>Promise.resolve(true)}} moderationService={moderationService} donationClaimReviewService={emptyDonationService}/>);expect(await screen.findByText(/Listing change/)).toBeInTheDocument();expect(screen.getByText(/current listing remains live/i)).toBeInTheDocument()})
+  it('compares the current listing with a proposed change',async()=>{const moderationService:ModerationService={listPending:()=>Promise.resolve([{...pendingItem,name:'Moonlight Updated',requestType:'change',currentListing:{...pendingItem,name:'Moonlight Realms'}}]),decide:()=>Promise.resolve({ok:true,message:'Approved'})};render(<AdminPage accessService={{canModerate:()=>Promise.resolve(true)}} moderationService={moderationService} donationClaimReviewService={emptyDonationService}/>);expect(await screen.findByText(/Listing change/)).toBeInTheDocument();expect(screen.getByText(/current listing remains live/i)).toBeInTheDocument();expect(screen.getByRole('heading',{name:'Current listing'})).toBeInTheDocument();expect(screen.getByRole('heading',{name:'Proposed changes'})).toBeInTheDocument()})
   it('does not load moderation data when access is denied', async () => {
     const accessService: AdminAccessService = { canModerate: () => Promise.resolve(false) }
     let listWasCalled = false

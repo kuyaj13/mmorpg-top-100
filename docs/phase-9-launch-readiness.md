@@ -27,10 +27,10 @@
 
 - Public rankings contain approved production records and remain independently scoped by game.
 - Disabled actions must remain non-interactive and explain when they will become available.
-- `/admin` is enabled only for verified administrator claims. `/advertise` exposes free banner management; donation and exclusive-placement controls remain fail-closed.
+- `/admin` is enabled only for verified administrator claims. `/advertise` explains and accepts advertising requests, while `/advertise/banner` is the authenticated owner workspace for listing management and free or eligible Exclusive banner uploads.
 - The donation link is a public PayPal link only and grants no entitlement automatically.
 
-## Remaining production gates
+## Completed production gates
 
 - Custom-domain routing, response security headers, CORS allowlisting, and hostile-origin rejection passed on 2026-09-06.
 - Voting and submission use Firebase identity, server-verified Turnstile, Worker rate limits, validated inputs, and constrained database functions.
@@ -41,6 +41,8 @@
 - Re-run the database boundary with `npm run db:verify-financial -- --branch <isolated-branch>`. The wrapper requires an explicit branch, refuses the production name and ID, verifies that the SQL retains its rollback boundary, and stops on the first SQL error.
 - Homepage regression tests await the live-directory lifecycle before completing, so asynchronous React updates remain inside the test boundary and cannot hide later failures behind lifecycle warnings.
 - Player, free-banner owner, and future advertiser verification screens consistently direct users to check both their inbox and spam folder while keeping private workspace data unloaded until verification succeeds.
+- Owners can edit an active listing through `/advertise/banner`; proposed changes remain non-public until administrator approval, and the moderation screen compares current and proposed values. Owners can also remove their listing immediately through a keyboard-accessible confirmation without deleting retained votes or moderation history.
+- Owner listing edits provide field-specific, accessible validation and focus the first invalid field. The removal dialog supports Escape dismissal and restores focus to its trigger.
 
 ## Operational follow-ups
 
