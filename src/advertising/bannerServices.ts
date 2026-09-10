@@ -38,7 +38,11 @@ export const ownerBannerWorkspaceService: OwnerBannerWorkspaceService = {
       throw new Error('Your approved servers are unavailable right now.')
     }
   },
+  async updateServer(id,input){return manageOwnedServer(id,'PATCH',input)},
+  async removeServer(id){return manageOwnedServer(id,'DELETE')},
 }
+
+async function manageOwnedServer(id:string,method:'PATCH'|'DELETE',input?:import('./bannerTypes').ListingInput){try{const user=getFirebaseAuth()?.currentUser;if(!user?.emailVerified)return{ok:false,message:'Sign in with your verified owner account.'};const apiBaseUrl=import.meta.env.VITE_API_BASE_URL;if(!apiBaseUrl)throw new Error();const response=await fetch(new URL(`/api/advertising/servers/${encodeURIComponent(id)}/listing`,apiBaseUrl),{method,headers:{authorization:`Bearer ${await user.getIdToken()}`,...(input?{'content-type':'application/json'}:{})},body:input?JSON.stringify(input):undefined});const body=await response.json().catch(()=>null) as {message?:unknown}|null;return{ok:response.ok,message:typeof body?.message==='string'?body.message:response.ok?'Your request was saved.':'Your request could not be saved. Please try again.'}}catch{return{ok:false,message:'Your request could not be saved. Please try again.'}}}
 
 export function requestOwnerBannerWorkspace(apiBaseUrl: string, idToken: string, fetcher: typeof fetch = fetch) {
   return fetcher(new URL('/api/advertising/owner-workspace', apiBaseUrl), {
@@ -90,8 +94,8 @@ function isEligibleServer(value: unknown) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const item = value as Record<string, unknown>
   const keys = Object.keys(item)
-  return keys.length === 4 && keys.every((key) => ['id', 'name', 'gameSlug', 'gameName'].includes(key)) &&
-    isText(item.id, 100) && isText(item.name, 80) && isText(item.gameSlug, 80) && isText(item.gameName, 80)
+  return keys.every((key) => ['id','name','gameSlug','gameName','website','gameVersion','region','mode','description','hasPendingChange'].includes(key)) &&
+    isText(item.id,100)&&isText(item.name,80)&&isText(item.gameSlug,80)&&isText(item.gameName,80)&&isHttps(item.website)&&isText(item.gameVersion,60)&&isText(item.region,60)&&['PvE','PvP','RPG'].includes(String(item.mode))&&isText(item.description,1000)&&typeof item.hasPendingChange==='boolean'
 }
 
 function isText(value: unknown, maximum: number) { return typeof value === 'string' && value.length > 0 && value.length <= maximum }

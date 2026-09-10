@@ -62,6 +62,7 @@ export function createWorker(repositoryFactory: RepositoryFactory, voteHandlerFa
         const bannerUpload = url.pathname.match(/^\/api\/advertising\/servers\/([^/]+)\/banner$/)
         const exclusiveBannerUpload=url.pathname.match(/^\/api\/advertising\/servers\/([^/]+)\/exclusive-banner$/)
         const ownerBannerWorkspace = url.pathname === '/api/advertising/owner-workspace'
+        const ownerListing=url.pathname.match(/^\/api\/advertising\/servers\/([^/]+)\/listing$/)
         const advertisingWorkspace=url.pathname==='/api/advertising/workspace'
         const publicAds = url.pathname.match(/^\/api\/games\/([^/]+)\/exclusive-servers$/)
         const adImpression = url.pathname.match(/^\/api\/advertising\/placements\/([^/]+)\/impression$/)
@@ -75,10 +76,10 @@ export function createWorker(repositoryFactory: RepositoryFactory, voteHandlerFa
         const adminPlacements=url.pathname==='/api/admin/ad-placements'
         const adminPlacementDecision=url.pathname.match(/^\/api\/admin\/ad-placements\/([^/]+)\/decision$/)
         if (request.method === 'OPTIONS') {
-          const writeRoute = voteMatch || isSubmission || adminDecision || bannerUpload || exclusiveBannerUpload || adminBannerDecision || donationClaim || adminDonationDecision || adminPlacementDecision || adImpression
-          const protectedRoute = voteMatch || isSubmission || adminList || adminDecision || bannerUpload || exclusiveBannerUpload || ownerBannerWorkspace || advertisingWorkspace || adminBannerList || adminBannerPreview || adminBannerDecision || donationClaim || adminDonationClaims || adminDonationDecision || adminPlacements || adminPlacementDecision
+          const writeRoute = voteMatch || isSubmission || adminDecision || bannerUpload || exclusiveBannerUpload || ownerListing || adminBannerDecision || donationClaim || adminDonationDecision || adminPlacementDecision || adImpression
+          const protectedRoute = voteMatch || isSubmission || adminList || adminDecision || bannerUpload || exclusiveBannerUpload || ownerListing || ownerBannerWorkspace || advertisingWorkspace || adminBannerList || adminBannerPreview || adminBannerDecision || donationClaim || adminDonationClaims || adminDonationDecision || adminPlacements || adminPlacementDecision
           const uploadRoute = bannerUpload || exclusiveBannerUpload
-          return corsResponse(request, env, new Response(null, { status: 204 }), writeRoute ? `${uploadRoute ? 'PUT' : 'POST'}, OPTIONS` : 'GET, OPTIONS', protectedRoute ? `authorization, content-type${uploadRoute ? ', x-banner-alt-text, x-turnstile-token' : ''}` : undefined)
+          return corsResponse(request, env, new Response(null, { status: 204 }), ownerListing?'PATCH, DELETE, OPTIONS':writeRoute ? `${uploadRoute ? 'PUT' : 'POST'}, OPTIONS` : 'GET, OPTIONS', protectedRoute ? `authorization, content-type${uploadRoute ? ', x-banner-alt-text, x-turnstile-token' : ''}` : undefined)
         }
         if (url.pathname === '/api/health' && request.method === 'GET') return corsResponse(request, env, Response.json({ ok: true }, { headers: noStoreHeaders() }))
         if (url.pathname === '/api/servers') {
@@ -120,6 +121,7 @@ export function createWorker(repositoryFactory: RepositoryFactory, voteHandlerFa
           if (env.BANNER_UPLOADS_ENABLED !== 'true' || !advertisingFactory) return corsResponse(request, env, jsonError('Banner uploads are not available yet.', 503), 'GET, OPTIONS', 'authorization, content-type')
           return corsResponse(request, env, await advertisingFactory(env).ownerWorkspace(request), 'GET, OPTIONS', 'authorization, content-type')
         }
+        if(ownerListing){if(!['PATCH','DELETE'].includes(request.method))return corsResponse(request,env,methodNotAllowed('PATCH, DELETE'),'PATCH, DELETE, OPTIONS','authorization, content-type');if(env.BANNER_UPLOADS_ENABLED!=='true'||!advertisingFactory)return corsResponse(request,env,jsonError('Listing management is not available yet.',503),'PATCH, DELETE, OPTIONS','authorization, content-type');return corsResponse(request,env,await advertisingFactory(env).manageListing(request,safeDecode(ownerListing[1])),'PATCH, DELETE, OPTIONS','authorization, content-type')}
         if(advertisingWorkspace){if(request.method!=='GET')return corsResponse(request,env,methodNotAllowed(),'GET, OPTIONS','authorization, content-type');if(env.PAID_WORKFLOW_RELEASED!=='true'||env.ADVERTISING_WORKSPACE_ENABLED!=='true'||!advertisingFactory)return corsResponse(request,env,jsonError('Advertising workspace is not available yet.',503),'GET, OPTIONS','authorization, content-type');return corsResponse(request,env,await advertisingFactory(env).advertisingWorkspace(request),'GET, OPTIONS','authorization, content-type')}
         if (adminBannerList || adminBannerPreview || adminBannerDecision) {
           const methods = adminBannerDecision ? 'POST, OPTIONS' : 'GET, OPTIONS'

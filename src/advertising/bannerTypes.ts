@@ -15,8 +15,12 @@ export type BannerUploadService = {
 }
 
 export type OwnerBannerWorkspaceService = {
-  listServers: () => Promise<EligibleServer[]>
+  listServers: () => Promise<ManagedServer[]>
+  updateServer:(id:string,input:ListingInput)=>Promise<{ok:boolean;message:string}>
+  removeServer:(id:string)=>Promise<{ok:boolean;message:string}>
 }
+export type ListingInput={name:string;website:string;gameVersion:string;region:string;mode:'PvE'|'PvP'|'RPG';description:string}
+export type ManagedServer=EligibleServer&ListingInput&{hasPendingChange:boolean}
 
 export type ExclusiveServerAd = {
   id: string

@@ -3,7 +3,14 @@
 .advertise-header > a:first-child { display: inline-flex; width: clamp(190px, 25vw, 280px); }
 .advertise-header img { width: 100%; height: auto; max-height: 68px; object-fit: contain; }
 .advertise-header > a:last-child { min-height: 44px; display: inline-flex; align-items: center; color: #bfdbfe; }
-.advertise-intro, .advertiser-auth, .claim-panel, .claim-history, .banner-upload { margin-top: 24px; padding: clamp(20px, 4vw, 36px); border: 1px solid rgba(148,163,184,.2); border-radius: 20px; background: rgba(15,23,42,.78); }
+.advertise-intro, .advertiser-auth, .claim-panel, .claim-history, .banner-upload, .listing-manager { margin-top: 24px; padding: clamp(20px, 4vw, 36px); border: 1px solid rgba(148,163,184,.2); border-radius: 20px; background: rgba(15,23,42,.78); }
+.listing-manager ul { display:grid; gap:12px; padding:0; list-style:none; }
+.listing-manager li { display:grid; gap:12px; padding:16px; border-radius:12px; background:rgba(30,41,59,.8); }
+.listing-manager form { display:grid; gap:10px; margin-top:20px; }
+.listing-manager label { display:grid; gap:6px; }
+.listing-manager input,.listing-manager select,.listing-manager textarea { width:100%; min-height:48px; padding:10px 12px; color:#f8fafc; border:1px solid #475569; border-radius:10px; background:#0f172a; }
+.listing-manager textarea { min-height:140px; resize:vertical; }
+.listing-manager button { min-height:44px; padding:10px 16px; border:1px solid #38bdf8; border-radius:10px; background:#0369a1; color:white; font-weight:800; cursor:pointer; }
 .advertise-intro h1 { max-width: 16ch; font-size: clamp(2rem, 6vw, 4rem); line-height: 1.02; }
 .advertiser-auth form, .claim-panel form, .banner-upload form { display: grid; gap: 10px; margin-top: 20px; }
 .advertiser-auth input, .claim-panel input, .claim-panel select, .banner-upload input, .banner-upload select { width: 100%; min-height: 48px; padding: 10px 12px; color: #f8fafc; border: 1px solid #475569; border-radius: 10px; background: #0f172a; }

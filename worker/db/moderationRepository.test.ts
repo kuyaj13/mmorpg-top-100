@@ -4,7 +4,7 @@ import { createModerationRepository } from './moderationRepository'
 function client(rows: Record<string, unknown>[]): RankingQueryClient { return { connect: vi.fn(), query: vi.fn().mockResolvedValue({ rows }), end: vi.fn() } }
 describe('moderation repository', () => {
   it('lists through the private API function', async () => {
-    const database = client([{ id: 'id', game_slug: 'flyff', game_name: 'Flyff', name: 'One', website: 'https://one.example/', game_version: 'v1', region: 'Global', mode: 'PvE', description: 'Desc', created_at: '2026-09-03T00:00:00Z' }])
+    const database = client([]);vi.mocked(database.query).mockResolvedValueOnce({rows:[{ id: 'id', game_slug: 'flyff', game_name: 'Flyff', name: 'One', website: 'https://one.example/', game_version: 'v1', region: 'Global', mode: 'PvE', description: 'Desc', created_at: '2026-09-03T00:00:00Z' }]}).mockResolvedValueOnce({rows:[]})
     await expect(createModerationRepository(() => database).listPending()).resolves.toEqual([expect.objectContaining({ gameSlug: 'flyff', submittedAt: '2026-09-03T00:00:00.000Z' })])
     expect(database.query).toHaveBeenCalledWith('SELECT * FROM api.list_pending_server_submissions()')
   })

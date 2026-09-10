@@ -4,14 +4,16 @@ import { advertiserAuthService } from './advertisingServices'
 import { BannerUploadForm } from './BannerUploadForm'
 import { ownerBannerWorkspaceService } from './bannerServices'
 import type { OwnerBannerWorkspaceService } from './bannerTypes'
-import type { AdvertiserAuthService, EligibleServer } from './types'
+import type { ManagedServer } from './bannerTypes'
+import { ListingManager } from './ListingManager'
+import type { AdvertiserAuthService } from './types'
 import './AdvertisePage.css'
 
 type Props = { authService?: AdvertiserAuthService; workspaceService?: OwnerBannerWorkspaceService }
 
 export default function OwnerBannerPage({ authService = advertiserAuthService, workspaceService = ownerBannerWorkspaceService }: Props) {
   const [state, setState] = useState<'checking'|'signed-out'|'verify-email'|'loading'|'ready'|'error'>('checking')
-  const [servers, setServers] = useState<EligibleServer[]>([])
+  const [servers, setServers] = useState<ManagedServer[]>([])
   const [pending, setPending] = useState(false)
   const [feedback, setFeedback] = useState('')
   const [errors, setErrors] = useState<Record<string,string>>({})
@@ -86,7 +88,7 @@ export default function OwnerBannerPage({ authService = advertiserAuthService, w
       {state === 'error' && <section className="owner-workspace-error"><p role="alert">Your approved servers are unavailable right now. Please try again later.</p><div className="advertiser-auth-actions"><button type="button" disabled={pending} onClick={() => setReload((value) => value + 1)}>Retry</button><button type="button" disabled={pending} onClick={() => void leaveWorkspace()}>Sign out</button></div>{feedback && <p role="status">{feedback}</p>}</section>}
       {state === 'signed-out' && <section className="advertiser-auth" aria-labelledby="owner-account-heading"><h2 id="owner-account-heading">Server owner account</h2><p>Sign in with the same account used to submit your server. New accounts can manage servers submitted and approved under that account.</p><form onSubmit={(event) => void authenticate(event)} noValidate><label htmlFor="owner-email">Email address</label><input ref={emailRef} id="owner-email" name="email" type="email" autoComplete="username" aria-invalid={Boolean(errors.email)} aria-describedby={errors.email ? 'owner-email-error' : undefined}/>{errors.email && <p id="owner-email-error" className="field-error">{errors.email}</p>}<label htmlFor="owner-password">Password</label><input ref={passwordRef} id="owner-password" name="password" type="password" minLength={8} autoComplete="current-password" aria-invalid={Boolean(errors.password)} aria-describedby={errors.password ? 'owner-password-error' : undefined}/>{errors.password && <p id="owner-password-error" className="field-error">{errors.password}</p>}<div className="advertiser-auth-actions"><button type="submit" value="sign-in" disabled={pending}>Sign in</button><button type="submit" value="register" disabled={pending}>Create account</button></div></form>{feedback && <p role="status">{feedback}</p>}</section>}
       {state === 'verify-email' && <section className="advertiser-auth" aria-labelledby="verify-owner-heading"><h2 id="verify-owner-heading">Verify your email address</h2><p>Use the link in your verification email, then return here. Check your spam folder if the message is not in your inbox.</p><div className="advertiser-auth-actions"><button type="button" disabled={pending} onClick={() => void sendVerification()}>Send another email</button><button type="button" disabled={pending} onClick={() => void refreshVerification()}>I have verified my email</button></div>{feedback && <p role="status">{feedback}</p>}</section>}
-      {state === 'ready' && <><BannerUploadForm servers={servers}/><button className="owner-workspace-signout" type="button" disabled={pending} onClick={() => void leaveWorkspace()}>Sign out</button></>}
+      {state === 'ready' && <><ListingManager servers={servers} service={workspaceService} onChanged={() => setReload((value) => value + 1)}/><BannerUploadForm servers={servers}/><button className="owner-workspace-signout" type="button" disabled={pending} onClick={() => void leaveWorkspace()}>Sign out</button></>}
     </main>
   </div>
 }

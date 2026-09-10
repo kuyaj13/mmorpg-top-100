@@ -147,7 +147,7 @@ describe('rankings endpoint', () => {
   it('keeps the paid owner workspace disabled when individual flags are on but the master release is off', async () => {
     const advertisingWorkspace = vi.fn()
     const advertising = {
-      ownerWorkspace: vi.fn(), advertisingWorkspace, submitClaim: vi.fn(), listPendingClaims: vi.fn(), moderateClaim: vi.fn(),
+      manageListing:vi.fn(),ownerWorkspace: vi.fn(), advertisingWorkspace, submitClaim: vi.fn(), listPendingClaims: vi.fn(), moderateClaim: vi.fn(),
       upload: vi.fn(), listPublic: vi.fn(), banner: vi.fn(), listPending: vi.fn(), previewPending: vi.fn(), moderate: vi.fn(), listPlacements: vi.fn(), moderatePlacement: vi.fn(), recordImpression: vi.fn(),
     }
     const worker = createWorker(() => repository(null), undefined, undefined, undefined, () => advertising)
@@ -161,7 +161,7 @@ describe('rankings endpoint', () => {
   it('routes the paid owner workspace only when its dedicated gate is enabled', async () => {
     const advertisingWorkspace = vi.fn().mockResolvedValue(Response.json({ ok: true, servers: [], packages: [], claims: [] }))
     const advertising = {
-      ownerWorkspace: vi.fn(), advertisingWorkspace, submitClaim: vi.fn(), listPendingClaims: vi.fn(), moderateClaim: vi.fn(),
+      manageListing:vi.fn(),ownerWorkspace: vi.fn(), advertisingWorkspace, submitClaim: vi.fn(), listPendingClaims: vi.fn(), moderateClaim: vi.fn(),
       upload: vi.fn(), listPublic: vi.fn(), banner: vi.fn(), listPending: vi.fn(), previewPending: vi.fn(), moderate: vi.fn(), listPlacements: vi.fn(), moderatePlacement: vi.fn(), recordImpression: vi.fn(),
     }
     const worker = createWorker(() => repository(null), undefined, undefined, undefined, () => advertising)
@@ -194,7 +194,7 @@ describe('rankings endpoint', () => {
   it('keeps placement management disabled before invoking its protected handler', async () => {
     const listPlacements = vi.fn()
     const advertising = {
-      ownerWorkspace: vi.fn(), advertisingWorkspace: vi.fn(), submitClaim: vi.fn(), listPendingClaims: vi.fn(), moderateClaim: vi.fn(),
+      manageListing:vi.fn(),ownerWorkspace: vi.fn(), advertisingWorkspace: vi.fn(), submitClaim: vi.fn(), listPendingClaims: vi.fn(), moderateClaim: vi.fn(),
       upload: vi.fn(), listPublic: vi.fn(), banner: vi.fn(), listPending: vi.fn(), previewPending: vi.fn(), moderate: vi.fn(), listPlacements, moderatePlacement: vi.fn(), recordImpression: vi.fn(),
     }
     const worker = createWorker(() => repository(null), undefined, undefined, undefined, () => advertising)
@@ -208,7 +208,7 @@ describe('rankings endpoint', () => {
   it('routes placement management only when its dedicated gate is enabled', async () => {
     const listPlacements = vi.fn().mockResolvedValue(Response.json({ ok: true, placements: [] }))
     const advertising = {
-      ownerWorkspace: vi.fn(), advertisingWorkspace: vi.fn(), submitClaim: vi.fn(), listPendingClaims: vi.fn(), moderateClaim: vi.fn(),
+      manageListing:vi.fn(),ownerWorkspace: vi.fn(), advertisingWorkspace: vi.fn(), submitClaim: vi.fn(), listPendingClaims: vi.fn(), moderateClaim: vi.fn(),
       upload: vi.fn(), listPublic: vi.fn(), banner: vi.fn(), listPending: vi.fn(), previewPending: vi.fn(), moderate: vi.fn(), listPlacements, moderatePlacement: vi.fn(), recordImpression: vi.fn(),
     }
     const worker = createWorker(() => repository(null), undefined, undefined, undefined, () => advertising)
@@ -288,7 +288,7 @@ describe('rankings endpoint', () => {
   it('keeps exclusive banner uploads disabled when free banner uploads are enabled', async () => {
     const upload = vi.fn()
     const advertising = {
-      ownerWorkspace: vi.fn(), advertisingWorkspace: vi.fn(), submitClaim: vi.fn(), listPendingClaims: vi.fn(), moderateClaim: vi.fn(),
+      manageListing:vi.fn(),ownerWorkspace: vi.fn(), advertisingWorkspace: vi.fn(), submitClaim: vi.fn(), listPendingClaims: vi.fn(), moderateClaim: vi.fn(),
       upload, listPublic: vi.fn(), banner: vi.fn(), listPending: vi.fn(), previewPending: vi.fn(), moderate: vi.fn(), listPlacements: vi.fn(), moderatePlacement: vi.fn(), recordImpression: vi.fn(),
     }
     const worker = createWorker(() => repository(null), undefined, undefined, undefined, () => advertising)
@@ -303,7 +303,7 @@ describe('rankings endpoint', () => {
   it('routes exclusive banner uploads only when both upload gates are enabled', async () => {
     const upload = vi.fn().mockResolvedValue(Response.json({ ok: true }))
     const advertising = {
-      ownerWorkspace: vi.fn(), advertisingWorkspace: vi.fn(), submitClaim: vi.fn(), listPendingClaims: vi.fn(), moderateClaim: vi.fn(),
+      manageListing:vi.fn(),ownerWorkspace: vi.fn(), advertisingWorkspace: vi.fn(), submitClaim: vi.fn(), listPendingClaims: vi.fn(), moderateClaim: vi.fn(),
       upload, listPublic: vi.fn(), banner: vi.fn(), listPending: vi.fn(), previewPending: vi.fn(), moderate: vi.fn(), listPlacements: vi.fn(), moderatePlacement: vi.fn(), recordImpression: vi.fn(),
     }
     const worker = createWorker(() => repository(null), undefined, undefined, undefined, () => advertising)
@@ -329,7 +329,7 @@ describe('rankings endpoint', () => {
   it('serves an approved public banner independently from paid advertising', async () => {
     const banner = vi.fn().mockResolvedValue(new Response(new Uint8Array([137, 80, 78, 71]), { headers: { 'content-type': 'image/png' } }))
     const advertising = {
-      ownerWorkspace: vi.fn(),advertisingWorkspace:vi.fn(), submitClaim: vi.fn(), listPendingClaims: vi.fn(), moderateClaim: vi.fn(),
+      manageListing:vi.fn(),ownerWorkspace: vi.fn(),advertisingWorkspace:vi.fn(), submitClaim: vi.fn(), listPendingClaims: vi.fn(), moderateClaim: vi.fn(),
       upload: vi.fn(), listPublic: vi.fn(), banner, listPending: vi.fn(), previewPending: vi.fn(), moderate: vi.fn(),listPlacements:vi.fn(),moderatePlacement:vi.fn(),recordImpression:vi.fn(),
     }
     const worker = createWorker(() => repository(null), undefined, undefined, undefined, () => advertising)
@@ -349,7 +349,7 @@ describe('rankings endpoint', () => {
   it('routes the enabled owner workspace through the protected advertising boundary', async () => {
     const ownerWorkspace = vi.fn().mockResolvedValue(Response.json({ ok: true, servers: [] }))
     const advertising = {
-      ownerWorkspace,advertisingWorkspace:vi.fn(), submitClaim: vi.fn(), listPendingClaims: vi.fn(), moderateClaim: vi.fn(),
+      manageListing:vi.fn(),ownerWorkspace,advertisingWorkspace:vi.fn(), submitClaim: vi.fn(), listPendingClaims: vi.fn(), moderateClaim: vi.fn(),
       upload: vi.fn(), listPublic: vi.fn(), banner: vi.fn(), listPending: vi.fn(), previewPending: vi.fn(), moderate: vi.fn(),listPlacements:vi.fn(),moderatePlacement:vi.fn(),recordImpression:vi.fn(),
     }
     const worker = createWorker(() => repository(null), undefined, undefined, undefined, () => advertising)

@@ -4,7 +4,8 @@ import type { RankingQueryClient } from './rankingRepository'
 
 export type PublicAd = { id: string; serverId: string; serverName: string; bannerId: string; mediaType: string; altText: string; destinationUrl: string; startsAt: string; expiresAt: string }
 export type PendingBanner = { id: string; serverId: string; serverName: string; gameSlug: string; bannerKind: 'free'|'exclusive'; mediaType: string; byteSize: number; width: number; height: number; frameCount: number; animationDurationMs: number; altText: string; createdAt: string }
-export type OwnedServer = { id: string; name: string; gameSlug: string; gameName: string }
+export type OwnedServer = { id:string;name:string;gameSlug:string;gameName:string;website:string;gameVersion:string;region:string;mode:'PvE'|'PvP'|'RPG';description:string;hasPendingChange:boolean }
+type OwnedServerSummary=Pick<OwnedServer,'id'|'name'|'gameSlug'|'gameName'>
 export type AdPackage = { code:string;durationDays:7|30;tier:string;priceMinor:string;currency:string }
 export type OwnerDonationClaim = { id:string;serverName:string;gameName:string;durationDays:number;status:'pending'|'verified'|'rejected';createdAt:string;rejectionReason?:string }
 export type PendingDonationClaim = { id: string; serverName: string; gameName: string; website: string; donorReference: string; durationDays: number; expectedAmountMinor: string; currency: string; createdAt: string }
@@ -17,7 +18,9 @@ export type AdvertisingRepository = {
   putBanner(serverId: string, ownerKey: Uint8Array, banner: SanitizedBanner, altText: string): Promise<'stored' | 'unavailable'>
   putExclusiveBanner(serverId: string, ownerKey: Uint8Array, banner: SanitizedBanner, altText: string): Promise<'stored' | 'unavailable'>
   listOwnedServers(ownerKey: Uint8Array): Promise<OwnedServer[]>
-  listExclusiveEligibleServers?(ownerKey: Uint8Array): Promise<OwnedServer[]>
+  requestListingChange(ownerKey:Uint8Array,serverId:string,input:{name:string;website:string;websiteHost:string;gameVersion:string;region:string;mode:string;description:string}):Promise<'pending'|'invalid'|'unavailable'|'duplicate'>
+  removeOwnedServer(ownerKey:Uint8Array,serverId:string):Promise<'removed'|'unavailable'>
+  listExclusiveEligibleServers?(ownerKey: Uint8Array): Promise<OwnedServerSummary[]>
   listActivePackages():Promise<AdPackage[]>
   listOwnerDonationClaims(ownerKey:Uint8Array):Promise<OwnerDonationClaim[]>
   submitDonationClaim(ownerKey: Uint8Array, serverId: string, packageCode: string, donorReference: string): Promise<DonationClaimOutcome>
@@ -34,7 +37,7 @@ export type AdvertisingRepository = {
 }
 
 type PendingRow = { id: string; server_id: string; server_name: string; game_slug: string; banner_kind:'free'|'exclusive'; media_type: string; byte_size: number; width:number; height:number; frame_count: number; animation_duration_ms: number; alt_text: string; created_at: Date | string }
-type OwnedServerRow = { id: string; name: string; game_slug: string; game_name: string }
+type OwnedServerRow = { id:string;name:string;game_slug:string;game_name:string;website:string;game_version:string;region:string;mode:'PvE'|'PvP'|'RPG';description:string;has_pending_change:boolean }
 
 export function createAdvertisingRepository(createClient: () => RankingQueryClient): AdvertisingRepository {
   const run = async <T>(operation: (client: RankingQueryClient) => Promise<T>) => {
@@ -42,6 +45,8 @@ export function createAdvertisingRepository(createClient: () => RankingQueryClie
     try { await client.connect(); return await operation(client) } finally { await client.end() }
   }
   return {
+    requestListingChange:(owner,id,input)=>run(async(client)=>{const result=await client.query<{request_server_listing_change:string}>('SELECT api.request_server_listing_change($1::bytea,$2::uuid,$3::varchar,$4::text,$5::varchar,$6::varchar,$7::varchar,$8::varchar,$9::varchar) AS request_server_listing_change',[owner,id,input.name,input.website,input.websiteHost,input.gameVersion,input.region,input.mode,input.description]);const value=result.rows[0]?.request_server_listing_change;if(['pending','invalid','unavailable','duplicate'].includes(value))return value as 'pending'|'invalid'|'unavailable'|'duplicate';throw new Error('Invalid listing change outcome')}),
+    removeOwnedServer:(owner,id)=>run(async(client)=>{const result=await client.query<{remove_owned_server:string}>('SELECT api.remove_owned_server($1::bytea,$2::uuid) AS remove_owned_server',[owner,id]);const value=result.rows[0]?.remove_owned_server;if(value==='removed'||value==='unavailable')return value;throw new Error('Invalid removal outcome')}),
     putExclusiveBanner: (id, owner, banner, altText) => run(async (client) => {
       const result = await client.query<{ put_exclusive_banner: string }>('SELECT api.put_exclusive_banner($1::uuid,$2::bytea,$3::bytea,$4::bytea,$5::bytea,$6::bytea,$7::varchar,$8,$9,$10,$11,$12::varchar) AS put_exclusive_banner', [id, owner, banner.bytes, banner.staticFallbackBytes, banner.originalSha256, banner.sanitizedSha256, banner.mediaType, banner.width, banner.height, banner.frameCount, banner.animationDurationMs, altText])
       const value=result.rows[0]?.put_exclusive_banner;if(value!=='stored'&&value!=='unavailable')throw new Error('Invalid banner outcome');return value
@@ -66,8 +71,8 @@ export function createAdvertisingRepository(createClient: () => RankingQueryClie
       throw new Error('Invalid claim outcome')
     }),
     listOwnedServers: (ownerKey) => run(async (client) => {
-      const result = await client.query<OwnedServerRow>('SELECT id::text,name,game_slug,game_name FROM api.list_owned_servers($1::bytea)', [ownerKey])
-      return result.rows.map((row) => ({ id: row.id, name: row.name, gameSlug: row.game_slug, gameName: row.game_name }))
+      const result = await client.query<OwnedServerRow>('SELECT id::text,name,game_slug,game_name,website,game_version,region,mode,description,has_pending_change FROM api.list_owned_servers($1::bytea)', [ownerKey])
+      return result.rows.map((row) => ({id:row.id,name:row.name,gameSlug:row.game_slug,gameName:row.game_name,website:row.website,gameVersion:row.game_version,region:row.region,mode:row.mode,description:row.description,hasPendingChange:row.has_pending_change}))
     }),
     listExclusiveEligibleServers: (ownerKey) => run(async (client) => {
       const result = await client.query<OwnedServerRow>('SELECT id::text,name,game_slug,game_name FROM api.list_exclusive_banner_eligible_servers($1::bytea)', [ownerKey])

@@ -83,6 +83,25 @@ async function readDecision(request: Request): Promise<{ decision: 'approve' | '
 
 export function createAdvertisingEndpoints(dependencies: Dependencies) {
   return {
+    async manageListing(request:Request,serverId:string):Promise<Response>{
+      if(request.method!=='PATCH'&&request.method!=='DELETE')return error('Method not allowed.',405,{allow:'PATCH, DELETE'})
+      const owner=await authorize(request,dependencies,'owner','manage-listing');if(owner instanceof Response)return owner
+      if(!uuid.test(serverId))return error('This server is not available.',404)
+      const ownerKey=await dependencies.deriveOwnerKey(owner.uid)
+      if(request.method==='DELETE'){const outcome=await dependencies.repository.removeOwnedServer(ownerKey,serverId);return outcome==='removed'?Response.json({ok:true,message:'Your server listing was removed.'},{headers:safe}):error('This server is not available.',404)}
+      if(!request.headers.get('content-type')?.toLowerCase().startsWith('application/json'))return error('Please check the server details.',400)
+      const bytes=await readBoundedBytes(request,4096);if(!bytes)return error('Please check the server details.',400)
+      let data:Record<string,unknown>;try{const parsed:unknown=JSON.parse(new TextDecoder().decode(bytes));if(!parsed||typeof parsed!=='object'||Array.isArray(parsed))throw new Error();data=parsed as Record<string,unknown>}catch{return error('Please check the server details.',400)}
+      if(Object.keys(data).some(key=>!['name','website','gameVersion','region','mode','description'].includes(key)))return error('Please check the server details.',400)
+      const name=String(data.name??'').trim(),gameVersion=String(data.gameVersion??'').trim(),region=String(data.region??'').trim(),mode=String(data.mode??''),description=String(data.description??'').trim();let website:URL
+      try{website=new URL(String(data.website??''));website.hostname=website.hostname.toLowerCase()}catch{return error('Please enter a valid server URL.',400)}
+      const host=website.hostname;if(name.length<2||name.length>80||website.protocol!=='https:'||website.username||website.password||website.hash||host==='localhost'||host.endsWith('.local')||!host.includes('.')||host.startsWith('[')||/^(?:\d{1,3}\.){3}\d{1,3}$/.test(host)||gameVersion.length<1||gameVersion.length>60||region.length<1||region.length>60||!['PvE','PvP','RPG'].includes(mode)||description.length<20||description.length>1000)return error('Please check the server details.',400)
+      const outcome=await dependencies.repository.requestListingChange(ownerKey,serverId,{name,website:website.href,websiteHost:host,gameVersion,region,mode,description})
+      if(outcome==='duplicate')return error('Another server already uses that name or website.',409)
+      if(outcome==='unavailable')return error('This server is not available.',404)
+      if(outcome==='invalid')return error('Please check the server details.',400)
+      return Response.json({ok:true,message:'Your changes were submitted for review.'},{status:202,headers:safe})
+    },
     async listPlacements(request:Request):Promise<Response>{if(request.method!=='GET')return error('Method not allowed.',405,{allow:'GET'});const admin=await authorize(request,dependencies,'admin','list-ad-placements');if(admin instanceof Response)return admin;return Response.json({ok:true,placements:await dependencies.repository.listAdminPlacements()},{headers:safe})},
     async moderatePlacement(request:Request,placementId:string):Promise<Response>{if(request.method!=='POST')return error('Method not allowed.',405,{allow:'POST'});const admin=await authorize(request,dependencies,'admin','moderate-ad-placement');if(admin instanceof Response)return admin;if(!uuid.test(placementId))return error('Please submit a valid advertisement decision.',400);const input=await readDecision(request);if(!input||!['suspend','reactivate'].includes(input.decision))return error('Please submit a valid advertisement decision.',400);const outcome=await dependencies.repository.moderatePlacement(placementId,await dependencies.deriveModeratorKey(admin.uid),input.decision as 'suspend'|'reactivate',input.operationId);if(outcome==='suspend')return Response.json({ok:true,message:'The advertisement was suspended.'},{headers:safe});if(outcome==='reactivate')return Response.json({ok:true,message:'The advertisement was reactivated.'},{headers:safe});if(outcome==='inventory_full')return error('This game currently has no available advertising position.',409);if(outcome==='ineligible')return error('This advertisement is not eligible to run.',409);if(outcome==='expired')return error('This advertisement has expired.',409);return error('This advertisement is no longer available.',409)},
     async listPendingClaims(request: Request): Promise<Response> {
@@ -137,7 +156,7 @@ export function createAdvertisingEndpoints(dependencies: Dependencies) {
       if(owner instanceof Response)return owner
       const ownerKey=await dependencies.deriveOwnerKey(owner.uid)
       const [servers,exclusiveServers,packages,claims]=await Promise.all([dependencies.repository.listOwnedServers(ownerKey),dependencies.repository.listExclusiveEligibleServers?.(ownerKey)??Promise.resolve([]),dependencies.repository.listActivePackages(),dependencies.repository.listOwnerDonationClaims(ownerKey)])
-      return Response.json({ok:true,servers,exclusiveServers,packages,claims},{headers:safe})
+      return Response.json({ok:true,servers:servers.map(({id,name,gameSlug,gameName})=>({id,name,gameSlug,gameName})),exclusiveServers,packages,claims},{headers:safe})
     },
 
     async upload(request: Request, serverId: string,kind:'free'|'exclusive'='free'): Promise<Response> {
